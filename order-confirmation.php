@@ -1,0 +1,47 @@
+<?php
+session_start();
+require "config/database.php";
+
+$order_id = isset($_GET['order_id']) ? intval($_GET['order_id']) : 0;
+if (!$order_id || !isset($_SESSION['user_id'])) {
+    header("Location: index.php");
+    exit;
+}
+
+// Fetch order details
+$stmt = $conn->prepare("SELECT * FROM orders WHERE id = ? AND user_id = ?");
+$stmt->bind_param("ii", $order_id, $_SESSION['user_id']);
+$stmt->execute();
+$order = $stmt->get_result()->fetch_assoc();
+
+if (!$order) {
+    header("Location: index.php");
+    exit;
+}
+
+$page_title = "Order Confirmation";
+include 'includes/header.php';
+
+// Map payment method to display name
+$payment_display = [
+    'cash' => 'Cash on Pickup',
+    'wallet' => 'Wallet Balance'
+];
+$payment_method_display = $payment_display[$order['payment_method']] ?? ucfirst($order['payment_method']);
+?>
+
+<div class="checkout-container" style="text-align: center;">
+    <div class="success-icon" style="font-size: 5rem; margin-bottom: 1rem;">✅</div>
+    <h1>Thank You!</h1>
+    <p>Your order <strong>#<?= $order['id'] ?></strong> has been placed successfully.</p>
+    <p><strong>Total:</strong> $<?= number_format($order['total'], 2) ?></p>
+    <p><strong>Payment Status:</strong> <?= ucfirst($order['payment_status']) ?></p>
+    <p><strong>Payment Method:</strong> <?= $payment_method_display ?></p>
+
+    <div style="margin-top: 2rem;">
+        <a href="<?= kiosk_url('dashboard/orders.php') ?>" class="btn btn-primary">View My Orders</a>
+        <a href="<?= kiosk_url('menu.php') ?>" class="btn btn-accent">Order Again</a>
+    </div>
+</div>
+
+<?php include 'includes/footer.php'; ?>

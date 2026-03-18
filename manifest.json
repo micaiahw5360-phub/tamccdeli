@@ -1,0 +1,21 @@
+{
+  "name": "TAMCC Deli",
+  "short_name": "Deli",
+  "description": "Order food from TAMCC Deli",
+  "start_url": "/tamccdeli/index.php",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#074af2",
+  "icons": [
+    {
+      "src": "/tamccdeli/assets/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/tamccdeli/assets/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

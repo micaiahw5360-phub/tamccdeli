@@ -1,0 +1,301 @@
+/* ==================== KIOSK MODE – CLEAN TAMCC THEME ==================== */
+/* Hide normal header/footer */
+body .navbar,
+body .footer {
+    display: none !important;
+}
+
+/* Page background – light neutral */
+body {
+    background: #f8f9fa !important;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+}
+
+/* All containers – consistent with global theme but larger */
+body .container,
+body .menu-container,
+body .cart-container,
+body .checkout-container,
+body .kiosk-categories,
+body .order-summary,
+body .card {
+    max-width: 1400px;
+    margin: 2rem auto;
+    padding: 2rem;
+    background: white;
+    border-radius: 1rem;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    border: 1px solid #e9ecef;
+}
+
+/* Headings – larger, using TAMCC blue */
+body h1,
+body h2,
+body h3,
+body .kiosk-header,
+body .category-title {
+    color: #074af2 !important;
+    margin: 1.5rem 0;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+}
+body h1 { font-size: 3.5rem; }
+body h2 { font-size: 3rem; }
+body h3 { font-size: 2.5rem; }
+body .kiosk-header { font-size: 4rem; text-align: center; }
+
+/* Buttons – large, with TAMCC blue, no exaggerated shadows */
+body .btn,
+body .btn-small,
+body .btn-primary,
+body .btn-accent,
+body .add-to-cart-btn,
+body .filter-btn,
+body .category-filter button,
+body .kiosk-category,
+body .menu-item-footer button,
+body .floating-cart,
+body .btn-danger,
+body .btn-success,
+body .btn-warning {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    background: #074af2 !important;
+    color: white !important;
+    border: none !important;
+    border-radius: 0.5rem !important;
+    padding: 1.5rem 3rem !important;
+    font-size: 2rem !important;
+    font-weight: 600;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1) !important;
+    transition: background-color 0.2s, transform 0.1s;
+    text-decoration: none;
+    cursor: pointer;
+    line-height: 1.2;
+}
+
+body .btn:hover,
+body .btn-small:hover,
+body .btn-primary:hover,
+body .btn-accent:hover,
+body .add-to-cart-btn:hover,
+body .kiosk-category:hover {
+    background: #0538c2 !important;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 12px rgba(0,0,0,0.15) !important;
+}
+
+body .btn:active,
+body .btn-small:active {
+    transform: translateY(1px);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1) !important;
+}
+
+/* Accent buttons (orange) */
+body .btn-accent {
+    background: #f97316 !important;
+}
+body .btn-accent:hover {
+    background: #ea580c !important;
+}
+
+/* Danger button */
+body .btn-danger {
+    background: #dc3545 !important;
+}
+body .btn-danger:hover {
+    background: #c82333 !important;
+}
+
+/* Success button */
+body .btn-success {
+    background: #28a745 !important;
+}
+body .btn-success:hover {
+    background: #218838 !important;
+}
+
+/* Category tiles – simple cards */
+body .kiosk-categories {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 2rem;
+    padding: 2rem;
+}
+body .kiosk-category {
+    background: white !important;
+    color: #074af2 !important;
+    border: 2px solid #074af2 !important;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.05) !important;
+    font-size: 2.5rem;
+    min-height: 200px;
+    padding: 2rem;
+    transition: all 0.2s;
+}
+body .kiosk-category:hover {
+    background: #e9ecef !important;
+    border-color: #074af2 !important;
+    transform: scale(1.02);
+}
+
+/* Floating cart button – fixed at bottom right */
+body .floating-cart {
+    position: fixed;
+    bottom: 30px;
+    right: 30px;
+    background: #28a745 !important;
+    color: white !important;
+    border-radius: 60px !important;
+    padding: 1.5rem 3rem !important;
+    font-size: 2.5rem !important;
+    box-shadow: 0 8px 16px rgba(0,0,0,0.2) !important;
+    z-index: 1000;
+    border: none !important;
+}
+body .floating-cart:hover {
+    background: #218838 !important;
+    transform: scale(1.05);
+}
+body .floating-cart .cart-count {
+    background: white;
+    color: #28a745;
+    border-radius: 50%;
+    padding: 0.5rem 1.2rem;
+    font-size: 2rem;
+    margin-left: 1rem;
+    font-weight: bold;
+}
+
+/* Menu items – like cards */
+body .menu-item {
+    background: white;
+    border: 1px solid #dee2e6;
+    border-radius: 0.75rem;
+    padding: 1.5rem;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    transition: box-shadow 0.2s;
+}
+body .menu-item:hover {
+    box-shadow: 0 8px 16px rgba(0,0,0,0.1);
+}
+body .menu-item h3 {
+    font-size: 2rem;
+    color: #074af2;
+}
+body .menu-item .price {
+    font-size: 2rem;
+    font-weight: 700;
+    color: #f97316;
+}
+
+/* Form inputs – large */
+body input[type="text"],
+body input[type="number"],
+body input[type="email"],
+body input[type="datetime-local"],
+body select,
+body textarea {
+    font-size: 2rem !important;
+    padding: 1.5rem !important;
+    border: 2px solid #ced4da !important;
+    border-radius: 0.5rem !important;
+    width: 100%;
+    box-sizing: border-box;
+}
+body input:focus,
+body select:focus,
+body textarea:focus {
+    border-color: #074af2 !important;
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(7,74,242,0.25);
+}
+
+/* Labels */
+body .form-group label {
+    font-size: 2rem;
+    font-weight: 600;
+    color: #495057;
+    margin-bottom: 0.5rem;
+    display: block;
+}
+
+/* Tables */
+body table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 1.8rem;
+    background: white;
+    border-radius: 0.75rem;
+    overflow: hidden;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+}
+body th {
+    background: #e9ecef;
+    color: #074af2;
+    font-weight: 700;
+    padding: 1.5rem;
+    text-align: left;
+}
+body td {
+    padding: 1.5rem;
+    border-bottom: 1px solid #dee2e6;
+}
+body .total {
+    font-size: 2.5rem;
+    font-weight: 700;
+    color: #074af2;
+    text-align: right;
+    margin-top: 2rem;
+}
+
+/* Empty cart */
+body .empty-cart-message {
+    text-align: center;
+    padding: 4rem;
+}
+body .empty-cart-message .dashicons {
+    font-size: 8rem !important;
+    color: #adb5bd;
+}
+body .empty-cart-message h2 {
+    font-size: 3rem;
+    color: #074af2;
+}
+body .empty-cart-message .btn {
+    font-size: 2rem;
+    padding: 1.5rem 3rem;
+}
+
+/* Student ID field */
+body #student-id-group {
+    margin-top: 2rem;
+}
+
+/* Exit kiosk link */
+body .exit-kiosk-link {
+    text-align: center;
+    margin: 2rem;
+}
+body .exit-kiosk-link a {
+    background: #6c757d;
+    color: white;
+    padding: 1rem 2rem;
+    border-radius: 0.5rem;
+    text-decoration: none;
+    font-size: 1.5rem;
+}
+body .exit-kiosk-link a:hover {
+    background: #5a6268;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    body h1 { font-size: 2.5rem; }
+    body h2 { font-size: 2rem; }
+    body .btn,
+    body .btn-small { font-size: 1.5rem; padding: 1rem 2rem; }
+    body .kiosk-category { font-size: 2rem; min-height: 150px; }
+    body .floating-cart { font-size: 2rem; padding: 1rem 2rem; }
+}
