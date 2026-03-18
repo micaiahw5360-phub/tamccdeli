@@ -9,6 +9,28 @@ $password = getenv('DB_PASSWORD');
 $dbname   = getenv('DB_NAME');
 $ssl_ca   = getenv('DB_SSL_CA'); // Absolute path to CA certificate inside container
 
+// ---- DEBUG START ----
+echo "Current directory: " . __DIR__ . "<br>";
+echo "CA path from env: " . $ssl_ca . "<br>";
+if ($ssl_ca) {
+    if (file_exists($ssl_ca)) {
+        echo "CA file EXISTS.<br>";
+        echo "First 100 characters: " . htmlspecialchars(file_get_contents($ssl_ca, false, null, 0, 100)) . "<br>";
+    } else {
+        echo "CA file DOES NOT EXIST.<br>";
+    }
+} else {
+    echo "CA path is empty.<br>";
+}
+// You can also list files in the config directory to see what's there:
+$configDir = __DIR__ . '/config';
+if (is_dir($configDir)) {
+    echo "Files in config directory: " . implode(', ', scandir($configDir)) . "<br>";
+} else {
+    echo "Config directory not found at: $configDir<br>";
+}
+// ---- DEBUG END ----
+
 // Validate that all required variables are present
 if (!$host || !$port || !$user || !$password || !$dbname || !$ssl_ca) {
     error_log("Missing required database environment variables");
@@ -38,3 +60,4 @@ try {
     // Display error temporarily for debugging (remove or change to generic message after fixing)
     die("Database connection error: " . $e->getMessage());
 }
+?>
