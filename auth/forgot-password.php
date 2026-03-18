@@ -22,7 +22,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $stmt->execute();
 
         // In a real app, send email. Here we'll just show the link.
-        $reset_link = "http://localhost/tamccdeli/auth/reset-password.php?token=$token";
+        $reset_link = "http://localhost/auth/reset-password.php?token=$token";
         $success = "Password reset link: <a href='$reset_link'>$reset_link</a> (Simulated email)";
     } else {
         $error = "Email not found.";

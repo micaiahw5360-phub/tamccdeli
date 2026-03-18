@@ -1,10 +1,10 @@
 const CACHE_NAME = 'tamcc-deli-v1';
 const urlsToCache = [
-  '/tamccdeli/',
-  '/tamccdeli/index.php',
-  '/tamccdeli/menu.php',
-  '/tamccdeli/assets/css/global.css',
-  '/tamccdeli/assets/js/script.js',
+  '/',
+  '/index.php',
+  '/menu.php',
+  '/assets/css/global.css',
+  '/assets/js/script.js',
   'https://cdn.jsdelivr.net/gh/WordPress/WordPress@master/wp-includes/css/dashicons.min.css'
 ];
 

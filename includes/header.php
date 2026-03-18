@@ -43,30 +43,30 @@ ob_end_flush();
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?php echo isset($page_title) ? $page_title : 'TAMCC Deli'; ?></title>
-    <link rel="stylesheet" href="/tamccdeli/assets/css/global.css">
+    <link rel="stylesheet" href="/assets/css/global.css">
     <?php if ($kiosk_mode): ?>
-        <link rel="stylesheet" href="/tamccdeli/assets/css/kiosk.css">
+        <link rel="stylesheet" href="/assets/css/kiosk.css">
     <?php endif; ?>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/WordPress/WordPress@master/wp-includes/css/dashicons.min.css">
     <meta name="mobile-web-app-capable" content="yes">
 </head>
 <body>
     <div class="navbar">
-        <a href="<?= kiosk_url('/tamccdeli/index.php') ?>" class="logo">TAMCC Deli</a>
+        <a href="<?= kiosk_url('/index.php') ?>" class="logo">TAMCC Deli</a>
         <button class="menu-toggle" aria-label="Toggle menu">☰</button>
         <div class="nav-links">
-            <a href="<?= kiosk_url('/tamccdeli/index.php') ?>">Home</a>
+            <a href="<?= kiosk_url('/index.php') ?>">Home</a>
             <div class="dropdown">
-                <a href="<?= kiosk_url('/tamccdeli/menu.php') ?>">Menu ▾</a>
+                <a href="<?= kiosk_url('/menu.php') ?>">Menu ▾</a>
                 <div class="dropdown-content">
-                    <a href="<?= kiosk_url('/tamccdeli/menu.php#breakfast') ?>">Breakfast</a>
-                    <a href="<?= kiosk_url('/tamccdeli/menu.php#alacarte') ?>">A La Carte</a>
-                    <a href="<?= kiosk_url('/tamccdeli/menu.php#combo') ?>">Combo</a>
-                    <a href="<?= kiosk_url('/tamccdeli/menu.php#beverage') ?>">Beverage</a>
-                    <a href="<?= kiosk_url('/tamccdeli/menu.php#dessert') ?>">Dessert</a>
+                    <a href="<?= kiosk_url('/menu.php#breakfast') ?>">Breakfast</a>
+                    <a href="<?= kiosk_url('/menu.php#alacarte') ?>">A La Carte</a>
+                    <a href="<?= kiosk_url('/menu.php#combo') ?>">Combo</a>
+                    <a href="<?= kiosk_url('/menu.php#beverage') ?>">Beverage</a>
+                    <a href="<?= kiosk_url('/menu.php#dessert') ?>">Dessert</a>
                 </div>
             </div>
-            <a href="<?= kiosk_url('/tamccdeli/cart.php') ?>"><span class="dashicons dashicons-cart"></span> Cart <span id="cart-count" class="cart-count">0</span></a>
+            <a href="<?= kiosk_url('/cart.php') ?>"><span class="dashicons dashicons-cart"></span> Cart <span id="cart-count" class="cart-count">0</span></a>
 
             <?php if (isset($_SESSION['user_id']) && ($_SESSION['role'] === 'admin' || $_SESSION['role'] === 'staff') && !$kiosk_mode): ?>
                 <a href="?kiosk=1" class="btn-small" style="background: #ff66c4; color: white;">🎮 Enter Kiosk Mode</a>
@@ -74,21 +74,21 @@ ob_end_flush();
 
             <?php if (isset($_SESSION['user_id']) && isset($_SESSION['role'])): ?>
                 <?php if ($_SESSION['role'] === 'admin' || $_SESSION['role'] === 'staff'): ?>
-                    <a href="<?= kiosk_url('/tamccdeli/staff/orders.php') ?>"><span class="dashicons dashicons-clipboard"></span> Staff Panel</a>
+                    <a href="<?= kiosk_url('/staff/orders.php') ?>"><span class="dashicons dashicons-clipboard"></span> Staff Panel</a>
                 <?php endif; ?>
                 <?php if ($_SESSION['role'] === 'admin'): ?>
-                    <a href="<?= kiosk_url('/tamccdeli/admin/index.php') ?>"><span class="dashicons dashicons-admin-tools"></span> Admin Panel</a>
+                    <a href="<?= kiosk_url('/admin/index.php') ?>"><span class="dashicons dashicons-admin-tools"></span> Admin Panel</a>
                 <?php endif; ?>
             <?php endif; ?>
 
             <!-- User links -->
 <?php if (isset($_SESSION['user_id'])): ?>
-    <a href="<?= kiosk_url('/tamccdeli/dashboard/index.php') ?>"><span class="dashicons dashicons-dashboard"></span> Dashboard</a>
-    <a href="<?= kiosk_url('/tamccdeli/wallet.php') ?>"><span class="dashicons dashicons-money"></span> Wallet</a>
-    <a href="<?= kiosk_url('/tamccdeli/auth/logout.php') ?>"><span class="dashicons dashicons-exit"></span> Logout</a>
+    <a href="<?= kiosk_url('/dashboard/index.php') ?>"><span class="dashicons dashicons-dashboard"></span> Dashboard</a>
+    <a href="<?= kiosk_url('/wallet.php') ?>"><span class="dashicons dashicons-money"></span> Wallet</a>
+    <a href="<?= kiosk_url('/auth/logout.php') ?>"><span class="dashicons dashicons-exit"></span> Logout</a>
 <?php else: ?>
-    <a href="<?= kiosk_url('/tamccdeli/auth/login.php') ?>"><span class="dashicons dashicons-lock"></span> Login</a>
-    <a href="<?= kiosk_url('/tamccdeli/auth/register.php') ?>"><span class="dashicons dashicons-edit"></span> Register</a>
+    <a href="<?= kiosk_url('/auth/login.php') ?>"><span class="dashicons dashicons-lock"></span> Login</a>
+    <a href="<?= kiosk_url('/auth/register.php') ?>"><span class="dashicons dashicons-edit"></span> Register</a>
 <?php endif; ?>
         </div>
     </div>

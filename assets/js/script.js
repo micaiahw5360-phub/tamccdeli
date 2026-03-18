@@ -134,7 +134,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 formData.append('kiosk', '1');
             }
             try {
-                const url = kioskUrl('/tamccdeli/cart.php?action=add');
+                const url = kioskUrl('/cart.php?action=add');
                 const result = await fetchJson(url, {
                     method: 'POST',
                     body: formData
@@ -164,7 +164,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // Update cart count (used in header and kiosk floating cart)
     async function updateCartCount() {
         try {
-            const url = kioskUrl('/tamccdeli/get-cart-count.php');
+            const url = kioskUrl('/get-cart-count.php');
             const data = await fetchJson(url);
             const countSpan = document.getElementById('cart-count');
             if (countSpan) {
@@ -251,7 +251,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Service worker (optional)
     if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.register('/tamccdeli/sw.js')
+        navigator.serviceWorker.register('/sw.js')
             .then(reg => console.log('SW registered', reg))
             .catch(err => console.log('SW failed', err));
     }
