@@ -1,18 +1,23 @@
-# Use official PHP Apache image
 FROM php:8.2-apache
 
-# Enable mysqli extension
-RUN docker-php-ext-install mysqli && docker-php-ext-enable mysqli
+# Install system dependencies and PHP extensions
+RUN apt-get update && apt-get install -y git unzip \
+    && docker-php-ext-install mysqli
 
-# Copy application files to the container
-COPY . /var/www/html/
+# Install Composer
+COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
 # Set working directory
-WORKDIR /var/www/html/
+WORKDIR /var/www/html
 
-# Ensure Apache serves from the correct directory (optional, default is /var/www/html)
-# If your files are not directly in the root, adjust the DocumentRoot in Apache config.
-# For most setups, the default is fine.
+# Copy composer files first (for caching)
+COPY composer.json composer.lock ./
+
+# Install PHP dependencies
+RUN composer install --no-dev --no-interaction --prefer-dist
+
+# Copy the rest of the application
+COPY . .
 
 # Expose port 80
 EXPOSE 80
