@@ -1,18 +1,22 @@
 <?php
 require __DIR__ . '/../config/database.php';
 
-// Get last 7 days sales with a single query
-$salesData = [];
+// Generate last 7 days as dates (Y-m-d) and labels (day names)
+$dates = [];
+$labels = [];
 for ($i = 6; $i >= 0; $i--) {
     $date = date('Y-m-d', strtotime("-$i days"));
+    $dates[] = $date;
     $labels[] = date('D', strtotime($date));
 }
+
 $placeholders = implode(',', array_fill(0, 7, '?'));
 $stmt = $conn->prepare("SELECT DATE(order_date) as day, COALESCE(SUM(total),0) as total 
                          FROM orders 
                          WHERE DATE(order_date) IN ($placeholders)
                          GROUP BY DATE(order_date)");
-$stmt->bind_param(str_repeat('s', 7), ...$labels);
+// Bind the actual date strings
+$stmt->bind_param(str_repeat('s', 7), ...$dates);
 $stmt->execute();
 $result = $stmt->get_result();
 $daily = [];
@@ -21,8 +25,8 @@ while ($row = $result->fetch_assoc()) {
 }
 
 $sales = [];
-foreach ($labels as $day) {
-    $sales[] = $daily[$day] ?? 0;
+foreach ($dates as $date) {
+    $sales[] = $daily[$date] ?? 0;
 }
 
 // Get top 5 items
@@ -42,7 +46,7 @@ foreach ($popular as $item) {
 
 header('Content-Type: application/json');
 echo json_encode([
-    'labels' => $labels,
+    'labels' => $labels,       // day names for the chart
     'sales' => $sales,
     'itemLabels' => $itemNames,
     'itemData' => $itemQtys

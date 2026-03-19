@@ -2,6 +2,7 @@
 require __DIR__ . '/../../middleware/admin_check.php';
 require __DIR__ . '/../../config/database.php';
 require __DIR__ . '/../../includes/csrf.php';
+require __DIR__ . '/../../includes/kiosk.php';
 
 // Fetch all menu items
 $stmt = $conn->prepare("SELECT * FROM menu_items ORDER BY FIELD(category, 'Breakfast', 'A La Carte', 'Combo', 'Beverage', 'Dessert'), sort_order, name");
