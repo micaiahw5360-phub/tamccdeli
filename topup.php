@@ -22,7 +22,11 @@ $amount = floatval($_POST['amount']);
 
 if ($amount <= 0 || $amount > 1000) {
     $_SESSION['topup_error'] = "Invalid amount. Must be between $1 and $1000.";
-    header("Location: wallet.php");
+    $redirect = "wallet.php";
+    if (isset($_SESSION['kiosk_mode']) && $_SESSION['kiosk_mode']) {
+        $redirect .= '?kiosk=1';
+    }
+    header("Location: $redirect");
     exit;
 }
 
@@ -47,5 +51,10 @@ try {
     $_SESSION['topup_error'] = "Transaction failed. Please try again.";
 }
 
-header("Location: wallet.php");
+// Redirect back to wallet – preserve kiosk mode
+$redirect = "wallet.php";
+if (isset($_SESSION['kiosk_mode']) && $_SESSION['kiosk_mode']) {
+    $redirect .= '?kiosk=1';
+}
+header("Location: $redirect");
 exit;

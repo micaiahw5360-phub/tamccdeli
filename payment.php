@@ -65,8 +65,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         // Clear pending order from session
         unset($_SESSION['pending_order']);
 
-        // Redirect to confirmation
-        header("Location: order-confirmation.php?order_id=$order_id");
+        // Redirect to confirmation – preserve kiosk mode
+        $redirect = "order-confirmation.php?order_id=$order_id";
+        if (isset($_SESSION['kiosk_mode']) && $_SESSION['kiosk_mode']) {
+            $redirect .= '&kiosk=1';
+        }
+        header("Location: $redirect");
         exit;
     }
 }

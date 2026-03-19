@@ -1,5 +1,5 @@
 <?php
-// Start output buffering to discard any accidental output (e.g., BOM)
+// Start output buffering to capture any accidental output (e.g., BOM)
 ob_start();
 
 if (session_status() === PHP_SESSION_NONE) {
@@ -35,14 +35,14 @@ function kiosk_url($url) {
 // Pass kiosk mode to JavaScript
 echo '<script>var kioskMode = ' . ($kiosk_mode ? 'true' : 'false') . ';</script>';
 
-// Flush the buffer and send output
-ob_end_flush();
+// DO NOT call ob_end_flush() – let the buffer flush automatically at the end
 ?><!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?php echo isset($page_title) ? $page_title : 'TAMCC Deli'; ?></title>
+    <meta http-equiv="Content-Security-Policy" content="default-src * 'unsafe-inline' 'unsafe-eval'; script-src * 'unsafe-inline' 'unsafe-eval'; style-src * 'unsafe-inline'; img-src * data:; font-src * data:;">
     <link rel="stylesheet" href="/assets/css/global.css">
     <?php if ($kiosk_mode): ?>
         <link rel="stylesheet" href="/assets/css/kiosk.css">

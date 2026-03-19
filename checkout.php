@@ -110,9 +110,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $conn->commit();
             $_SESSION['cart'] = [];
 
-            // Redirect to confirmation
-            header("Location: order-confirmation.php?order_id=$order_id");
+            // Redirect to confirmation – preserve kiosk mode
+            $redirect = "order-confirmation.php?order_id=$order_id";
+            if (isset($_SESSION['kiosk_mode']) && $_SESSION['kiosk_mode']) {
+                $redirect .= '&kiosk=1';
+            }
+            header("Location: $redirect");
             exit;
+
         } catch (Exception $e) {
             $conn->rollback();
             $error = "Failed to place order: " . $e->getMessage();
