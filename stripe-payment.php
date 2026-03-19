@@ -1,0 +1,86 @@
+<?php
+session_start();
+require __DIR__ . '/vendor/autoload.php';
+
+if (!isset($_SESSION['stripe_intent_id']) || !isset($_SESSION['pending_order'])) {
+    header('Location: index.php');
+    exit;
+}
+
+$stripe_publishable_key = getenv('STRIPE_PUBLISHABLE_KEY');
+$client_secret = $_SESSION['stripe_client_secret'];
+$order_id = $_SESSION['pending_order'];
+$total = $_SESSION['stripe_total'] ?? 0;
+
+include 'includes/header.php';
+?>
+
+<div class="checkout-container">
+    <h1>Complete Payment</h1>
+    <p>Order #<?= $order_id ?> – Total: $<?= number_format($total, 2) ?></p>
+
+    <div class="card">
+        <form id="payment-form">
+            <div class="form-group">
+                <label>Card Details</label>
+                <div id="card-element" class="form-control" style="padding: 0.75rem;"><!-- Stripe Element will be inserted here --></div>
+                <div id="card-errors" class="error-message" style="margin-top:0.5rem;"></div>
+            </div>
+
+            <button type="submit" class="btn btn-primary" id="submit-button">Pay Now</button>
+        </form>
+    </div>
+</div>
+
+<script src="https://js.stripe.com/v3/"></script>
+<script>
+    const stripe = Stripe('<?= $stripe_publishable_key ?>');
+    const elements = stripe.elements();
+    const card = elements.create('card', {
+        style: {
+            base: {
+                fontSize: '16px',
+                fontFamily: 'inherit',
+                color: '#333',
+            }
+        }
+    });
+    card.mount('#card-element');
+
+    card.on('change', ({error}) => {
+        const displayError = document.getElementById('card-errors');
+        if (error) {
+            displayError.textContent = error.message;
+        } else {
+            displayError.textContent = '';
+        }
+    });
+
+    const form = document.getElementById('payment-form');
+    form.addEventListener('submit', async (event) => {
+        event.preventDefault();
+        const submitBtn = document.getElementById('submit-button');
+        submitBtn.disabled = true;
+        submitBtn.textContent = 'Processing...';
+
+        const {error, paymentIntent} = await stripe.confirmCardPayment('<?= $client_secret ?>', {
+            payment_method: { card: card }
+        });
+
+        if (error) {
+            document.getElementById('card-errors').textContent = error.message;
+            submitBtn.disabled = false;
+            submitBtn.textContent = 'Pay Now';
+        } else {
+            // Payment succeeded – call stripe-success.php to update order
+            const response = await fetch('stripe-success.php', { method: 'POST' });
+            if (response.ok) {
+                window.location.href = 'order-confirmation.php?order_id=<?= $order_id ?>';
+            } else {
+                alert('Payment succeeded but could not update order. Please contact support.');
+            }
+        }
+    });
+</script>
+
+<?php include 'includes/footer.php'; ?>

@@ -3,6 +3,12 @@ session_start();
 require __DIR__ . '/config/database.php';
 require __DIR__ . '/includes/csrf.php';
 
+// --- Stripe integration (added) ---
+require_once __DIR__ . '/vendor/autoload.php';
+use Stripe\Stripe;
+use Stripe\PaymentIntent;
+// ---------------------------------
+
 if (empty($_SESSION['cart'])) {
     header("Location: menu.php");
     exit;
@@ -108,6 +114,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
 
             $conn->commit();
+
+            // --- Handle online payment (added) ---
+            if ($payment_method === 'online') {
+                Stripe::setApiKey(getenv('STRIPE_SECRET_KEY'));
+                $intent = PaymentIntent::create([
+                    'amount'   => round($total * 100), // in cents
+                    'currency' => 'usd',
+                    'metadata' => ['order_id' => $order_id],
+                ]);
+                $_SESSION['stripe_intent_id'] = $intent->id;
+                $_SESSION['stripe_client_secret'] = $intent->client_secret;
+                $_SESSION['pending_order'] = $order_id;
+                // Store total for display on payment page
+                $_SESSION['stripe_total'] = $total;
+                header("Location: stripe-payment.php");
+                exit;
+            }
+            // --------------------------------------
+
+            // For cash or wallet, clear cart and go to confirmation
             $_SESSION['cart'] = [];
 
             // Redirect to confirmation – preserve kiosk mode
@@ -186,6 +212,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     <option value="cash">Cash on Pickup</option>
                     <?php if (isset($_SESSION['user_id'])): ?>
                         <option value="wallet">Wallet Balance ($<?= number_format($user_balance, 2) ?>)</option>
+                        <!-- Added online payment option -->
+                        <option value="online">Online Payment (Card)</option>
                     <?php endif; ?>
                 </select>
             </div>

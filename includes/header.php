@@ -101,9 +101,16 @@ echo '<script>var kioskMode = ' . ($kiosk_mode ? 'true' : 'false') . ';</script>
                 <?php endif; ?>
             <?php endif; ?>
 
-            <!-- User links -->
+            <!-- User links with optional profile photo (modified) -->
 <?php if (isset($_SESSION['user_id'])): ?>
-    <a href="<?= normal_url('/dashboard/index.php') ?>"><span class="dashicons dashicons-dashboard"></span> Dashboard</a>
+    <?php if (isset($_SESSION['profile_photo'])): ?>
+        <a href="<?= normal_url('/dashboard/index.php') ?>" style="display:flex; align-items:center;">
+            <img src="<?= $_SESSION['profile_photo'] ?>" alt="Profile" style="width:32px; height:32px; border-radius:50%; margin-right:8px;">
+            Dashboard
+        </a>
+    <?php else: ?>
+        <a href="<?= normal_url('/dashboard/index.php') ?>"><span class="dashicons dashicons-dashboard"></span> Dashboard</a>
+    <?php endif; ?>
     <a href="<?= normal_url('/wallet.php') ?>"><span class="dashicons dashicons-money"></span> Wallet</a>
     <a href="<?= normal_url('/auth/logout.php') ?>"><span class="dashicons dashicons-exit"></span> Logout</a>
 <?php else: ?>

@@ -74,6 +74,14 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
                 </div>
                 <button type="submit" class="btn btn-primary btn-block">Register</button>
             </form>
+
+            <!-- Google login button (added) -->
+            <hr>
+            <a href="google-login.php" class="btn btn-outline" style="width:100%; text-align:center;">
+                <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" style="height:18px; margin-right:6px;">
+                Continue with Google
+            </a>
+
             <p class="auth-footer">Already have an account? <a href="login.php">Login</a></p>
         </div>
     </div>
