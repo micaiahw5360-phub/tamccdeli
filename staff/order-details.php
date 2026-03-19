@@ -14,10 +14,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_status'])) {
     if (!validateToken($_POST['csrf_token'])) {
         die('Invalid CSRF token');
     }
-    $new_status = $_POST['status'];
+
+    $new_status = $_POST['update_status']; // value from button
     $staff_id = $_SESSION['user_id'];
 
+    // Allowed status transitions
+    $allowed = ['processing', 'completed', 'cancelled'];
+    if (!in_array($new_status, $allowed)) {
+        die('Invalid status');
+    }
+
     if ($new_status === 'processing') {
+        // Only allow processing if current status is pending
         $stmt = $conn->prepare("UPDATE orders SET status = ?, staff_id = ? WHERE id = ? AND status = 'pending'");
         $stmt->bind_param("sii", $new_status, $staff_id, $order_id);
     } else {

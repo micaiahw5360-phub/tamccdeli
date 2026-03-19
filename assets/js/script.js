@@ -1,5 +1,5 @@
 /**
- * TAMCC Deli – Main JavaScript (with kiosk mode support & improved error handling)
+ * TAMCC Deli – Main JavaScript (with kiosk mode support & fixed paths)
  */
 document.addEventListener('DOMContentLoaded', function() {
     // Mobile menu toggle
@@ -134,6 +134,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 formData.append('kiosk', '1');
             }
             try {
+                // Use correct path without /tamccdeli prefix
                 const url = kioskUrl('/cart.php?action=add');
                 const result = await fetchJson(url, {
                     method: 'POST',
@@ -164,6 +165,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // Update cart count (used in header and kiosk floating cart)
     async function updateCartCount() {
         try {
+            // Use correct path without /tamccdeli prefix
             const url = kioskUrl('/get-cart-count.php');
             const data = await fetchJson(url);
             const countSpan = document.getElementById('cart-count');
