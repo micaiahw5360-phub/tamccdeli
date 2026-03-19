@@ -1,4 +1,8 @@
 <?php
+// Enable error reporting for debugging
+ini_set('display_errors', 1);
+error_reporting(E_ALL);
+
 require __DIR__ . '/../config/database.php';
 require __DIR__ . '/../includes/csrf.php';
 
