@@ -1042,43 +1042,191 @@ tr:hover td {
 .toast-info {
   background: var(--primary-600);
 }
+/* ==================== RESPONSIVE BREAKPOINTS ==================== */
 
-/* ==================== RESPONSIVE ==================== */
-@media (max-width: 768px) {
+/* Extra large devices (large desktops, 1200px and up) */
+@media (min-width: 1200px) {
+  .container,
+  .menu-container,
+  .cart-container,
+  .checkout-container {
+    max-width: 1400px;
+  }
+  .items-grid {
+    grid-template-columns: repeat(5, 1fr);
+  }
+  .footer-container {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+/* Large devices (desktops, 992px to 1199px) */
+@media (min-width: 992px) and (max-width: 1199.98px) {
+  .items-grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+  .footer-container {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+/* Medium devices (tablets, 768px to 991px) */
+@media (min-width: 768px) and (max-width: 991.98px) {
+  .items-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+  .footer-container {
+    grid-template-columns: repeat(3, 1fr);
+  }
+  .navbar .logo {
+    font-size: 1.5rem;
+  }
+  /* Dashboard sidebar becomes horizontal menu */
   .dashboard-wrapper {
     flex-direction: column;
   }
-
   .sidebar {
     width: 100%;
     height: auto;
     position: static;
+    padding: var(--space);
   }
-
+  .sidebar ul {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+  .sidebar li {
+    margin-bottom: 0;
+  }
+  .sidebar a {
+    padding: 0.5rem 1rem;
+  }
   .main-content {
     padding: var(--space-md);
   }
-
-  .items-grid {
+  .stats-grid {
     grid-template-columns: repeat(2, 1fr);
-  }
-
-  .footer-container {
-    grid-template-columns: 1fr 1fr;
   }
 }
 
-@media (max-width: 576px) {
+/* Small devices (landscape phones, 576px to 767px) */
+@media (min-width: 576px) and (max-width: 767.98px) {
+  .items-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .footer-container {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  h1 { font-size: 2.2rem; }
+  h2 { font-size: 1.8rem; }
+  h3 { font-size: 1.5rem; }
+  /* Dashboard adjustments for small screens */
+  .dashboard-wrapper {
+    flex-direction: column;
+  }
+  .sidebar {
+    width: 100%;
+    height: auto;
+    position: static;
+    padding: var(--space);
+  }
+  .sidebar ul {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+  .sidebar li {
+    margin-bottom: 0;
+  }
+  .sidebar a {
+    padding: 0.5rem 1rem;
+  }
+  .main-content {
+    padding: var(--space-md);
+  }
+  .stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+/* Extra small devices (phones, less than 576px) */
+@media (max-width: 575.98px) {
+  html {
+    font-size: 14px;
+  }
+  h1 { font-size: 2rem; }
+  h2 { font-size: 1.75rem; }
+  h3 { font-size: 1.5rem; }
+  .navbar {
+    padding: var(--space-sm) var(--space);
+  }
+  .nav-links a {
+    font-size: 0.875rem;
+    padding: var(--space-xs) var(--space-sm);
+  }
+  .container,
+  .menu-container,
+  .cart-container,
+  .checkout-container {
+    padding: 0 var(--space);
+  }
   .items-grid {
     grid-template-columns: 1fr;
+    gap: var(--space);
   }
-
+  .menu-item .price {
+    font-size: 1.2rem;
+  }
+  .menu-item-footer {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .menu-item-footer form {
+    justify-content: center;
+  }
+  .cart-container table {
+    font-size: 0.9rem;
+  }
+  .cart-container th,
+  .cart-container td {
+    padding: 0.5rem;
+  }
+  .footer-container {
+    grid-template-columns: 1fr;
+    gap: var(--space);
+  }
   .stats-grid {
     grid-template-columns: 1fr;
   }
-
-  .footer-container {
-    grid-template-columns: 1fr;
+  .header-bar {
+    flex-direction: column;
+    text-align: center;
+    gap: var(--space);
+  }
+  /* Dashboard adjustments for extra small screens */
+  .dashboard-wrapper {
+    flex-direction: column;
+  }
+  .sidebar {
+    width: 100%;
+    height: auto;
+    position: static;
+    padding: var(--space);
+  }
+  .sidebar ul {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+  .sidebar li {
+    margin-bottom: 0;
+  }
+  .sidebar a {
+    padding: 0.5rem 1rem;
+  }
+  .main-content {
+    padding: var(--space-md);
   }
 }
 
