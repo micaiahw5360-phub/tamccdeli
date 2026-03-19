@@ -1,0 +1,15 @@
+# Composer
+/vendor/
+/composer.lock
+
+# IDE / OS files
+.DS_Store
+Thumbs.db
+*.log
+*.swp
+*.swo
+*.idea/
+*.vscode/
+
+# Project specific (optional)
+/node_modules/
