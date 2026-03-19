@@ -3,6 +3,9 @@
 ini_set('display_errors', 1);
 error_reporting(E_ALL);
 
+// Start output buffering
+ob_start();
+
 require __DIR__ . '/../config/database.php';
 require __DIR__ . '/../includes/csrf.php';
 
@@ -31,6 +34,9 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
         $stmt = $conn->prepare("INSERT INTO users (username, email, password) VALUES (?, ?, ?)");
         $stmt->bind_param("sss", $username, $email, $hash);
         $stmt->execute();
+
+        // Clear output buffer before redirect
+        ob_end_clean();
         header("Location: login.php");
         exit;
     }
@@ -73,3 +79,6 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
     </div>
 </body>
 </html>
+<?php
+ob_end_flush();
+?>
