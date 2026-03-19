@@ -39,11 +39,11 @@ $items = $result->fetch_all(MYSQLI_ASSOC);
 <div class="admin-container">
     <div class="admin-header">
         <h1>Menu Management</h1>
-        <a href="create.php" class="btn btn-primary">+ Add New Item</a>
+        <a href="<?= normal_url('create.php') ?>" class="btn btn-primary">+ Add New Item</a>
     </div>
 
     <?php if (empty($items)): ?>
-        <p>No menu items yet. <a href="create.php">Add your first item</a>.</p>
+        <p>No menu items yet. <a href="<?= normal_url('create.php') ?>">Add your first item</a>.</p>
     <?php else: ?>
         <table>
             <thead>
@@ -75,8 +75,8 @@ $items = $result->fetch_all(MYSQLI_ASSOC);
                     <td>$<?= number_format($item['price'], 2) ?></td>
                     <td><?= $item['sort_order'] ?></td>
                     <td>
-                        <a href="edit.php?id=<?= $item['id'] ?>" class="btn btn-edit">Edit</a>
-                        <form method="post" action="delete.php" class="delete-form" onsubmit="return confirm('Are you sure you want to delete this item?');">
+                        <a href="<?= normal_url('edit.php?id=' . $item['id']) ?>" class="btn btn-edit">Edit</a>
+                        <form method="post" action="<?= normal_url('delete.php') ?>" class="delete-form" onsubmit="return confirm('Are you sure you want to delete this item?');">
                             <input type="hidden" name="csrf_token" value="<?= generateToken() ?>">
                             <input type="hidden" name="id" value="<?= $item['id'] ?>">
                             <button type="submit" class="btn btn-delete">Delete</button>
@@ -87,7 +87,7 @@ $items = $result->fetch_all(MYSQLI_ASSOC);
             </tbody>
         </table>
     <?php endif; ?>
-    <p style="margin-top:20px;"><a href="../../dashboard/index.php">← Back to Dashboard</a></p>
+    <p style="margin-top:20px;"><a href="<?= normal_url('../../dashboard/index.php') ?>">← Back to Dashboard</a></p>
 </div>
 </body>
 </html>

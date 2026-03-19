@@ -5,7 +5,7 @@ require __DIR__ . '/../../includes/csrf.php';
 
 $id = isset($_GET['id']) ? intval($_GET['id']) : 0;
 if (!$id) {
-    header('Location: index.php');
+    header('Location: ' . normal_url('index.php'));
     exit;
 }
 
@@ -16,7 +16,7 @@ $stmt->execute();
 $result = $stmt->get_result();
 $item = $result->fetch_assoc();
 if (!$item) {
-    header('Location: index.php');
+    header('Location: ' . normal_url('index.php'));
     exit;
 }
 
@@ -41,13 +41,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $stmt = $conn->prepare("UPDATE menu_items SET name=?, category=?, price=?, image=?, sort_order=? WHERE id=?");
         $stmt->bind_param("ssdsii", $name, $category, $price, $image, $sort_order, $id);
         if ($stmt->execute()) {
-            $success = 'Item updated successfully!';
-            // Refresh item data
-            $stmt = $conn->prepare("SELECT * FROM menu_items WHERE id = ?");
-            $stmt->bind_param("i", $id);
-            $stmt->execute();
-            $result = $stmt->get_result();
-            $item = $result->fetch_assoc();
+            $redirect = "index.php";
+            if (isset($_SESSION['kiosk_mode']) && $_SESSION['kiosk_mode']) {
+                $redirect .= '?kiosk=1';
+            }
+            header("Location: $redirect");
+            exit;
         } else {
             $error = 'Database error: ' . $conn->error;
         }
@@ -116,7 +115,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         </div>
         
         <button type="submit" class="btn">Update Item</button>
-        <a href="index.php" class="btn btn-secondary">Cancel</a>
+        <a href="<?= normal_url('index.php') ?>" class="btn btn-secondary">Cancel</a>
     </form>
 </div>
 

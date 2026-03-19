@@ -20,10 +20,10 @@ include __DIR__ . '/../includes/header.php';
     <div class="sidebar">
         <h2>🍽️ Staff Panel</h2>
         <ul>
-            <li><a href="orders.php">Orders</a></li>
-            <li><a href="completed.php" class="active">Completed Orders</a></li>
-            <li><a href="../menu.php">View Menu</a></li>
-            <li><a href="../auth/logout.php">Logout</a></li>
+            <li><a href="<?= normal_url('orders.php') ?>">Orders</a></li>
+            <li><a href="<?= normal_url('completed.php') ?>" class="active">Completed Orders</a></li>
+            <li><a href="<?= normal_url('../menu.php') ?>">View Menu</a></li>
+            <li><a href="<?= normal_url('../auth/logout.php') ?>">Logout</a></li>
         </ul>
     </div>
     <div class="main-content staff-panel">
@@ -60,7 +60,7 @@ include __DIR__ . '/../includes/header.php';
                                 $receipt->execute();
                                 $r = $receipt->get_result()->fetch_assoc();
                                 if ($r): ?>
-                                    <a href="../receipt.php?id=<?= $order['id'] ?>" target="_blank"><?= $r['receipt_number'] ?></a>
+                                    <a href="<?= normal_url('../receipt.php?id=' . $order['id']) ?>" target="_blank"><?= $r['receipt_number'] ?></a>
                                 <?php else: ?>
                                     —
                                 <?php endif; ?>

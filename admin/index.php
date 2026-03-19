@@ -16,13 +16,13 @@ include __DIR__ . '/../includes/header.php';
     <div class="sidebar">
         <h2>⚙️ Admin Panel</h2>
         <ul>
-            <li><a href="index.php" class="active">Dashboard</a></li>
-            <li><a href="menu/index.php">Manage Menu</a></li>
-            <li><a href="orders.php">Manage Orders</a></li>
-            <li><a href="users.php">Manage Users</a></li>
-            <li><a href="../staff/orders.php">Staff View</a></li>
-            <li><a href="../menu.php">View Site</a></li>
-            <li><a href="../auth/logout.php">Logout</a></li>
+            <li><a href="<?= normal_url('index.php') ?>" class="active">Dashboard</a></li>
+            <li><a href="<?= normal_url('menu/index.php') ?>">Manage Menu</a></li>
+            <li><a href="<?= normal_url('orders.php') ?>">Manage Orders</a></li>
+            <li><a href="<?= normal_url('users.php') ?>">Manage Users</a></li>
+            <li><a href="<?= normal_url('../staff/orders.php') ?>">Staff View</a></li>
+            <li><a href="<?= kiosk_url('../menu.php') ?>">View Site</a></li>
+            <li><a href="<?= normal_url('../auth/logout.php') ?>">Logout</a></li>
         </ul>
     </div>
     <div class="main-content admin-panel">
@@ -59,9 +59,9 @@ include __DIR__ . '/../includes/header.php';
 
         <div class="card">
             <h3>Quick Actions</h3>
-            <a href="menu/create.php" class="btn">Add Menu Item</a>
-            <a href="orders.php?status=pending" class="btn">View Pending Orders</a>
-            <a href="users.php" class="btn">Manage Users</a>
+            <a href="<?= normal_url('menu/create.php') ?>" class="btn">Add Menu Item</a>
+            <a href="<?= normal_url('orders.php?status=pending') ?>" class="btn">View Pending Orders</a>
+            <a href="<?= normal_url('users.php') ?>" class="btn">Manage Users</a>
         </div>
 
         <div class="card">
@@ -93,7 +93,7 @@ include __DIR__ . '/../includes/header.php';
                             <td><?= date('M j, Y g:i a', strtotime($order['order_date'])) ?></td>
                             <td>$<?= number_format($order['total'], 2) ?></td>
                             <td class="status status-<?= $order['status'] ?>"><?= ucfirst($order['status']) ?></td>
-                            <td><a href="../staff/order-details.php?id=<?= $order['id'] ?>" class="btn-small">View</a></td>
+                            <td><a href="<?= normal_url('../staff/order-details.php?id=' . $order['id']) ?>" class="btn-small">View</a></td>
                         </tr>
                         <?php endwhile; ?>
                     </tbody>
@@ -147,7 +147,6 @@ document.addEventListener('DOMContentLoaded', function() {
         })
         .catch(error => {
             console.error('Error loading chart data:', error);
-            // Optionally show a message to the user
             document.querySelector('.admin-panel').insertAdjacentHTML('beforeend', 
                 '<div class="error-message">Could not load chart data.</div>');
         });

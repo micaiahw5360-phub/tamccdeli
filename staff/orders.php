@@ -20,7 +20,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_status'])) {
         $stmt->bind_param("si", $new_status, $order_id);
     }
     $stmt->execute();
-    header("Location: orders.php");
+    
+    $redirect = "orders.php";
+    if (isset($_SESSION['kiosk_mode']) && $_SESSION['kiosk_mode']) {
+        $redirect .= '?kiosk=1';
+    }
+    header("Location: $redirect");
     exit;
 }
 
@@ -50,10 +55,10 @@ include __DIR__ . '/../includes/header.php';
     <div class="sidebar">
         <h2>🍽️ Staff Panel</h2>
         <ul>
-            <li><a href="orders.php" class="active">Orders</a></li>
-            <li><a href="completed.php">Completed Orders</a></li>
-            <li><a href="../menu.php">View Menu</a></li>
-            <li><a href="../auth/logout.php">Logout</a></li>
+            <li><a href="<?= normal_url('orders.php') ?>" class="active">Orders</a></li>
+            <li><a href="<?= normal_url('completed.php') ?>">Completed Orders</a></li>
+            <li><a href="<?= normal_url('../menu.php') ?>">View Menu</a></li>
+            <li><a href="<?= normal_url('../auth/logout.php') ?>">Logout</a></li>
         </ul>
     </div>
     <div class="main-content staff-panel">
@@ -93,7 +98,7 @@ include __DIR__ . '/../includes/header.php';
                             <td class="status status-<?= $order['status'] ?>"><?= ucfirst($order['status']) ?></td>
                             <td><?= htmlspecialchars($order['staff_name'] ?? '—') ?></td>
                             <td>
-                                <a href="order-details.php?id=<?= $order['id'] ?>" class="btn-small">View</a>
+                                <a href="<?= normal_url('order-details.php?id=' . $order['id']) ?>" class="btn-small">View</a>
                                 <?php if ($order['status'] === 'pending'): ?>
                                     <form method="post" class="inline-form">
                                         <input type="hidden" name="csrf_token" value="<?= generateToken() ?>">

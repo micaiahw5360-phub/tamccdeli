@@ -5,7 +5,7 @@ require __DIR__ . '/../includes/csrf.php';
 
 $order_id = isset($_GET['id']) ? intval($_GET['id']) : 0;
 if (!$order_id) {
-    header("Location: orders.php");
+    header("Location: " . normal_url('orders.php'));
     exit;
 }
 
@@ -33,7 +33,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_status'])) {
         $stmt->bind_param("si", $new_status, $order_id);
     }
     $stmt->execute();
-    header("Location: order-details.php?id=$order_id");
+    
+    // Redirect preserving kiosk mode
+    $redirect = "order-details.php?id=$order_id";
+    if (isset($_SESSION['kiosk_mode']) && $_SESSION['kiosk_mode']) {
+        $redirect .= '&kiosk=1';
+    }
+    header("Location: $redirect");
     exit;
 }
 
@@ -48,7 +54,7 @@ $stmt->bind_param("i", $order_id);
 $stmt->execute();
 $order = $stmt->get_result()->fetch_assoc();
 if (!$order) {
-    header("Location: orders.php");
+    header("Location: " . normal_url('orders.php'));
     exit;
 }
 
@@ -72,10 +78,10 @@ include __DIR__ . '/../includes/header.php';
     <div class="sidebar">
         <h2>🍽️ Staff Panel</h2>
         <ul>
-            <li><a href="orders.php">Orders</a></li>
-            <li><a href="completed.php">Completed Orders</a></li>
-            <li><a href="../menu.php">View Menu</a></li>
-            <li><a href="../auth/logout.php">Logout</a></li>
+            <li><a href="<?= normal_url('orders.php') ?>">Orders</a></li>
+            <li><a href="<?= normal_url('completed.php') ?>">Completed Orders</a></li>
+            <li><a href="<?= normal_url('../menu.php') ?>">View Menu</a></li>
+            <li><a href="<?= normal_url('../auth/logout.php') ?>">Logout</a></li>
         </ul>
     </div>
     <div class="main-content staff-panel">
@@ -92,7 +98,7 @@ include __DIR__ . '/../includes/header.php';
             <p><strong>Order Status:</strong> <span class="status status-<?= $order['status'] ?>"><?= ucfirst($order['status']) ?></span></p>
             <p><strong>Assigned Staff:</strong> <?= htmlspecialchars($order['staff_name'] ?? 'Not assigned') ?></p>
             <?php if ($receipt): ?>
-                <p><strong>Receipt:</strong> <a href="../receipt.php?id=<?= $order_id ?>" target="_blank"><?= htmlspecialchars($receipt['receipt_number']) ?></a></p>
+                <p><strong>Receipt:</strong> <a href="<?= normal_url('../receipt.php?id=' . $order_id) ?>" target="_blank"><?= htmlspecialchars($receipt['receipt_number']) ?></a></p>
             <?php endif; ?>
         </div>
 
@@ -127,7 +133,7 @@ include __DIR__ . '/../includes/header.php';
                 <?php elseif ($order['status'] === 'completed'): ?>
                     <p>Order completed.</p>
                 <?php endif; ?>
-                <a href="orders.php" class="btn">Back to Orders</a>
+                <a href="<?= normal_url('orders.php') ?>" class="btn">Back to Orders</a>
             </form>
         </div>
     </div>

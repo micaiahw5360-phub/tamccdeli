@@ -20,7 +20,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_status'])) {
         $stmt->bind_param("si", $new_status, $order_id);
     }
     $stmt->execute();
-    header("Location: orders.php");
+    
+    $redirect = "orders.php";
+    if (isset($_SESSION['kiosk_mode']) && $_SESSION['kiosk_mode']) {
+        $redirect .= '?kiosk=1';
+    }
+    header("Location: $redirect");
     exit;
 }
 
@@ -57,13 +62,13 @@ include __DIR__ . '/../includes/header.php';
     <div class="sidebar">
         <h2>⚙️ Admin Panel</h2>
         <ul>
-            <li><a href="index.php">Dashboard</a></li>
-            <li><a href="menu/index.php">Manage Menu</a></li>
-            <li><a href="orders.php" class="active">Manage Orders</a></li>
-            <li><a href="users.php">Manage Users</a></li>
-            <li><a href="../staff/orders.php">Staff View</a></li>
-            <li><a href="../menu.php">View Site</a></li>
-            <li><a href="../auth/logout.php">Logout</a></li>
+            <li><a href="<?= normal_url('index.php') ?>">Dashboard</a></li>
+            <li><a href="<?= normal_url('menu/index.php') ?>">Manage Menu</a></li>
+            <li><a href="<?= normal_url('orders.php') ?>" class="active">Manage Orders</a></li>
+            <li><a href="<?= normal_url('users.php') ?>">Manage Users</a></li>
+            <li><a href="<?= normal_url('../staff/orders.php') ?>">Staff View</a></li>
+            <li><a href="<?= kiosk_url('../menu.php') ?>">View Site</a></li>
+            <li><a href="<?= normal_url('../auth/logout.php') ?>">Logout</a></li>
         </ul>
     </div>
     <div class="main-content admin-panel">
@@ -122,7 +127,7 @@ include __DIR__ . '/../includes/header.php';
                                     <?php endif; ?>
                                 </td>
                                 <td>
-                                    <a href="../staff/order-details.php?id=<?= $order['id'] ?>" class="btn-small">View</a>
+                                    <a href="<?= normal_url('../staff/order-details.php?id=' . $order['id']) ?>" class="btn-small">View</a>
                                     <?php if ($order['status'] === 'processing'): ?>
                                         <form method="post" class="inline-form">
                                             <input type="hidden" name="csrf_token" value="<?= generateToken() ?>">

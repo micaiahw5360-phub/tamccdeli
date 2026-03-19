@@ -24,8 +24,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $stmt = $conn->prepare("INSERT INTO menu_items (name, category, price, image, sort_order) VALUES (?, ?, ?, ?, ?)");
         $stmt->bind_param("ssdsi", $name, $category, $price, $image, $sort_order);
         if ($stmt->execute()) {
-            $success = 'Item added successfully!';
-            header("refresh:2;url=index.php");
+            $redirect = "index.php";
+            if (isset($_SESSION['kiosk_mode']) && $_SESSION['kiosk_mode']) {
+                $redirect .= '?kiosk=1';
+            }
+            header("Location: $redirect");
+            exit;
         } else {
             $error = 'Database error: ' . $conn->error;
         }
@@ -93,7 +97,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         </div>
         
         <button type="submit" class="btn">Save Item</button>
-        <a href="index.php" class="btn btn-secondary">Cancel</a>
+        <a href="<?= normal_url('index.php') ?>" class="btn btn-secondary">Cancel</a>
     </form>
 </div>
 

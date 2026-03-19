@@ -14,5 +14,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $stmt->execute();
     }
 }
-header('Location: index.php');
+$redirect = "index.php";
+if (isset($_SESSION['kiosk_mode']) && $_SESSION['kiosk_mode']) {
+    $redirect .= '?kiosk=1';
+}
+header("Location: $redirect");
 exit;
