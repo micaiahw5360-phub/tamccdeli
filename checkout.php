@@ -2,32 +2,71 @@
 session_start();
 require __DIR__ . '/config/database.php';
 require __DIR__ . '/includes/csrf.php';
-
-// --- Stripe integration (added) ---
+require __DIR__ . '/includes/kiosk.php';
 require_once __DIR__ . '/vendor/autoload.php';
 use Stripe\Stripe;
 use Stripe\PaymentIntent;
-// ---------------------------------
 
 if (empty($_SESSION['cart'])) {
     header("Location: menu.php");
     exit;
 }
 
-// Fetch cart items
-$ids = array_keys($_SESSION['cart']);
-$placeholders = implode(',', array_fill(0, count($ids), '?'));
-$stmt = $conn->prepare("SELECT * FROM menu_items WHERE id IN ($placeholders)");
-$stmt->bind_param(str_repeat('i', count($ids)), ...$ids);
-$stmt->execute();
-$result = $stmt->get_result();
+// Helper to get option value details
+function getOptionDetails($conn, $optionValues) {
+    if (empty($optionValues)) return [];
+    $ids = array_values($optionValues);
+    $placeholders = implode(',', array_fill(0, count($ids), '?'));
+    $stmt = $conn->prepare("SELECT v.*, o.option_name FROM menu_item_option_values v 
+                            JOIN menu_item_options o ON v.option_id = o.id 
+                            WHERE v.id IN ($placeholders)");
+    $stmt->bind_param(str_repeat('i', count($ids)), ...$ids);
+    $stmt->execute();
+    return $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+}
+
+// Fetch all distinct item IDs from cart
+$cart = $_SESSION['cart'];
+$item_ids = array_unique(array_column($cart, 'item_id'));
+$items_data = [];
+if (!empty($item_ids)) {
+    $placeholders = implode(',', array_fill(0, count($item_ids), '?'));
+    $stmt = $conn->prepare("SELECT * FROM menu_items WHERE id IN ($placeholders)");
+    $stmt->bind_param(str_repeat('i', count($item_ids)), ...$item_ids);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    while ($row = $result->fetch_assoc()) {
+        $items_data[$row['id']] = $row;
+    }
+}
+
+// Build cart items with options and prices
 $cart_items = [];
 $total = 0;
-while ($row = $result->fetch_assoc()) {
-    $row['quantity'] = $_SESSION['cart'][$row['id']];
-    $row['subtotal'] = $row['price'] * $row['quantity'];
-    $total += $row['subtotal'];
-    $cart_items[] = $row;
+foreach ($cart as $key => $entry) {
+    $item_id = $entry['item_id'];
+    if (!isset($items_data[$item_id])) continue;
+    $item = $items_data[$item_id];
+    $quantity = $entry['quantity'];
+    $options = $entry['options'] ?? [];
+
+    $option_details = getOptionDetails($conn, $options);
+    $modifier_total = 0;
+    foreach ($option_details as $opt) {
+        $modifier_total += $opt['price_modifier'];
+    }
+    $unit_price = $item['price'] + $modifier_total;
+    $subtotal = $unit_price * $quantity;
+
+    $cart_items[] = [
+        'key' => $key,
+        'item' => $item,
+        'quantity' => $quantity,
+        'options' => $option_details,
+        'unit_price' => $unit_price,
+        'subtotal' => $subtotal
+    ];
+    $total += $subtotal;
 }
 
 // Fetch user balance if logged in
@@ -50,10 +89,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $instructions = trim($_POST['instructions']);
     $payment_method = $_POST['payment_method'];
 
-    $user_id = isset($_SESSION['user_id']) ? $_SESSION['user_id'] : null;
+    $user_id = $_SESSION['user_id'] ?? null;
     $guest_email = null;
     if (!$user_id) {
-        // Guest must use cash
         if ($payment_method !== 'cash') {
             $error = "Guests can only pay with cash on pickup.";
         }
@@ -62,9 +100,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $error = "Valid email required for guest checkout.";
         }
     } else {
-        // Logged-in user: check wallet balance if selected
         if ($payment_method === 'wallet' && $user_balance < $total) {
-            $error = "Insufficient wallet balance. Please choose another payment method or top up.";
+            $error = "Insufficient wallet balance.";
         }
     }
 
@@ -78,14 +115,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $stmt->execute();
             $order_id = $conn->insert_id;
 
-            // Insert order items
-            $stmt2 = $conn->prepare("INSERT INTO order_items (order_id, menu_item_id, quantity, price) VALUES (?, ?, ?, ?)");
-            foreach ($cart_items as $item) {
-                $stmt2->bind_param("iiid", $order_id, $item['id'], $item['quantity'], $item['price']);
+            // Insert order items with options
+            $stmt2 = $conn->prepare("INSERT INTO order_items (order_id, menu_item_id, quantity, price, options) VALUES (?, ?, ?, ?, ?)");
+            foreach ($cart_items as $cart_item) {
+                $options_json = json_encode($cart_item['options']);
+                $stmt2->bind_param("iiids", $order_id, $cart_item['item']['id'], $cart_item['quantity'], $cart_item['unit_price'], $options_json);
                 $stmt2->execute();
             }
 
-            // If wallet payment, deduct balance and mark as paid
+            // Handle wallet payment
             if ($payment_method === 'wallet' && $user_id) {
                 $update = $conn->prepare("UPDATE users SET balance = balance - ? WHERE id = ?");
                 $update->bind_param("di", $total, $user_id);
@@ -101,7 +139,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $update_order->execute();
             }
 
-            // Award points if user is logged in (for any payment method)
+            // Award points if logged in
             if ($user_id) {
                 $points_earned = floor($total);
                 $update_points = $conn->prepare("UPDATE users SET points = points + ? WHERE id = ?");
@@ -115,32 +153,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             $conn->commit();
 
-            // --- Handle online payment (added) ---
+            // Handle online payment
             if ($payment_method === 'online') {
                 Stripe::setApiKey(getenv('STRIPE_SECRET_KEY'));
                 $intent = PaymentIntent::create([
-                    'amount'   => round($total * 100), // in cents
+                    'amount'   => round($total * 100),
                     'currency' => 'usd',
                     'metadata' => ['order_id' => $order_id],
                 ]);
                 $_SESSION['stripe_intent_id'] = $intent->id;
                 $_SESSION['stripe_client_secret'] = $intent->client_secret;
                 $_SESSION['pending_order'] = $order_id;
-                // Store total for display on payment page
                 $_SESSION['stripe_total'] = $total;
-                header("Location: stripe-payment.php");
+                header("Location: stripe-payment.php" . ($kiosk_mode ? '?kiosk=1' : ''));
                 exit;
             }
-            // --------------------------------------
 
-            // For cash or wallet, clear cart and go to confirmation
+            // Clear cart and redirect
             $_SESSION['cart'] = [];
-
-            // Redirect to confirmation – preserve kiosk mode
             $redirect = "order-confirmation.php?order_id=$order_id";
-            if (isset($_SESSION['kiosk_mode']) && $_SESSION['kiosk_mode']) {
-                $redirect .= '&kiosk=1';
-            }
+            if ($kiosk_mode) $redirect .= '&kiosk=1';
             header("Location: $redirect");
             exit;
 
@@ -150,6 +182,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     }
 }
+
+// ... rest of the HTML form (same as before but must display cart items with options)
 ?>
 <!DOCTYPE html>
 <html>
@@ -160,6 +194,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         .loading { display: none; }
         .btn.loading .btn-text { display: none; }
         .btn.loading .loading { display: inline-block; }
+        .option-list { margin: 0; padding-left: 1rem; font-size: 0.9rem; }
     </style>
 </head>
 <body>
@@ -172,13 +207,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <div class="order-summary">
             <h3>Order Summary</h3>
             <table>
-                <thead><tr><th>Item</th><th>Qty</th><th>Price</th><th>Subtotal</th></tr></thead>
+                <thead><tr><th>Item</th><th>Options</th><th>Qty</th><th>Price</th><th>Subtotal</th></tr></thead>
                 <tbody>
                 <?php foreach ($cart_items as $item): ?>
                     <tr>
-                        <td><?= htmlspecialchars($item['name']) ?></td>
+                        <td><?= htmlspecialchars($item['item']['name']) ?></td>
+                        <td>
+                            <?php if (!empty($item['options'])): ?>
+                                <ul class="option-list">
+                                    <?php foreach ($item['options'] as $opt): ?>
+                                        <li><?= htmlspecialchars($opt['option_name']) ?>: <?= htmlspecialchars($opt['value_name']) ?></li>
+                                    <?php endforeach; ?>
+                                </ul>
+                            <?php else: ?>
+                                —
+                            <?php endif; ?>
+                        </td>
                         <td><?= $item['quantity'] ?></td>
-                        <td>$<?= number_format($item['price'], 2) ?></td>
+                        <td>$<?= number_format($item['unit_price'], 2) ?></td>
                         <td>$<?= number_format($item['subtotal'], 2) ?></td>
                     </tr>
                 <?php endforeach; ?>
@@ -212,7 +258,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     <option value="cash">Cash on Pickup</option>
                     <?php if (isset($_SESSION['user_id'])): ?>
                         <option value="wallet">Wallet Balance ($<?= number_format($user_balance, 2) ?>)</option>
-                        <!-- Added online payment option -->
                         <option value="online">Online Payment (Card)</option>
                     <?php endif; ?>
                 </select>

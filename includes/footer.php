@@ -2,6 +2,7 @@
     <div class="footer-container">
         <div class="footer-section">
             <h3>About TAMCC Deli</h3>
+            <img src="/assets/images/About-Us.png" alt="TAMCC Logo" style="max-width: 150px; margin-bottom: 10px;">
             <p>Fuel your studies with fresh, local, and affordable meals at T.A. Marryshow Community College. We're here to serve students, staff, and faculty.</p>
             <div class="social-links">
                 <a href="#" aria-label="Facebook" class="dashicons dashicons-facebook-alt"></a>

@@ -30,7 +30,7 @@ if ($stmt) {
         color: white;
         padding: 20px;
     }
-    .hero h1 { font-size: clamp(2.5rem, 8vw, 4rem); text-shadow: 2px 2px 4px rgba(0,0,0,0.7); }
+    .hero h1 { font-size: clamp(2.5rem, 8vw, 4rem); text-shadow: 2px 2px 4px rgba(255, 255, 255, 0.7); }
     .hero p { font-size: clamp(1.2rem, 3vw, 1.8rem); max-width: 800px; margin: 0 auto 2rem; }
     .section { padding: 60px 20px; max-width: 1200px; margin: 0 auto; }
     .section h2 { text-align: center; margin-bottom: 40px; position: relative; }

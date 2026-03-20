@@ -91,6 +91,17 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
+    // Dropdown click toggle for touch devices
+    if ('ontouchstart' in window) {
+        document.querySelectorAll('.dropdown > a').forEach(link => {
+            link.addEventListener('click', function(e) {
+                e.preventDefault();
+                const dropdown = this.parentElement;
+                dropdown.classList.toggle('active');
+            });
+        });
+    }
+
     // Auto‑dismiss alerts
     document.querySelectorAll('.error, .success').forEach(alert => {
         setTimeout(() => {

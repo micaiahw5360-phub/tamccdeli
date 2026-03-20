@@ -186,6 +186,11 @@ h1, h2, h3 {
   display: block;
 }
 
+/* Touch device fallback – activate via JS */
+.dropdown.active .dropdown-content {
+  display: block;
+}
+
 /* Mobile styles */
 @media (max-width: 768px) {
   .menu-toggle {

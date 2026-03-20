@@ -21,7 +21,10 @@ echo '<script>var kioskMode = ' . ($kiosk_mode ? 'true' : 'false') . ';</script>
 </head>
 <body>
     <div class="navbar">
-        <a href="<?= kiosk_url('/index.php') ?>" class="logo">TAMCC Deli</a>
+        <a href="<?= kiosk_url('/index.php') ?>" class="logo">
+            <img src="/assets/images/ta-logo-1536x512.png" alt="TAMCC Deli" style="height: 40px;">
+            <span class="logo-text" style="display: none;">TAMCC Deli</span>
+        </a>
         <button class="menu-toggle" aria-label="Toggle menu">☰</button>
         <div class="nav-links">
             <a href="<?= kiosk_url('/index.php') ?>">Home</a>
