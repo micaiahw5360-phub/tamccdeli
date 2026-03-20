@@ -24,27 +24,31 @@ if (!isset($_SESSION['kiosk_mode']) && isset($_SERVER['HTTP_USER_AGENT'])) {
 $kiosk_mode = $_SESSION['kiosk_mode'] ?? false;
 
 /**
- * Append ?kiosk=1 to a URL when in kiosk mode.
- * Use for pages that should stay inside the kiosk interface.
+ * Generate a URL that stays inside kiosk mode.
+ * Always appends a query string (empty if not in kiosk mode).
  */
 function kiosk_url($url) {
     global $kiosk_mode;
+    $separator = (strpos($url, '?') === false) ? '?' : '&';
     if ($kiosk_mode) {
-        $separator = (strpos($url, '?') === false) ? '?' : '&';
         return $url . $separator . 'kiosk=1';
+    } else {
+        // In normal mode, still add an empty query string
+        return $url . $separator;
     }
-    return $url;
 }
 
 /**
- * Append ?kiosk=0 to a URL when in kiosk mode.
- * Use for links that should exit kiosk mode (e.g., dashboard, login, admin).
+ * Generate a URL that exits kiosk mode (or stays in normal mode).
+ * Always appends a query string (empty if not in kiosk mode).
  */
 function normal_url($url) {
     global $kiosk_mode;
+    $separator = (strpos($url, '?') === false) ? '?' : '&';
     if ($kiosk_mode) {
-        $separator = (strpos($url, '?') === false) ? '?' : '&';
         return $url . $separator . 'kiosk=0';
+    } else {
+        // In normal mode, just an empty query string
+        return $url . $separator;
     }
-    return $url;
 }

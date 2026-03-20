@@ -63,5 +63,24 @@
     <button id="scroll-to-top" class="scroll-to-top" aria-label="Scroll to top">↑</button>
     <div id="toast-container"></div>
     <script src="assets/js/script.js"></script>
+
+    <!-- JavaScript fallback to ensure every internal link has a query string -->
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        var kiosk = typeof kioskMode !== 'undefined' ? kioskMode : false;
+        document.querySelectorAll('a[href^="/"]').forEach(function(link) {
+            var href = link.getAttribute('href');
+            // Skip if it's an external link or already has a query string
+            if (href.indexOf('?') === -1) {
+                href += '?'; // add empty query string
+            }
+            // If in kiosk mode and the kiosk parameter is missing, add it
+            if (kiosk && href.indexOf('kiosk=') === -1) {
+                href += (href.endsWith('?') ? '' : '&') + 'kiosk=1';
+            }
+            link.setAttribute('href', href);
+        });
+    });
+    </script>
 </body>
 </html>
