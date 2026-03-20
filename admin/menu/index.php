@@ -23,6 +23,9 @@ $items = $result->fetch_all(MYSQLI_ASSOC);
         .btn-primary { background: var(--primary-600); color: white; }
         .btn-edit { background: #f59e0b; color: white; padding: 5px 10px; font-size: 0.9rem; }
         .btn-delete { background: var(--danger); color: white; padding: 5px 10px; font-size: 0.9rem; border: none; }
+        /* New Options button style */
+        .btn-options { background: #17a2b8; color: white; padding: 5px 10px; font-size: 0.9rem; text-decoration: none; display: inline-block; border: none; border-radius: 4px; cursor: pointer; }
+        .btn-options:hover { background: #138496; }
         table { width: 100%; border-collapse: collapse; }
         th, td { padding: 12px; text-align: left; border-bottom: 1px solid var(--neutral-200); vertical-align: middle; }
         th { background: var(--neutral-100); }
@@ -76,11 +79,13 @@ $items = $result->fetch_all(MYSQLI_ASSOC);
                     <td>$<?= number_format($item['price'], 2) ?></td>
                     <td><?= $item['sort_order'] ?></td>
                     <td>
-                        <a href="<?= normal_url('edit.php?id=' . $item['id']) ?>" class="btn btn-edit">Edit</a>
+                        <!-- Options button -->
+                        <a href="<?= normal_url('options.php?item_id=' . $item['id']) ?>" class="btn-small btn-options">Options</a>
+                        <a href="<?= normal_url('edit.php?id=' . $item['id']) ?>" class="btn-small btn-edit">Edit</a>
                         <form method="post" action="<?= normal_url('delete.php') ?>" class="delete-form" onsubmit="return confirm('Are you sure you want to delete this item?');">
                             <input type="hidden" name="csrf_token" value="<?= generateToken() ?>">
                             <input type="hidden" name="id" value="<?= $item['id'] ?>">
-                            <button type="submit" class="btn btn-delete">Delete</button>
+                            <button type="submit" class="btn-small btn-delete">Delete</button>
                         </form>
                     </td>
                 </tr>

@@ -125,39 +125,40 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
-    // AJAX Add to Cart
+    // AJAX Add to Cart (updated robust version)
     document.querySelectorAll('.add-to-cart-form').forEach(form => {
         form.addEventListener('submit', async function(e) {
-            e.preventDefault();
+            e.preventDefault(); // Stop normal form submission
+
+            const submitBtn = this.querySelector('button[type="submit"]');
+            if (submitBtn) submitBtn.disabled = true;
+
             const formData = new FormData(this);
-            if (typeof kioskMode !== 'undefined' && kioskMode) {
-                formData.append('kiosk', '1');
-            }
             try {
-                // Use correct path without /tamccdeli prefix
-                const url = kioskUrl('/cart.php?action=add');
-                const result = await fetchJson(url, {
+                // Build URL with kiosk parameter if needed
+                const url = (typeof kioskUrl === 'function') ? kioskUrl('/cart.php?action=add') : '/cart.php?action=add';
+                const response = await fetch(url, {
                     method: 'POST',
-                    body: formData
+                    body: formData,
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest' // Identify AJAX request
+                    }
                 });
+
+                if (!response.ok) throw new Error('Network error');
+
+                const result = await response.json();
                 if (result.success) {
                     showToast('Item added to cart!', 'success');
-                    updateCartCount();
+                    updateCartCount(); // defined elsewhere
                 } else {
-                    showToast('Error adding item', 'error');
+                    showToast(result.error || 'Error adding item', 'error');
                 }
             } catch (error) {
                 console.error('Add to cart error:', error);
                 showToast('Failed to add item. Please try again.', 'error');
-                // Fallback: submit the form normally, but ensure kiosk parameter is present
-                if (typeof kioskMode !== 'undefined' && kioskMode && !form.querySelector('input[name="kiosk"]')) {
-                    const input = document.createElement('input');
-                    input.type = 'hidden';
-                    input.name = 'kiosk';
-                    input.value = '1';
-                    form.appendChild(input);
-                }
-                this.submit();
+            } finally {
+                if (submitBtn) submitBtn.disabled = false;
             }
         });
     });
@@ -165,7 +166,6 @@ document.addEventListener('DOMContentLoaded', function() {
     // Update cart count (used in header and kiosk floating cart)
     async function updateCartCount() {
         try {
-            // Use correct path without /tamccdeli prefix
             const url = kioskUrl('/get-cart-count.php');
             const data = await fetchJson(url);
             const countSpan = document.getElementById('cart-count');

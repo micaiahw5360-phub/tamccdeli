@@ -298,6 +298,22 @@ h1, h2, h3 {
   background: var(--warning);
 }
 
+/* Options button (teal) – added */
+.btn-options {
+  background-color: #17a2b8; /* teal */
+  color: white;
+  padding: 5px 10px;
+  font-size: 0.9rem;
+  border-radius: 4px;
+  text-decoration: none;
+  display: inline-block;
+  border: none;
+  cursor: pointer;
+}
+.btn-options:hover {
+  background-color: #138496;
+}
+
 .btn-danger {
   background: var(--danger);
 }
