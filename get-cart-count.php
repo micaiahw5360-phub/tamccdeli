@@ -1,5 +1,5 @@
 <?php
-session_start();
+require __DIR__ . '/includes/session.php';
 header('Content-Type: application/json');
 
 $count = 0;

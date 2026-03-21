@@ -1,11 +1,5 @@
 <?php
-// Enable error reporting for debugging
-ini_set('display_errors', 1);
-error_reporting(E_ALL);
-
-// Start output buffering
-ob_start();
-
+require __DIR__ . '/../includes/session.php';
 require __DIR__ . '/../config/database.php';
 require __DIR__ . '/../includes/csrf.php';
 

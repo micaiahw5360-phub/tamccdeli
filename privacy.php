@@ -1,5 +1,5 @@
 <?php
-session_start();
+require __DIR__ . '/includes/session.php';
 $page_title = "Privacy Policy | TAMCC Deli";
 include 'includes/header.php';
 ?>

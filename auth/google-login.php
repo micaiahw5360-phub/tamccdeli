@@ -1,6 +1,6 @@
 <?php
 require __DIR__ . '/../vendor/autoload.php';
-session_start();
+require __DIR__ . '/includes/session.php';
 
 $client_id = getenv('GOOGLE_CLIENT_ID');
 $client_secret = getenv('GOOGLE_CLIENT_SECRET');

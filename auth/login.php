@@ -1,11 +1,5 @@
 <?php
-// Enable error reporting for debugging (remove later)
-ini_set('display_errors', 1);
-error_reporting(E_ALL);
-
-// Start output buffering to capture any accidental output (including warnings)
-ob_start();
-
+require __DIR__ . '/../includes/session.php'; // Start session with secure cookies
 require __DIR__ . '/../config/database.php';
 require __DIR__ . '/../includes/csrf.php';
 
@@ -27,7 +21,6 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
     $user = $result->fetch_assoc();
 
     if ($user && password_verify($password, $user['password'])) {
-        // Session already started by csrf.php, regenerate ID for security
         session_regenerate_id(true);
         $_SESSION['user_id'] = $user['id'];
         $_SESSION['role'] = $user['role'];
@@ -41,16 +34,15 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
             setcookie('remember_token', $token, time() + 86400 * 30, '/', '', false, true);
         }
 
-        // Clear output buffer before redirect
-        ob_end_clean();
+        // Clear any kiosk mode
+        unset($_SESSION['kiosk_mode']);
+        
         header("Location: ../index.php");
         exit;
     } else {
         $error = "Invalid login credentials";
     }
 }
-
-// If we reach here, output the page (buffer will be sent automatically at end of script)
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -85,7 +77,6 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
                 <button type="submit" class="btn btn-primary btn-block">Login</button>
             </form>
 
-            <!-- Google login button (added) -->
             <hr>
             <a href="google-login.php" class="btn btn-outline" style="width:100%; text-align:center;">
                 <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" style="height:18px; margin-right:6px;">
@@ -100,7 +91,3 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
     </div>
 </body>
 </html>
-<?php
-// End output buffering (flushes automatically)
-ob_end_flush();
-?>

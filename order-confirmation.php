@@ -1,5 +1,5 @@
 <?php
-session_start();
+require __DIR__ . '/includes/session.php';
 require "config/database.php";
 require "includes/kiosk.php";
 

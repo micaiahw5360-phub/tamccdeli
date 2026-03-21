@@ -1,5 +1,5 @@
 <?php
-session_start();
+require __DIR__ . '/includes/session.php';
 require 'config/database.php';
 
 if (!isset($_SESSION['guest_order'])) {

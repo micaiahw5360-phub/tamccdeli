@@ -1,7 +1,7 @@
 <?php
 require __DIR__ . '/../vendor/autoload.php';
 require __DIR__ . '/../config/database.php';
-session_start();
+require __DIR__ . '/includes/session.php';
 
 if (!isset($_GET['code']) || !isset($_GET['state'])) {
     die('Invalid request');
