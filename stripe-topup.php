@@ -1,5 +1,5 @@
 <?php
-session_start();
+require __DIR__ . '/includes/session.php';;
 require __DIR__ . '/vendor/autoload.php';
 require 'includes/kiosk.php';
 

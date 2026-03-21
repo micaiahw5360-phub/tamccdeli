@@ -1,14 +1,6 @@
 <?php
-// Set secure cookie parameters BEFORE starting the session
-session_set_cookie_params([
-    'httponly' => true,
-    'samesite' => 'Strict',
-    'secure' => isset($_SERVER['HTTPS']) // auto‑detect HTTPS
-]);
-
-if (session_status() === PHP_SESSION_NONE) {
-    session_start();
-}
+// Session should already be started by session.php
+// DO NOT call session_set_cookie_params() or session_start() here
 
 // --- KIOSK MODE DETECTION ---
 if (isset($_GET['kiosk'])) {

@@ -1,6 +1,6 @@
 <?php
-require_once __DIR__ . '/session.php'; // starts session with secure cookie params
-require_once __DIR__ . '/kiosk.php'; // load kiosk functions and $kiosk_mode
+require_once __DIR__ . '/session.php'; // Starts session with secure cookies
+require_once __DIR__ . '/kiosk.php';   // Load kiosk functions and $kiosk_mode
 
 // Pass kiosk mode to JavaScript
 echo '<script>var kioskMode = ' . ($kiosk_mode ? 'true' : 'false') . ';</script>';
