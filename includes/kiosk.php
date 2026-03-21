@@ -1,5 +1,14 @@
 <?php
-// Kiosk mode detection – assumes session is already started by session.php
+// Set secure cookie parameters BEFORE starting the session
+session_set_cookie_params([
+    'httponly' => true,
+    'samesite' => 'Strict',
+    'secure' => isset($_SERVER['HTTPS']) // auto‑detect HTTPS
+]);
+
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
 
 // --- KIOSK MODE DETECTION ---
 if (isset($_GET['kiosk'])) {
@@ -49,4 +58,20 @@ function normal_url($url) {
         // In normal mode, just an empty query string
         return $url . $separator;
     }
+}
+
+/**
+ * Get the full site URL with scheme and domain
+ */
+function get_site_url() {
+    $protocol = isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off' ? 'https' : 'http';
+    $host = $_SERVER['HTTP_HOST'];
+    return $protocol . '://' . $host;
+}
+
+/**
+ * Generate a full absolute URL that stays inside kiosk mode
+ */
+function kiosk_absolute_url($path) {
+    return get_site_url() . kiosk_url($path);
 }

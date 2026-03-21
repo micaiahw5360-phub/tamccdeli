@@ -1,5 +1,5 @@
 <?php
-require __DIR__ . '/includes/session.php';
+session_start();
 require __DIR__ . '/vendor/autoload.php';
 require 'includes/kiosk.php';
 
@@ -58,7 +58,7 @@ include 'includes/header.php';
 
         const {error} = await stripe.confirmCardPayment('<?= $client_secret ?>', {
             payment_method: { card: card },
-            return_url: '<?= kiosk_url('payment-confirmation.php') ?>'
+            return_url: '<?= kiosk_absolute_url('payment-confirmation.php') ?>'
         });
 
         if (error) {
