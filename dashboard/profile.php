@@ -2,6 +2,7 @@
 require __DIR__ . '/../middleware/auth_check.php';
 require __DIR__ . '/../config/database.php';
 require __DIR__ . '/../includes/csrf.php';
+require __DIR__ . '/../includes/kiosk.php';
 
 $user_id = $_SESSION['user_id'];
 $error = '';
@@ -24,20 +25,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $new_password = $_POST['new_password'];
     $confirm_password = $_POST['confirm_password'];
 
-    // Validate inputs
     if (strlen($username) < 4) {
         $error = "Username must be at least 4 characters.";
     } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
         $error = "Invalid email address.";
     } else {
-        // Check if changing password
         if (!empty($new_password)) {
             if ($new_password !== $confirm_password) {
                 $error = "New passwords do not match.";
             } elseif (strlen($new_password) < 12) {
                 $error = "Password must be at least 12 characters.";
             } else {
-                // Verify current password
                 $stmt = $conn->prepare("SELECT password FROM users WHERE id = ?");
                 $stmt->bind_param("i", $user_id);
                 $stmt->execute();
@@ -57,7 +55,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
             }
         } else {
-            // Just update username/email
             $stmt = $conn->prepare("UPDATE users SET username=?, email=? WHERE id=?");
             $stmt->bind_param("ssi", $username, $email, $user_id);
             if ($stmt->execute()) {
@@ -86,12 +83,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <div class="sidebar">
         <h2>🍽️ TAMCC Deli</h2>
         <ul>
-            <li><a href="index.php">Dashboard</a></li>
-            <li><a href="orders.php">My Orders</a></li>
-            <li><a href="payments.php">Payments</a></li>
-            <li><a href="profile.php" class="active">Profile</a></li>
-            <li><a href="../menu.php">View Menu</a></li>
-            <li><a href="../auth/logout.php">Logout</a></li>
+            <li><a href="<?= normal_url('index.php') ?>">Dashboard</a></li>
+            <li><a href="<?= normal_url('orders.php') ?>">My Orders</a></li>
+            <li><a href="<?= normal_url('payments.php') ?>">Payments</a></li>
+            <li><a href="<?= normal_url('profile.php') ?>" class="active">Profile</a></li>
+            <li><a href="<?= kiosk_url('../menu.php') ?>">View Menu</a></li>
+            <li><a href="<?= normal_url('../auth/logout.php') ?>">Logout</a></li>
         </ul>
     </div>
     <div class="main-content">
