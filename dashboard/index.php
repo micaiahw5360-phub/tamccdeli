@@ -48,9 +48,6 @@ $points = $user['points'];
             <li><a href="<?= normal_url('orders.php') ?>">My Orders</a></li>
             <li><a href="<?= normal_url('payments.php') ?>">Payments</a></li>
             <li><a href="<?= normal_url('profile.php') ?>">Profile</a></li>
-            <?php if ($user['role'] === 'admin'): ?>
-                <li><a href="<?= normal_url('../admin/menu/index.php') ?>">Manage Menu</a></li>
-            <?php endif; ?>
             <li><a href="<?= kiosk_url('../menu.php') ?>">View Menu</a></li>
             <li><a href="<?= normal_url('../auth/logout.php') ?>">Logout</a></li>
         </ul>

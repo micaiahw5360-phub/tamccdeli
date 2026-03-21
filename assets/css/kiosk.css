@@ -1,14 +1,78 @@
-/* ==================== KIOSK MODE – RESPONSIVE ==================== */
+/* ==================== KIOSK MODE – RESPONSIVE & TOUCH‑FRIENDLY ==================== */
 /* Hide normal header/footer */
 body .navbar,
 body .footer {
     display: none !important;
 }
 
-/* Page background – light neutral */
 body {
     background: #f8f9fa !important;
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+}
+
+/* Category selection screen */
+.kiosk-categories-container {
+    max-width: 1400px;
+    margin: 2rem auto;
+    padding: 2rem;
+    text-align: center;
+}
+.kiosk-categories {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 2rem;
+    margin-top: 2rem;
+}
+.kiosk-category {
+    background: white;
+    border: 3px solid #074af2;
+    border-radius: 1rem;
+    padding: 2rem;
+    text-align: center;
+    font-size: clamp(1.5rem, 5vw, 3rem);
+    font-weight: bold;
+    color: #074af2;
+    text-decoration: none;
+    transition: all 0.2s;
+    box-shadow: 0 8px 16px rgba(0,0,0,0.1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 200px;
+}
+.kiosk-category:hover {
+    background: #e9ecef;
+    transform: scale(1.02);
+    border-color: #0538c2;
+    color: #0538c2;
+}
+
+/* Back button for category view */
+.kiosk-header {
+    max-width: 1400px;
+    margin: 1rem auto 0;
+    padding: 0 2rem;
+    display: flex;
+    align-items: center;
+    gap: 2rem;
+    flex-wrap: wrap;
+}
+.back-to-categories {
+    background: #6c757d;
+    color: white;
+    padding: 0.75rem 1.5rem;
+    border-radius: 2rem;
+    text-decoration: none;
+    font-size: 1.2rem;
+    transition: background 0.2s;
+}
+.back-to-categories:hover {
+    background: #5a6268;
+}
+.kiosk-header h1 {
+    margin: 0;
+    flex: 1;
+    text-align: center;
 }
 
 /* Containers – fluid, responsive */
@@ -31,8 +95,7 @@ body .card {
 body h1,
 body h2,
 body h3,
-body .kiosk-header,
-body .category-title {
+body .kiosk-header {
     color: #074af2 !important;
     margin: 1.5rem 0;
     font-weight: 700;
@@ -41,7 +104,6 @@ body .category-title {
 body h1 { font-size: clamp(2rem, 6vw, 3.5rem); }
 body h2 { font-size: clamp(1.8rem, 5vw, 3rem); }
 body h3 { font-size: clamp(1.5rem, 4vw, 2.5rem); }
-body .kiosk-header { font-size: clamp(2.5rem, 8vw, 4rem); text-align: center; }
 
 /* Buttons – flexible, touch‑friendly */
 body .btn,
@@ -51,7 +113,6 @@ body .btn-accent,
 body .add-to-cart-btn,
 body .filter-btn,
 body .category-filter button,
-body .kiosk-category,
 body .menu-item-footer button,
 body .floating-cart,
 body .btn-danger,
@@ -74,7 +135,6 @@ body .btn-warning {
     cursor: pointer;
     line-height: 1.2;
 }
-
 body .btn:hover,
 body .btn-small:hover,
 body .btn-primary:hover,
@@ -85,62 +145,14 @@ body .kiosk-category:hover {
     transform: translateY(-2px);
     box-shadow: 0 6px 12px rgba(0,0,0,0.15) !important;
 }
-
 body .btn:active,
 body .btn-small:active {
     transform: translateY(1px);
     box-shadow: 0 2px 4px rgba(0,0,0,0.1) !important;
 }
 
-/* Accent buttons (orange) */
-body .btn-accent {
-    background: #f97316 !important;
-}
-body .btn-accent:hover {
-    background: #ea580c !important;
-}
-
-/* Danger button */
-body .btn-danger {
-    background: #dc3545 !important;
-}
-body .btn-danger:hover {
-    background: #c82333 !important;
-}
-
-/* Success button */
-body .btn-success {
-    background: #28a745 !important;
-}
-body .btn-success:hover {
-    background: #218838 !important;
-}
-
-/* Category tiles – if you ever add .kiosk-categories, keep them */
-body .kiosk-categories {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-    gap: 2rem;
-    padding: 2rem;
-}
-body .kiosk-category {
-    background: white !important;
-    color: #074af2 !important;
-    border: 2px solid #074af2 !important;
-    box-shadow: 0 4px 8px rgba(0,0,0,0.05) !important;
-    font-size: clamp(1.5rem, 4vw, 2.5rem);
-    min-height: 150px;
-    padding: 2rem;
-    transition: all 0.2s;
-}
-body .kiosk-category:hover {
-    background: #e9ecef !important;
-    border-color: #074af2 !important;
-    transform: scale(1.02);
-}
-
 /* Floating cart button – fixed at bottom right */
-body .floating-cart {
+.floating-cart {
     position: fixed;
     bottom: 30px;
     right: 30px;
@@ -153,11 +165,11 @@ body .floating-cart {
     z-index: 1000;
     border: none !important;
 }
-body .floating-cart:hover {
+.floating-cart:hover {
     background: #218838 !important;
     transform: scale(1.05);
 }
-body .floating-cart .cart-count {
+.floating-cart .cart-count {
     background: white;
     color: #28a745;
     border-radius: 50%;
@@ -191,6 +203,11 @@ body .menu-item .price {
     color: #f97316;
     margin: 0.5rem 0;
 }
+body .items-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 2rem;
+}
 
 /* Form inputs – large but responsive */
 body input[type="text"],
@@ -213,8 +230,6 @@ body textarea:focus {
     outline: none;
     box-shadow: 0 0 0 3px rgba(7,74,242,0.25);
 }
-
-/* Labels */
 body .form-group label {
     font-size: clamp(1rem, 3vw, 1.8rem);
     font-weight: 600;
@@ -222,8 +237,6 @@ body .form-group label {
     margin-bottom: 0.5rem;
     display: block;
 }
-
-/* Tables – scrollable on small screens */
 body .table-responsive {
     overflow-x: auto;
 }
@@ -254,8 +267,6 @@ body .total {
     text-align: right;
     margin-top: 2rem;
 }
-
-/* Empty cart */
 body .empty-cart-message {
     text-align: center;
     padding: 2rem;
@@ -268,43 +279,11 @@ body .empty-cart-message h2 {
     font-size: clamp(1.5rem, 5vw, 2.5rem);
     color: #074af2;
 }
-body .empty-cart-message .btn {
-    font-size: clamp(1rem, 3vw, 1.5rem);
-    padding: 1rem 2rem;
-}
-
-/* Student ID field */
-body #student-id-group {
-    margin-top: 2rem;
-}
-
-/* Exit kiosk link */
-body .exit-kiosk-link {
-    text-align: center;
-    margin: 2rem;
-}
-body .exit-kiosk-link a {
-    background: #6c757d;
-    color: white;
-    padding: 0.75rem 1.5rem;
-    border-radius: 0.5rem;
-    text-decoration: none;
-    font-size: clamp(0.9rem, 2.5vw, 1.2rem);
-}
-body .exit-kiosk-link a:hover {
-    background: #5a6268;
-}
-
-/* Responsive tweaks */
 @media (max-width: 768px) {
-    body .menu-item {
-        padding: 0.75rem;
-    }
-    body .btn,
-    body .btn-small {
-        padding: 0.5rem 1rem !important;
-    }
     body .items-grid {
-        grid-template-columns: 1fr !important; /* ensure single column on phones */
+        grid-template-columns: 1fr;
+    }
+    .kiosk-category {
+        min-height: 150px;
     }
 }
