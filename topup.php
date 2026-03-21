@@ -2,6 +2,11 @@
 session_start();
 require 'config/database.php';
 require 'includes/csrf.php';
+require 'includes/kiosk.php';
+require_once __DIR__ . '/vendor/autoload.php';
+
+use Stripe\Stripe;
+use Stripe\PaymentIntent;
 
 if (!isset($_SESSION['user_id'])) {
     header("Location: auth/login.php");
@@ -22,39 +27,22 @@ $amount = floatval($_POST['amount']);
 
 if ($amount <= 0 || $amount > 1000) {
     $_SESSION['topup_error'] = "Invalid amount. Must be between $1 and $1000.";
-    $redirect = "wallet.php";
-    if (isset($_SESSION['kiosk_mode']) && $_SESSION['kiosk_mode']) {
-        $redirect .= '?kiosk=1';
-    }
-    header("Location: $redirect");
+    header("Location: " . kiosk_url('wallet.php'));
     exit;
 }
 
-// Simulate successful payment (in a real app, you'd integrate a payment gateway here)
-$conn->begin_transaction();
-try {
-    // Update user balance
-    $stmt = $conn->prepare("UPDATE users SET balance = balance + ? WHERE id = ?");
-    $stmt->bind_param("di", $amount, $user_id);
-    $stmt->execute();
+// Create a Stripe PaymentIntent
+Stripe::setApiKey(getenv('STRIPE_SECRET_KEY'));
+$intent = PaymentIntent::create([
+    'amount'   => round($amount * 100),
+    'currency' => 'usd',
+    'metadata' => ['user_id' => $user_id, 'type' => 'topup'],
+]);
 
-    // Record transaction
-    $description = "Wallet top-up";
-    $stmt2 = $conn->prepare("INSERT INTO transactions (user_id, amount, type, description) VALUES (?, ?, 'topup', ?)");
-    $stmt2->bind_param("ids", $user_id, $amount, $description);
-    $stmt2->execute();
+$_SESSION['stripe_intent_id'] = $intent->id;
+$_SESSION['stripe_client_secret'] = $intent->client_secret;
+$_SESSION['stripe_amount'] = $amount;
+$_SESSION['stripe_type'] = 'topup';
 
-    $conn->commit();
-    $_SESSION['topup_success'] = "Successfully added $" . number_format($amount, 2) . " to your wallet.";
-} catch (Exception $e) {
-    $conn->rollback();
-    $_SESSION['topup_error'] = "Transaction failed. Please try again.";
-}
-
-// Redirect back to wallet – preserve kiosk mode
-$redirect = "wallet.php";
-if (isset($_SESSION['kiosk_mode']) && $_SESSION['kiosk_mode']) {
-    $redirect .= '?kiosk=1';
-}
-header("Location: $redirect");
+header("Location: " . kiosk_url('stripe-topup.php'));
 exit;

@@ -2,6 +2,7 @@
 session_start();
 require 'config/database.php';
 require 'includes/csrf.php';
+require 'includes/functions.php'; // for getItemOptions if needed (but not used here)
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST' || !isset($_POST['order_id'])) {
     header('Location: menu.php');
@@ -18,8 +19,8 @@ if (!$order_id) {
     exit;
 }
 
-// Fetch order items (no need to check ownership – if user has the order URL they can re‑order)
-$stmt = $conn->prepare("SELECT menu_item_id, quantity FROM order_items WHERE order_id = ?");
+// Fetch order items with options
+$stmt = $conn->prepare("SELECT menu_item_id, quantity, options FROM order_items WHERE order_id = ?");
 $stmt->bind_param("i", $order_id);
 $stmt->execute();
 $items = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
@@ -34,18 +35,31 @@ if (!isset($_SESSION['cart'])) {
     $_SESSION['cart'] = [];
 }
 
-// Add each item to cart (quantities add up)
-foreach ($items as $item) {
-    $item_id = $item['menu_item_id'];
-    $qty = $item['quantity'];
-    if (isset($_SESSION['cart'][$item_id])) {
-        $_SESSION['cart'][$item_id] += $qty;
-    } else {
-        $_SESSION['cart'][$item_id] = $qty;
+try {
+    foreach ($items as $item) {
+        $options = json_decode($item['options'], true) ?: [];
+        $key = 'item_' . $item['menu_item_id'];
+        if (!empty($options)) {
+            ksort($options);
+            $key .= '_opt_' . implode('_', array_map(function($k, $v) { return $k . '-' . $v; }, array_keys($options), $options));
+        }
+
+        if (isset($_SESSION['cart'][$key])) {
+            $_SESSION['cart'][$key]['quantity'] += $item['quantity'];
+        } else {
+            $_SESSION['cart'][$key] = [
+                'item_id' => $item['menu_item_id'],
+                'quantity' => $item['quantity'],
+                'options' => $options
+            ];
+        }
     }
+} catch (Exception $e) {
+    error_log("Reorder failed: " . $e->getMessage());
+    $_SESSION['cart_error'] = "Could not add items to cart. Please try again.";
 }
 
-// Redirect to cart
+// Redirect to cart (preserve kiosk mode)
 $redirect = 'cart.php';
 if (isset($_SESSION['kiosk_mode']) && $_SESSION['kiosk_mode']) {
     $redirect .= '?kiosk=1';

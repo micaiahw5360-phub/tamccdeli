@@ -2,14 +2,15 @@
 session_start();
 require 'config/database.php';
 require 'includes/csrf.php';
-require 'includes/kiosk.php'; // for kiosk_url etc.
+require 'includes/kiosk.php';
+require 'includes/functions.php'; // new shared helper file
 
 // Initialize cart if not exists (new structure)
 if (!isset($_SESSION['cart'])) {
     $_SESSION['cart'] = [];
 }
 
-// Helper function to get option value details (for display)
+// Helper function to get option value details (for display) – kept as is (not moved)
 function getOptionDetails($conn, $optionValues) {
     if (empty($optionValues)) return [];
     $ids = array_values($optionValues);
@@ -200,22 +201,22 @@ if (!empty($_SESSION['cart'])) {
             <form method="post">
                 <input type="hidden" name="csrf_token" value="<?= generateToken() ?>">
                 <div class="table-responsive">
-                    <table>
+                     <table>
                         <thead>
-                            <tr>
+                             <tr>
                                 <th>Item</th>
                                 <th>Options</th>
                                 <th>Unit Price</th>
                                 <th>Quantity</th>
                                 <th>Subtotal</th>
                                 <th></th>
-                            </tr>
+                             </tr>
                         </thead>
                         <tbody>
                             <?php foreach ($cart_items as $cart_item): ?>
                             <tr>
-                                <td><?= htmlspecialchars($cart_item['item']['name']) ?></td>
-                                <td>
+                                 <td><?= htmlspecialchars($cart_item['item']['name']) ?></td>
+                                 <td>
                                     <?php if (!empty($cart_item['options'])): ?>
                                         <ul class="option-list">
                                             <?php foreach ($cart_item['options'] as $opt): ?>
@@ -227,23 +228,23 @@ if (!empty($_SESSION['cart'])) {
                                     <?php else: ?>
                                         —
                                     <?php endif; ?>
-                                </td>
-                                <td>$<?= number_format($cart_item['unit_price'], 2) ?></td>
-                                <td>
+                                 </td>
+                                 <td>$<?= number_format($cart_item['unit_price'], 2) ?></td>
+                                 <td>
                                     <input type="number" name="quantity[<?= $cart_item['key'] ?>]" value="<?= $cart_item['quantity'] ?>" min="0" max="10" style="width:60px;">
-                                </td>
-                                <td>$<?= number_format($cart_item['subtotal'], 2) ?></td>
-                                <td>
+                                 </td>
+                                 <td>$<?= number_format($cart_item['subtotal'], 2) ?></td>
+                                 <td>
                                     <form method="post" style="display:inline;">
                                         <input type="hidden" name="csrf_token" value="<?= generateToken() ?>">
                                         <input type="hidden" name="key" value="<?= $cart_item['key'] ?>">
                                         <button type="submit" name="remove" class="btn btn-danger btn-small">Remove</button>
                                     </form>
-                                </td>
+                                 </td>
                             </tr>
                             <?php endforeach; ?>
                         </tbody>
-                    </table>
+                     </table>
                 </div>
                 <div class="total">Total: $<?= number_format($total, 2) ?></div>
                 <button type="submit" name="update" class="btn">Update Cart</button>

@@ -339,6 +339,23 @@ h1, h2, h3 {
   background: var(--accent-600);
 }
 
+/* ==================== ACCESSIBILITY ==================== */
+/* Improve focus visibility for keyboard users */
+:focus {
+    outline: 2px solid var(--primary-600);
+    outline-offset: 2px;
+}
+
+:focus-visible {
+    outline: 2px solid var(--primary-600);
+    outline-offset: 2px;
+}
+
+/* Remove default focus outline on mouse clicks, keep for keyboard */
+:focus:not(:focus-visible) {
+    outline: none;
+}
+
 /* ==================== CARDS & CONTAINERS ==================== */
 .container,
 .menu-container,

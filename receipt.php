@@ -107,7 +107,7 @@ include 'includes/header.php';
         <p style="text-align:center; margin-top:30px;"><em>Thank you for ordering! Your food will be ready for pickup at the specified time.</em></p>
         <div style="display: flex; justify-content: space-between; margin-top: 20px;">
             <button onclick="window.print()" class="btn">Print Receipt</button>
-            <a href="<?= kiosk_url('dashboard/orders.php') ?>" class="btn">Back to Orders</a>
+            <a href="<?= kiosk_url('menu.php') ?>" class="btn btn-accent">Order Again</a>
         </div>
     </div>
 </div>

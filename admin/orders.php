@@ -51,8 +51,10 @@ if ($status_filter === 'all') {
 $stmt->execute();
 $orders = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
 
-// Get staff list for assignment
-$staff_list = $conn->query("SELECT id, username FROM users WHERE role IN ('admin', 'staff')")->fetch_all(MYSQLI_ASSOC);
+// Get staff list for assignment (use prepared statement for consistency)
+$stmt = $conn->prepare("SELECT id, username FROM users WHERE role IN ('admin', 'staff')");
+$stmt->execute();
+$staff_list = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
 
 $page_title = "Manage Orders";
 include __DIR__ . '/../includes/header.php';
@@ -66,7 +68,6 @@ include __DIR__ . '/../includes/header.php';
             <li><a href="<?= normal_url('menu/index.php') ?>">Manage Menu</a></li>
             <li><a href="<?= normal_url('orders.php') ?>" class="active">Manage Orders</a></li>
             <li><a href="<?= normal_url('users.php') ?>">Manage Users</a></li>
-            <li><a href="<?= normal_url('../staff/orders.php') ?>">Staff View</a></li>
             <li><a href="<?= kiosk_url('../menu.php') ?>">View Site</a></li>
             <li><a href="<?= normal_url('../auth/logout.php') ?>">Logout</a></li>
         </ul>

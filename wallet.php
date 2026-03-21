@@ -10,23 +10,35 @@ if (!isset($_SESSION['user_id'])) {
 
 $user_id = $_SESSION['user_id'];
 
-// Fetch current balance
-$stmt = $conn->prepare("SELECT balance FROM users WHERE id = ?");
-$stmt->bind_param("i", $user_id);
-$stmt->execute();
-$user = $stmt->get_result()->fetch_assoc();
-$balance = $user['balance'] ?? 0;
+// Fetch current balance with error handling
+try {
+    $stmt = $conn->prepare("SELECT balance FROM users WHERE id = ?");
+    $stmt->bind_param("i", $user_id);
+    $stmt->execute();
+    $user = $stmt->get_result()->fetch_assoc();
+    $balance = $user['balance'] ?? 0;
+} catch (Exception $e) {
+    error_log("Balance fetch error: " . $e->getMessage());
+    $balance = 0;
+    $error_msg = "Could not retrieve balance. Please try again later.";
+}
 
 // Handle success/error messages from topup.php
 $success_msg = $_SESSION['topup_success'] ?? '';
-$error_msg = $_SESSION['topup_error'] ?? '';
+$error_msg = isset($error_msg) ? $error_msg : ($_SESSION['topup_error'] ?? '');
 unset($_SESSION['topup_success'], $_SESSION['topup_error']);
 
-// Fetch recent transactions
-$stmt = $conn->prepare("SELECT * FROM transactions WHERE user_id = ? ORDER BY created_at DESC LIMIT 10");
-$stmt->bind_param("i", $user_id);
-$stmt->execute();
-$transactions = $stmt->get_result();
+// Fetch recent transactions with error handling
+try {
+    $stmt = $conn->prepare("SELECT * FROM transactions WHERE user_id = ? ORDER BY created_at DESC LIMIT 10");
+    $stmt->bind_param("i", $user_id);
+    $stmt->execute();
+    $transactions = $stmt->get_result();
+} catch (Exception $e) {
+    error_log("Transaction fetch error: " . $e->getMessage());
+    $transactions = null;
+    $error_msg = "Could not load transaction history.";
+}
 ?>
 
 <div class="checkout-container">
@@ -56,10 +68,10 @@ $transactions = $stmt->get_result();
         </form>
     </div>
 
-    <?php if ($transactions->num_rows > 0): ?>
+    <?php if ($transactions && $transactions->num_rows > 0): ?>
     <div class="card">
         <h3>Recent Transactions</h3>
-        <table>
+        表格
             <thead>
                 <tr>
                     <th>Date</th>
@@ -80,7 +92,7 @@ $transactions = $stmt->get_result();
                 </tr>
                 <?php endwhile; ?>
             </tbody>
-        </table>
+        表格
     </div>
     <?php endif; ?>
 

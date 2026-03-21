@@ -3,7 +3,10 @@ session_start();
 require __DIR__ . '/config/database.php';
 require __DIR__ . '/includes/csrf.php';
 require __DIR__ . '/includes/kiosk.php';
+require __DIR__ . '/includes/mail.php'; // Include email helper
+require __DIR__ . '/includes/functions.php'; // new shared helper file
 require_once __DIR__ . '/vendor/autoload.php';
+
 use Stripe\Stripe;
 use Stripe\PaymentIntent;
 
@@ -12,7 +15,7 @@ if (empty($_SESSION['cart'])) {
     exit;
 }
 
-// Helper to get option value details
+// Helper to get option value details (kept here – not moved to functions.php)
 function getOptionDetails($conn, $optionValues) {
     if (empty($optionValues)) return [];
     $ids = array_values($optionValues);
@@ -153,6 +156,32 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             $conn->commit();
 
+            // --- Send confirmation email ---
+            $subject = "Order Confirmation #$order_id";
+            $body = "<h2>Thank you for your order!</h2>
+                     <p>Your order #$order_id has been placed successfully.</p>
+                     <p><strong>Total:</strong> $" . number_format($total, 2) . "</p>
+                     <p><strong>Payment Method:</strong> " . ucfirst($payment_method) . "</p>
+                     <p><strong>Pickup Time:</strong> " . ($pickup_time ? date('M j, Y g:i a', strtotime($pickup_time)) : 'As soon as possible') . "</p>
+                     <p><strong>Special Instructions:</strong> " . nl2br(htmlspecialchars($instructions)) . "</p>
+                     <p>You can view your order details in your dashboard.</p>";
+
+            // Determine recipient email
+            if ($user_id) {
+                $email_stmt = $conn->prepare("SELECT email FROM users WHERE id = ?");
+                $email_stmt->bind_param("i", $user_id);
+                $email_stmt->execute();
+                $user_email = $email_stmt->get_result()->fetch_assoc()['email'] ?? null;
+                $to = $user_email;
+            } else {
+                $to = $guest_email;
+            }
+
+            if ($to) {
+                sendEmail($to, $subject, $body);
+            }
+            // --------------------------------
+
             // Handle online payment
             if ($payment_method === 'online') {
                 Stripe::setApiKey(getenv('STRIPE_SECRET_KEY'));
@@ -169,12 +198,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 exit;
             }
 
-            // Clear cart and redirect
+            // Clear cart (order is placed)
             $_SESSION['cart'] = [];
-            $redirect = "order-confirmation.php?order_id=$order_id";
-            if ($kiosk_mode) $redirect .= '&kiosk=1';
-            header("Location: $redirect");
-            exit;
+
+            // Handle guest vs. logged-in redirection
+            if (!$user_id) {
+                // Guest order: store order info in session and redirect to guest-thanks
+                $_SESSION['guest_order'] = $order_id;
+                $_SESSION['guest_email'] = $guest_email;
+                $redirect = "guest-thanks.php";
+                if ($kiosk_mode) $redirect .= '?kiosk=1';
+                header("Location: $redirect");
+                exit;
+            } else {
+                // Logged-in user: go to order confirmation
+                $redirect = "order-confirmation.php?order_id=$order_id";
+                if ($kiosk_mode) $redirect .= '&kiosk=1';
+                header("Location: $redirect");
+                exit;
+            }
 
         } catch (Exception $e) {
             $conn->rollback();
@@ -182,8 +224,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     }
 }
-
-// ... rest of the HTML form (same as before but must display cart items with options)
 ?>
 <!DOCTYPE html>
 <html>
@@ -210,23 +250,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <thead><tr><th>Item</th><th>Options</th><th>Qty</th><th>Price</th><th>Subtotal</th></tr></thead>
                 <tbody>
                 <?php foreach ($cart_items as $item): ?>
-                    <tr>
-                        <td><?= htmlspecialchars($item['item']['name']) ?></td>
-                        <td>
-                            <?php if (!empty($item['options'])): ?>
-                                <ul class="option-list">
-                                    <?php foreach ($item['options'] as $opt): ?>
-                                        <li><?= htmlspecialchars($opt['option_name']) ?>: <?= htmlspecialchars($opt['value_name']) ?></li>
-                                    <?php endforeach; ?>
-                                </ul>
-                            <?php else: ?>
-                                —
-                            <?php endif; ?>
-                        </td>
-                        <td><?= $item['quantity'] ?></td>
-                        <td>$<?= number_format($item['unit_price'], 2) ?></td>
-                        <td>$<?= number_format($item['subtotal'], 2) ?></td>
-                    </tr>
+                <tr>
+                    <td><?= htmlspecialchars($item['item']['name']) ?></td>
+                    <td>
+                        <?php if (!empty($item['options'])): ?>
+                            <ul class="option-list">
+                                <?php foreach ($item['options'] as $opt): ?>
+                                    <li><?= htmlspecialchars($opt['option_name']) ?>: <?= htmlspecialchars($opt['value_name']) ?></li>
+                                <?php endforeach; ?>
+                            </ul>
+                        <?php else: ?>
+                            —
+                        <?php endif; ?>
+                    </td>
+                    <td><?= $item['quantity'] ?></td>
+                    <td>$<?= number_format($item['unit_price'], 2) ?></td>
+                    <td>$<?= number_format($item['subtotal'], 2) ?></td>
+                </tr>
                 <?php endforeach; ?>
                 </tbody>
             </table>

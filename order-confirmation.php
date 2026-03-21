@@ -44,7 +44,6 @@ $payment_method_display = $payment_display[$order['payment_method']] ?? ucfirst(
         <?php if ($order['payment_status'] === 'paid' || $order['status'] === 'completed'): ?>
             <a href="<?= kiosk_url('receipt.php?id=' . $order_id) ?>" class="btn btn-primary">View Receipt</a>
         <?php endif; ?>
-        <a href="<?= kiosk_url('dashboard/orders.php') ?>" class="btn">My Orders</a>
         <a href="<?= kiosk_url('menu.php') ?>" class="btn btn-accent">Order Again</a>
     </div>
 </div>

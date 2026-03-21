@@ -30,39 +30,45 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
         $error = "Invalid email address.";
     } else {
-        if (!empty($new_password)) {
-            if ($new_password !== $confirm_password) {
-                $error = "New passwords do not match.";
-            } elseif (strlen($new_password) < 12) {
-                $error = "Password must be at least 12 characters.";
-            } else {
-                $stmt = $conn->prepare("SELECT password FROM users WHERE id = ?");
-                $stmt->bind_param("i", $user_id);
-                $stmt->execute();
-                $result = $stmt->get_result()->fetch_assoc();
-                if (!password_verify($current_password, $result['password'])) {
-                    $error = "Current password is incorrect.";
+        try {
+            if (!empty($new_password)) {
+                if ($new_password !== $confirm_password) {
+                    $error = "New passwords do not match.";
+                } elseif (strlen($new_password) < 12) {
+                    $error = "Password must be at least 12 characters.";
                 } else {
-                    $hash = password_hash($new_password, PASSWORD_DEFAULT);
-                    $stmt = $conn->prepare("UPDATE users SET username=?, email=?, password=? WHERE id=?");
-                    $stmt->bind_param("sssi", $username, $email, $hash, $user_id);
-                    if ($stmt->execute()) {
-                        $success = "Profile updated successfully.";
-                        $_SESSION['username'] = $username;
+                    // Verify current password
+                    $stmt = $conn->prepare("SELECT password FROM users WHERE id = ?");
+                    $stmt->bind_param("i", $user_id);
+                    $stmt->execute();
+                    $result = $stmt->get_result()->fetch_assoc();
+                    if (!password_verify($current_password, $result['password'])) {
+                        $error = "Current password is incorrect.";
                     } else {
-                        $error = "Database error: " . $conn->error;
+                        $hash = password_hash($new_password, PASSWORD_DEFAULT);
+                        $stmt = $conn->prepare("UPDATE users SET username=?, email=?, password=? WHERE id=?");
+                        $stmt->bind_param("sssi", $username, $email, $hash, $user_id);
+                        if ($stmt->execute()) {
+                            $success = "Profile updated successfully.";
+                            $_SESSION['username'] = $username;
+                        } else {
+                            $error = "Database error: " . $conn->error;
+                        }
                     }
                 }
-            }
-        } else {
-            $stmt = $conn->prepare("UPDATE users SET username=?, email=? WHERE id=?");
-            $stmt->bind_param("ssi", $username, $email, $user_id);
-            if ($stmt->execute()) {
-                $success = "Profile updated successfully.";
-                $_SESSION['username'] = $username;
             } else {
-                $error = "Database error: " . $conn->error;
+                $stmt = $conn->prepare("UPDATE users SET username=?, email=? WHERE id=?");
+                $stmt->bind_param("ssi", $username, $email, $user_id);
+                if ($stmt->execute()) {
+                    $success = "Profile updated successfully.";
+                    $_SESSION['username'] = $username;
+                } else {
+                    $error = "Database error: " . $conn->error;
+                }
             }
+        } catch (Exception $e) {
+            $error = "An error occurred. Please try again.";
+            error_log("Profile update error: " . $e->getMessage());
         }
     }
     // Refresh user data

@@ -3,6 +3,7 @@ session_start();
 require 'config/database.php';
 require 'includes/csrf.php';
 require 'includes/kiosk.php';
+require 'includes/functions.php'; // new shared helper file
 
 $categories = [
     'breakfast' => 'Breakfast',
@@ -67,23 +68,6 @@ if (!$kiosk_mode) {
     }
 }
 
-// Helper to get options for an item (same as before)
-function getItemOptions($conn, $item_id) {
-    $options = [];
-    $stmt = $conn->prepare("SELECT * FROM menu_item_options WHERE menu_item_id = ? ORDER BY sort_order");
-    $stmt->bind_param("i", $item_id);
-    $stmt->execute();
-    $opt_res = $stmt->get_result();
-    while ($opt = $opt_res->fetch_assoc()) {
-        $val_stmt = $conn->prepare("SELECT * FROM menu_item_option_values WHERE option_id = ? ORDER BY sort_order");
-        $val_stmt->bind_param("i", $opt['id']);
-        $val_stmt->execute();
-        $opt['values'] = $val_stmt->get_result()->fetch_all(MYSQLI_ASSOC);
-        $options[] = $opt;
-    }
-    return $options;
-}
-
 $page_title = $kiosk_mode ? $categories[$selected_category] . " | TAMCC Deli" : "Menu | TAMCC Deli";
 include 'includes/header.php';
 ?>
@@ -109,7 +93,7 @@ include 'includes/header.php';
     <?php if ($kiosk_mode && $selected_category): ?>
         <div class="items-grid">
             <?php foreach ($items as $item):
-                $options = getItemOptions($conn, $item['id']);
+                $options = getItemOptions($conn, $item['id']); // now from functions.php
             ?>
                 <div class="menu-item" data-name="<?= strtolower(htmlspecialchars($item['name'])) ?>">
                     <?php if ($item['image']): ?>
@@ -180,7 +164,7 @@ include 'includes/header.php';
                 <h2><?= htmlspecialchars($cat_name) ?></h2>
                 <div class="items-grid">
                     <?php foreach ($cat_items as $item):
-                        $options = getItemOptions($conn, $item['id']);
+                        $options = getItemOptions($conn, $item['id']); // now from functions.php
                     ?>
                         <div class="menu-item" data-name="<?= strtolower(htmlspecialchars($item['name'])) ?>">
                             <?php if ($item['image']): ?>

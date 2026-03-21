@@ -1,24 +1,23 @@
 <?php
 session_start();
 require __DIR__ . '/vendor/autoload.php';
-require __DIR__ . '/includes/kiosk.php';
+require 'includes/kiosk.php';
 
-if (!isset($_SESSION['stripe_intent_id']) || !isset($_SESSION['pending_order'])) {
+if (!isset($_SESSION['stripe_intent_id']) || !isset($_SESSION['stripe_amount']) || $_SESSION['stripe_type'] !== 'topup') {
     header('Location: index.php');
     exit;
 }
 
 $stripe_publishable_key = getenv('STRIPE_PUBLISHABLE_KEY');
 $client_secret = $_SESSION['stripe_client_secret'];
-$order_id = $_SESSION['pending_order'];
-$total = $_SESSION['stripe_total'] ?? 0;
+$amount = $_SESSION['stripe_amount'];
 
 include 'includes/header.php';
 ?>
 
 <div class="checkout-container">
-    <h1>Complete Payment</h1>
-    <p>Order #<?= $order_id ?> – Total: $<?= number_format($total, 2) ?></p>
+    <h1>Add Funds to Wallet</h1>
+    <p>Amount: $<?= number_format($amount, 2) ?></p>
 
     <div class="card">
         <form id="payment-form">
