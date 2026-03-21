@@ -1,9 +1,9 @@
 <?php
-require __DIR__ . '/includes/session.php';
+require __DIR__ . '/../includes/session.php';
 require __DIR__ . '/../config/database.php';
 require __DIR__ . '/../includes/csrf.php';
 require __DIR__ . '/../includes/kiosk.php';
-require __DIR__ . '/../vendor/autoload.php'; // for PHPMailer
+require __DIR__ . '/../vendor/autoload.php';
 
 use PHPMailer\PHPMailer\PHPMailer;
 use PHPMailer\PHPMailer\Exception;

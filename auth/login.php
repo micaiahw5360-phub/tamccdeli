@@ -1,5 +1,5 @@
 <?php
-require __DIR__ . '/../includes/session.php'; // Start session with secure cookies
+require __DIR__ . '/../includes/session.php';
 require __DIR__ . '/../config/database.php';
 require __DIR__ . '/../includes/csrf.php';
 
