@@ -1,7 +1,5 @@
 <?php
-if (session_status() === PHP_SESSION_NONE) {
-    session_start();
-}
+// Session is already started by session.php, so no session_start() here
 
 function generateToken() {
     if (empty($_SESSION['csrf_token'])) {

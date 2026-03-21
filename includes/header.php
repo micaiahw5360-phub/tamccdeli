@@ -1,5 +1,5 @@
 <?php
-ob_start();
+require_once __DIR__ . '/session.php'; // starts session with secure cookie params
 require_once __DIR__ . '/kiosk.php'; // load kiosk functions and $kiosk_mode
 
 // Pass kiosk mode to JavaScript
