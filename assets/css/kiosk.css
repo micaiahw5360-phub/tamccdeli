@@ -1,4 +1,4 @@
-/* ==================== KIOSK MODE – CLEAN TAMCC THEME ==================== */
+/* ==================== KIOSK MODE – RESPONSIVE ==================== */
 /* Hide normal header/footer */
 body .navbar,
 body .footer {
@@ -11,24 +11,23 @@ body {
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
 }
 
-/* All containers – consistent with global theme but larger */
+/* Containers – fluid, responsive */
 body .container,
 body .menu-container,
 body .cart-container,
 body .checkout-container,
-body .kiosk-categories,
 body .order-summary,
 body .card {
     max-width: 1400px;
     margin: 2rem auto;
-    padding: 2rem;
+    padding: clamp(1rem, 4vw, 2rem);
     background: white;
     border-radius: 1rem;
     box-shadow: 0 4px 12px rgba(0,0,0,0.1);
     border: 1px solid #e9ecef;
 }
 
-/* Headings – larger, using TAMCC blue */
+/* Headings – larger but responsive */
 body h1,
 body h2,
 body h3,
@@ -39,12 +38,12 @@ body .category-title {
     font-weight: 700;
     letter-spacing: -0.02em;
 }
-body h1 { font-size: 3.5rem; }
-body h2 { font-size: 3rem; }
-body h3 { font-size: 2.5rem; }
-body .kiosk-header { font-size: 4rem; text-align: center; }
+body h1 { font-size: clamp(2rem, 6vw, 3.5rem); }
+body h2 { font-size: clamp(1.8rem, 5vw, 3rem); }
+body h3 { font-size: clamp(1.5rem, 4vw, 2.5rem); }
+body .kiosk-header { font-size: clamp(2.5rem, 8vw, 4rem); text-align: center; }
 
-/* Buttons – large, with TAMCC blue, no exaggerated shadows */
+/* Buttons – flexible, touch‑friendly */
 body .btn,
 body .btn-small,
 body .btn-primary,
@@ -66,8 +65,8 @@ body .btn-warning {
     color: white !important;
     border: none !important;
     border-radius: 0.5rem !important;
-    padding: 1.5rem 3rem !important;
-    font-size: 2rem !important;
+    padding: 0.75rem 1.5rem !important;
+    font-size: clamp(1rem, 3vw, 2rem) !important;
     font-weight: 600;
     box-shadow: 0 4px 6px rgba(0,0,0,0.1) !important;
     transition: background-color 0.2s, transform 0.1s;
@@ -117,7 +116,7 @@ body .btn-success:hover {
     background: #218838 !important;
 }
 
-/* Category tiles – simple cards */
+/* Category tiles – if you ever add .kiosk-categories, keep them */
 body .kiosk-categories {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
@@ -129,8 +128,8 @@ body .kiosk-category {
     color: #074af2 !important;
     border: 2px solid #074af2 !important;
     box-shadow: 0 4px 8px rgba(0,0,0,0.05) !important;
-    font-size: 2.5rem;
-    min-height: 200px;
+    font-size: clamp(1.5rem, 4vw, 2.5rem);
+    min-height: 150px;
     padding: 2rem;
     transition: all 0.2s;
 }
@@ -148,8 +147,8 @@ body .floating-cart {
     background: #28a745 !important;
     color: white !important;
     border-radius: 60px !important;
-    padding: 1.5rem 3rem !important;
-    font-size: 2.5rem !important;
+    padding: 1rem 2rem !important;
+    font-size: clamp(1rem, 3vw, 2rem) !important;
     box-shadow: 0 8px 16px rgba(0,0,0,0.2) !important;
     z-index: 1000;
     border: none !important;
@@ -162,43 +161,46 @@ body .floating-cart .cart-count {
     background: white;
     color: #28a745;
     border-radius: 50%;
-    padding: 0.5rem 1.2rem;
-    font-size: 2rem;
-    margin-left: 1rem;
+    padding: 0.3rem 0.8rem;
+    font-size: clamp(1rem, 2.5vw, 1.5rem);
+    margin-left: 0.8rem;
     font-weight: bold;
 }
 
-/* Menu items – like cards */
+/* Menu items – like cards, responsive */
 body .menu-item {
     background: white;
     border: 1px solid #dee2e6;
     border-radius: 0.75rem;
-    padding: 1.5rem;
+    padding: 1rem;
     box-shadow: 0 2px 4px rgba(0,0,0,0.05);
     transition: box-shadow 0.2s;
+    height: 100%;
 }
 body .menu-item:hover {
     box-shadow: 0 8px 16px rgba(0,0,0,0.1);
 }
 body .menu-item h3 {
-    font-size: 2rem;
+    font-size: clamp(1.2rem, 3vw, 2rem);
     color: #074af2;
+    margin: 0 0 0.5rem;
 }
 body .menu-item .price {
-    font-size: 2rem;
+    font-size: clamp(1.2rem, 3vw, 2rem);
     font-weight: 700;
     color: #f97316;
+    margin: 0.5rem 0;
 }
 
-/* Form inputs – large */
+/* Form inputs – large but responsive */
 body input[type="text"],
 body input[type="number"],
 body input[type="email"],
 body input[type="datetime-local"],
 body select,
 body textarea {
-    font-size: 2rem !important;
-    padding: 1.5rem !important;
+    font-size: clamp(1rem, 3vw, 1.8rem) !important;
+    padding: 0.75rem 1rem !important;
     border: 2px solid #ced4da !important;
     border-radius: 0.5rem !important;
     width: 100%;
@@ -214,18 +216,21 @@ body textarea:focus {
 
 /* Labels */
 body .form-group label {
-    font-size: 2rem;
+    font-size: clamp(1rem, 3vw, 1.8rem);
     font-weight: 600;
     color: #495057;
     margin-bottom: 0.5rem;
     display: block;
 }
 
-/* Tables */
+/* Tables – scrollable on small screens */
+body .table-responsive {
+    overflow-x: auto;
+}
 body table {
     width: 100%;
     border-collapse: collapse;
-    font-size: 1.8rem;
+    font-size: clamp(0.9rem, 2.5vw, 1.5rem);
     background: white;
     border-radius: 0.75rem;
     overflow: hidden;
@@ -235,15 +240,15 @@ body th {
     background: #e9ecef;
     color: #074af2;
     font-weight: 700;
-    padding: 1.5rem;
+    padding: 1rem;
     text-align: left;
 }
 body td {
-    padding: 1.5rem;
+    padding: 1rem;
     border-bottom: 1px solid #dee2e6;
 }
 body .total {
-    font-size: 2.5rem;
+    font-size: clamp(1.2rem, 4vw, 2rem);
     font-weight: 700;
     color: #074af2;
     text-align: right;
@@ -253,19 +258,19 @@ body .total {
 /* Empty cart */
 body .empty-cart-message {
     text-align: center;
-    padding: 4rem;
+    padding: 2rem;
 }
 body .empty-cart-message .dashicons {
-    font-size: 8rem !important;
+    font-size: clamp(4rem, 10vw, 6rem) !important;
     color: #adb5bd;
 }
 body .empty-cart-message h2 {
-    font-size: 3rem;
+    font-size: clamp(1.5rem, 5vw, 2.5rem);
     color: #074af2;
 }
 body .empty-cart-message .btn {
-    font-size: 2rem;
-    padding: 1.5rem 3rem;
+    font-size: clamp(1rem, 3vw, 1.5rem);
+    padding: 1rem 2rem;
 }
 
 /* Student ID field */
@@ -281,21 +286,25 @@ body .exit-kiosk-link {
 body .exit-kiosk-link a {
     background: #6c757d;
     color: white;
-    padding: 1rem 2rem;
+    padding: 0.75rem 1.5rem;
     border-radius: 0.5rem;
     text-decoration: none;
-    font-size: 1.5rem;
+    font-size: clamp(0.9rem, 2.5vw, 1.2rem);
 }
 body .exit-kiosk-link a:hover {
     background: #5a6268;
 }
 
-/* Responsive */
+/* Responsive tweaks */
 @media (max-width: 768px) {
-    body h1 { font-size: 2.5rem; }
-    body h2 { font-size: 2rem; }
+    body .menu-item {
+        padding: 0.75rem;
+    }
     body .btn,
-    body .btn-small { font-size: 1.5rem; padding: 1rem 2rem; }
-    body .kiosk-category { font-size: 2rem; min-height: 150px; }
-    body .floating-cart { font-size: 2rem; padding: 1rem 2rem; }
+    body .btn-small {
+        padding: 0.5rem 1rem !important;
+    }
+    body .items-grid {
+        grid-template-columns: 1fr !important; /* ensure single column on phones */
+    }
 }
