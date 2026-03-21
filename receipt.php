@@ -1,6 +1,7 @@
 <?php
 session_start();
 require 'config/database.php';
+require 'includes/kiosk.php';
 
 if (!isset($_SESSION['user_id'])) {
     header("Location: auth/login.php");
@@ -23,11 +24,16 @@ if (!$order || ($order['user_id'] != $_SESSION['user_id'] && $_SESSION['role'] !
     exit;
 }
 
-// Fetch order items
+// Fetch order items with options
 $stmt2 = $conn->prepare("SELECT oi.*, mi.name FROM order_items oi JOIN menu_items mi ON oi.menu_item_id = mi.id WHERE oi.order_id = ?");
 $stmt2->bind_param("i", $order_id);
 $stmt2->execute();
 $items = $stmt2->get_result()->fetch_all(MYSQLI_ASSOC);
+
+// Decode options
+foreach ($items as &$item) {
+    $item['options'] = json_decode($item['options'], true);
+}
 
 // Fetch receipt (if exists) or create one
 $stmt3 = $conn->prepare("SELECT * FROM receipts WHERE order_id = ?");
@@ -35,13 +41,11 @@ $stmt3->bind_param("i", $order_id);
 $stmt3->execute();
 $receipt = $stmt3->get_result()->fetch_assoc();
 if (!$receipt) {
-    // Generate new receipt
     $receipt_number = 'RCP-' . date('Ymd') . '-' . $order_id;
     $insert = $conn->prepare("INSERT INTO receipts (order_id, receipt_number) VALUES (?, ?)");
     $insert->bind_param("is", $order_id, $receipt_number);
     $insert->execute();
     $receipt_id = $conn->insert_id;
-    // Fetch newly created
     $stmt3->execute();
     $receipt = $stmt3->get_result()->fetch_assoc();
 }
@@ -67,23 +71,44 @@ include 'includes/header.php';
         <hr>
         <h3>Items</h3>
         <table style="width:100%; border-collapse:collapse;">
-            <thead><tr><th>Item</th><th>Qty</th><th>Price</th><th>Subtotal</th></tr></thead>
-            <tbody>
-            <?php foreach ($items as $item): ?>
+            <thead>
                 <tr>
-                    <td><?= htmlspecialchars($item['name']) ?></td>
-                    <td><?= $item['quantity'] ?></td>
-                    <td>$<?= number_format($item['price'], 2) ?></td>
-                    <td>$<?= number_format($item['quantity'] * $item['price'], 2) ?></td>
+                    <th>Item</th>
+                    <th>Options</th>
+                    <th>Qty</th>
+                    <th>Price</th>
+                    <th>Subtotal</th>
                 </tr>
-            <?php endforeach; ?>
+            </thead>
+            <tbody>
+                <?php foreach ($items as $item): ?>
+                    <tr>
+                        <td><?= htmlspecialchars($item['name']) ?></td>
+                        <td>
+                            <?php if (!empty($item['options'])): ?>
+                                <ul style="margin:0; padding-left:1rem;">
+                                    <?php foreach ($item['options'] as $opt): ?>
+                                        <li><?= htmlspecialchars($opt['option_name']) ?>: <?= htmlspecialchars($opt['value_name']) ?></li>
+                                    <?php endforeach; ?>
+                                </ul>
+                            <?php else: ?>
+                                —
+                            <?php endif; ?>
+                        </td>
+                        <td><?= $item['quantity'] ?></td>
+                        <td>$<?= number_format($item['price'], 2) ?></td>
+                        <td>$<?= number_format($item['quantity'] * $item['price'], 2) ?></td>
+                    </tr>
+                <?php endforeach; ?>
             </tbody>
         </table>
         <hr>
         <p style="text-align:right; font-size:1.5rem; font-weight:bold;">Total: $<?= number_format($order['total'], 2) ?></p>
         <p style="text-align:center; margin-top:30px;"><em>Thank you for ordering! Your food will be ready for pickup at the specified time.</em></p>
-        <button onclick="window.print()" class="btn">Print Receipt</button>
-        <a href="<?= kiosk_url('dashboard/orders.php') ?>" class="btn">Back to Orders</a>
+        <div style="display: flex; justify-content: space-between; margin-top: 20px;">
+            <button onclick="window.print()" class="btn">Print Receipt</button>
+            <a href="<?= kiosk_url('dashboard/orders.php') ?>" class="btn">Back to Orders</a>
+        </div>
     </div>
 </div>
 
