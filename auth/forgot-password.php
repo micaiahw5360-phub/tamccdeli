@@ -31,8 +31,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $token = bin2hex(random_bytes(32));
             $expires = date('Y-m-d H:i:s', strtotime('+1 hour'));
 
-            // Delete any old token for this user
-            $conn->query("DELETE FROM password_resets WHERE user_id = " . $user['id']);
+            // Delete any old token for this user (using prepared statement)
+            $delete = $conn->prepare("DELETE FROM password_resets WHERE user_id = ?");
+            $delete->bind_param("i", $user['id']);
+            $delete->execute();
 
             // Store new token
             $stmt = $conn->prepare("INSERT INTO password_resets (user_id, token, expires_at) VALUES (?, ?, ?)");
