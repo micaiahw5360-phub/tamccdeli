@@ -1,23 +1,44 @@
 <?php
+// Start output buffering and session
+ob_start();
+
 require __DIR__ . '/includes/session.php';
 require __DIR__ . '/config/database.php';
 require __DIR__ . '/includes/csrf.php';
 require __DIR__ . '/includes/kiosk.php';
 require __DIR__ . '/includes/mail.php'; // Include email helper
-require __DIR__ . '/includes/functions.php'; // new shared helper file
-require_once __DIR__ . '/vendor/autoload.php';
+require __DIR__ . '/includes/functions.php'; // shared helper file
 
-use Stripe\Stripe;
-use Stripe\PaymentIntent;
+// For wallet/cash, we may not need Stripe; load only if needed
+if (isset($_POST['payment_method']) && $_POST['payment_method'] === 'online') {
+    require_once __DIR__ . '/vendor/autoload.php';
+    use Stripe\Stripe;
+    use Stripe\PaymentIntent;
+}
+
+// ----------------------------------------------------------------------
+// TIMING DEBUGGING
+$start_time = microtime(true);
+error_log("Checkout started at: " . date('Y-m-d H:i:s'));
+// ----------------------------------------------------------------------
 
 if (empty($_SESSION['cart'])) {
     header("Location: menu.php");
     exit;
 }
 
-// Helper to get option value details (kept here – not moved to functions.php)
+// ----------------------------------------------------------------------
+// Helper to get option value details (cached version)
 function getOptionDetails($conn, $optionValues) {
     if (empty($optionValues)) return [];
+    
+    static $cache = [];
+    $cache_key = implode(',', array_values($optionValues));
+    
+    if (isset($cache[$cache_key])) {
+        return $cache[$cache_key];
+    }
+    
     $ids = array_values($optionValues);
     $placeholders = implode(',', array_fill(0, count($ids), '?'));
     $stmt = $conn->prepare("SELECT v.*, o.option_name FROM menu_item_option_values v 
@@ -25,13 +46,18 @@ function getOptionDetails($conn, $optionValues) {
                             WHERE v.id IN ($placeholders)");
     $stmt->bind_param(str_repeat('i', count($ids)), ...$ids);
     $stmt->execute();
-    return $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+    $result = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+    
+    $cache[$cache_key] = $result;
+    return $result;
 }
+// ----------------------------------------------------------------------
 
 // Fetch all distinct item IDs from cart
 $cart = $_SESSION['cart'];
 $item_ids = array_unique(array_column($cart, 'item_id'));
 $items_data = [];
+
 if (!empty($item_ids)) {
     $placeholders = implode(',', array_fill(0, count($item_ids), '?'));
     $stmt = $conn->prepare("SELECT * FROM menu_items WHERE id IN ($placeholders)");
@@ -42,6 +68,10 @@ if (!empty($item_ids)) {
         $items_data[$row['id']] = $row;
     }
 }
+
+$after_cart = microtime(true);
+error_log("Cart processing took: " . round(($after_cart - $start_time) * 1000, 2) . "ms");
+// ----------------------------------------------------------------------
 
 // Build cart items with options and prices
 $cart_items = [];
@@ -72,18 +102,30 @@ foreach ($cart as $key => $entry) {
     $total += $subtotal;
 }
 
-// Fetch user balance if logged in
+// ----------------------------------------------------------------------
+// Fetch user balance once (cached)
 $user_balance = 0;
-if (isset($_SESSION['user_id'])) {
-    $stmt = $conn->prepare("SELECT balance FROM users WHERE id = ?");
-    $stmt->bind_param("i", $_SESSION['user_id']);
-    $stmt->execute();
-    $result = $stmt->get_result();
-    $user_balance = $result->fetch_assoc()['balance'] ?? 0;
+$user_id = $_SESSION['user_id'] ?? null;
+if ($user_id) {
+    static $balance_cache = [];
+    if (isset($balance_cache[$user_id])) {
+        $user_balance = $balance_cache[$user_id];
+    } else {
+        $stmt = $conn->prepare("SELECT balance FROM users WHERE id = ?");
+        $stmt->bind_param("i", $user_id);
+        $stmt->execute();
+        $result = $stmt->get_result();
+        $user_balance = $result->fetch_assoc()['balance'] ?? 0;
+        $balance_cache[$user_id] = $user_balance;
+    }
 }
+$after_db = microtime(true);
+error_log("Database queries took: " . round(($after_db - $after_cart) * 1000, 2) . "ms");
+// ----------------------------------------------------------------------
 
 $error = '';
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    // No need to load Stripe again; we already did if needed
     if (!validateToken($_POST['csrf_token'])) {
         die('Invalid CSRF token');
     }
@@ -182,8 +224,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
             // --------------------------------
 
-            // Handle online payment
+            // Handle online payment (Stripe already loaded at top)
             if ($payment_method === 'online') {
+                // Stripe already loaded, but we need to create PaymentIntent
                 Stripe::setApiKey(getenv('STRIPE_SECRET_KEY'));
                 $intent = PaymentIntent::create([
                     'amount'   => round($total * 100),
@@ -224,6 +267,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     }
 }
+$after_commit = microtime(true);
+error_log("Total checkout time: " . round(($after_commit - $start_time) * 1000, 2) . "ms");
 ?>
 <!DOCTYPE html>
 <html>
