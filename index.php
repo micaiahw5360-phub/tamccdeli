@@ -212,4 +212,29 @@ if ($stmt) {
     </div>
 </section>
 
+<!-- Install App Button (only in normal mode) -->
+<?php if (!$kiosk_mode): ?>
+    <div id="install-container" style="display: none; position: fixed; bottom: 20px; left: 20px; z-index: 1000;">
+        <button id="install-app" class="btn btn-primary">📱 Install App</button>
+    </div>
+    <script>
+        let deferredPrompt;
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            deferredPrompt = e;
+            document.getElementById('install-container').style.display = 'block';
+        });
+        document.getElementById('install-app').addEventListener('click', () => {
+            deferredPrompt.prompt();
+            deferredPrompt.userChoice.then((choiceResult) => {
+                if (choiceResult.outcome === 'accepted') {
+                    console.log('User accepted the install prompt');
+                }
+                deferredPrompt = null;
+                document.getElementById('install-container').style.display = 'none';
+            });
+        });
+    </script>
+<?php endif; ?>
+
 <?php include 'includes/footer.php'; ?>

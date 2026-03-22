@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Offline | TAMCC Deli</title>
+    <link rel="stylesheet" href="/assets/css/global.css">
+    <style>
+        /* Additional inline styles for this page */
+        .offline-container {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, var(--neutral-50) 0%, var(--neutral-100) 100%);
+            text-align: center;
+            padding: 2rem;
+        }
+        .offline-card {
+            max-width: 500px;
+            width: 100%;
+            background: white;
+            border-radius: var(--radius-lg);
+            padding: 2rem;
+            box-shadow: var(--shadow-lg);
+            border: 1px solid var(--neutral-200);
+        }
+        .offline-logo {
+            max-width: 150px;
+            margin-bottom: 1.5rem;
+        }
+        .offline-icon {
+            font-size: 5rem;
+            color: var(--primary-600);
+            margin-bottom: 1rem;
+        }
+        .offline-title {
+            color: var(--primary-600);
+            margin-bottom: 0.5rem;
+        }
+        .offline-message {
+            color: var(--neutral-600);
+            margin: 1rem 0;
+        }
+        .offline-help {
+            background: var(--neutral-100);
+            border-radius: var(--radius);
+            padding: 1rem;
+            margin: 1.5rem 0;
+            font-size: 0.9rem;
+            text-align: left;
+        }
+        .offline-help ul {
+            margin: 0.5rem 0 0 1.5rem;
+            padding-left: 0;
+        }
+        .offline-help li {
+            margin: 0.25rem 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="offline-container">
+        <div class="offline-card">
+            <img src="/assets/images/ta-logo-1536x512.png" alt="TAMCC Deli" class="offline-logo">
+            <div class="offline-icon">📶</div>
+            <h1 class="offline-title">You're Offline</h1>
+            <p class="offline-message">It looks like you've lost your internet connection.</p>
+            <div class="offline-help">
+                <strong>💡 What you can do:</strong>
+                <ul>
+                    <li>Check your Wi‑Fi or mobile data.</li>
+                    <li>Refresh this page once you're back online.</li>
+                    <li>Previously visited pages may still be available if they were cached.</li>
+                </ul>
+            </div>
+            <a href="/" class="btn btn-primary" onclick="location.reload(); return false;">Retry Connection</a>
+        </div>
+    </div>
+</body>
+</html>

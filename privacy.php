@@ -8,6 +8,13 @@ include 'includes/header.php';
     <h1>Privacy Policy</h1>
     <p class="text-muted">Last updated: <?php echo date('F j, Y'); ?></p>
     <div class="card">
+        <div class="card-icon" style="font-size: 4rem; text-align: center; margin-bottom: 1rem;">🔒</div>
+
+        <div class="privacy-highlight" style="background: var(--neutral-100); padding: 1rem; border-radius: var(--radius); margin: 1rem 0;">
+            <span class="dashicons dashicons-shield-alt" style="font-size: 1.5rem;"></span>
+            <strong>We respect your privacy.</strong> Your data is safe with us.
+        </div>
+
         <h2>1. Information We Collect</h2>
         <p>We collect personal information such as your name, email address, and order history when you register or place an order through our website. This information is used solely to provide and improve our services.</p>
 

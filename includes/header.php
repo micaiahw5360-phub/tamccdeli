@@ -11,6 +11,7 @@ echo '<script>var kioskMode = ' . ($kiosk_mode ? 'true' : 'false') . ';</script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?php echo isset($page_title) ? $page_title : 'TAMCC Deli'; ?></title>
+    <link rel="manifest" href="/manifest.json"> <!-- PWA manifest -->
     <meta http-equiv="Content-Security-Policy" content="default-src * 'unsafe-inline' 'unsafe-eval'; script-src * 'unsafe-inline' 'unsafe-eval'; style-src * 'unsafe-inline'; img-src * data:; font-src * data:;">
     <link rel="stylesheet" href="/assets/css/global.css">
     <?php if ($kiosk_mode): ?>
