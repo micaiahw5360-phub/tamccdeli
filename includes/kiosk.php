@@ -1,6 +1,6 @@
 <?php
-// Session should already be started by session.php
-// DO NOT call session_set_cookie_params() or session_start() here
+// Ensure functions are not redeclared
+if (!function_exists('kiosk_url')) {
 
 // --- KIOSK MODE DETECTION ---
 if (isset($_GET['kiosk'])) {
@@ -84,3 +84,5 @@ function is_kiosk_mode() {
     global $kiosk_mode;
     return $kiosk_mode;
 }
+
+} // end if (!function_exists('kiosk_url'))
