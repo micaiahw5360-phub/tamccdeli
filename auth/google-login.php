@@ -1,6 +1,6 @@
 <?php
+require __DIR__ . '/../includes/session.php';
 require __DIR__ . '/../vendor/autoload.php';
-require __DIR__ . '/includes/session.php';
 
 $client_id = getenv('GOOGLE_CLIENT_ID');
 $client_secret = getenv('GOOGLE_CLIENT_SECRET');
@@ -13,7 +13,6 @@ $client->setRedirectUri($redirect_uri);
 $client->addScope('email');
 $client->addScope('profile');
 
-// Generate and store state to prevent CSRF
 $state = bin2hex(random_bytes(16));
 $_SESSION['google_state'] = $state;
 $client->setState($state);

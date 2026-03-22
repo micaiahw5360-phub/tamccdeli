@@ -6,8 +6,8 @@ require __DIR__ . '/includes/session.php';
 require __DIR__ . '/config/database.php';
 require __DIR__ . '/includes/csrf.php';
 require __DIR__ . '/includes/kiosk.php';
-require __DIR__ . '/includes/mail.php'; // Include email helper
-require __DIR__ . '/includes/functions.php'; // shared helper file
+require __DIR__ . '/includes/mail.php';
+require __DIR__ . '/includes/functions.php';
 
 // For wallet/cash, we may not need Stripe; load only if needed
 if (isset($_POST['payment_method']) && $_POST['payment_method'] === 'online') {
@@ -17,7 +17,7 @@ if (isset($_POST['payment_method']) && $_POST['payment_method'] === 'online') {
 }
 
 // ----------------------------------------------------------------------
-// TIMING DEBUGGING
+// TIMING DEBUGGING (optional, can be removed in production)
 $start_time = microtime(true);
 error_log("Checkout started at: " . date('Y-m-d H:i:s'));
 // ----------------------------------------------------------------------
@@ -103,19 +103,22 @@ foreach ($cart as $key => $entry) {
 }
 
 // ----------------------------------------------------------------------
-// Fetch user balance once (cached)
+// Fetch user balance and points
 $user_balance = 0;
+$user_points = 0;
 $user_id = $_SESSION['user_id'] ?? null;
 if ($user_id) {
     static $balance_cache = [];
     if (isset($balance_cache[$user_id])) {
         $user_balance = $balance_cache[$user_id];
     } else {
-        $stmt = $conn->prepare("SELECT balance FROM users WHERE id = ?");
+        $stmt = $conn->prepare("SELECT balance, points FROM users WHERE id = ?");
         $stmt->bind_param("i", $user_id);
         $stmt->execute();
         $result = $stmt->get_result();
-        $user_balance = $result->fetch_assoc()['balance'] ?? 0;
+        $user_data = $result->fetch_assoc();
+        $user_balance = $user_data['balance'] ?? 0;
+        $user_points = $user_data['points'] ?? 0;
         $balance_cache[$user_id] = $user_balance;
     }
 }
@@ -124,6 +127,7 @@ error_log("Database queries took: " . round(($after_db - $after_cart) * 1000, 2)
 // ----------------------------------------------------------------------
 
 $error = '';
+$original_total = $total; // keep for later use (award points based on original total? we'll use net total after discount)
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // No need to load Stripe again; we already did if needed
     if (!validateToken($_POST['csrf_token'])) {
@@ -150,17 +154,34 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     }
 
+    // Handle loyalty points redemption
+    $points_used = 0;
+    $discount = 0;
+    $net_total = $total; // we'll update this if points are used
+    if ($user_id && isset($_POST['use_points']) && $_POST['use_points'] == '1') {
+        $points_to_use = intval($_POST['points_to_use'] ?? 0);
+        $max_points = floor($total * 100); // because 100 points = $1
+        $points_to_use = min($points_to_use, $user_points, $max_points);
+        if ($points_to_use > 0) {
+            $discount = $points_to_use / 100;
+            $net_total = max(0, $total - $discount);
+            $points_used = $points_to_use;
+        }
+    } else {
+        $net_total = $total;
+    }
+
     if (!$error) {
         $conn->begin_transaction();
         try {
-            // Insert order
-            $stmt = $conn->prepare("INSERT INTO orders (user_id, guest_email, total, pickup_time, special_instructions, payment_status, payment_method) 
-                                     VALUES (?, ?, ?, ?, ?, 'unpaid', ?)");
-            $stmt->bind_param("isdsss", $user_id, $guest_email, $total, $pickup_time, $instructions, $payment_method);
+            // Insert order with net_total (after discount)
+            $stmt = $conn->prepare("INSERT INTO orders (user_id, guest_email, total, pickup_time, special_instructions, payment_status, payment_method, points_used) 
+                                     VALUES (?, ?, ?, ?, ?, 'unpaid', ?, ?)");
+            $stmt->bind_param("isdsssi", $user_id, $guest_email, $net_total, $pickup_time, $instructions, $payment_method, $points_used);
             $stmt->execute();
             $order_id = $conn->insert_id;
 
-            // Insert order items with options
+            // Insert order items with options (use original unit prices; discount is applied at order level)
             $stmt2 = $conn->prepare("INSERT INTO order_items (order_id, menu_item_id, quantity, price, options) VALUES (?, ?, ?, ?, ?)");
             foreach ($cart_items as $cart_item) {
                 $options_json = json_encode($cart_item['options']);
@@ -168,25 +189,43 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $stmt2->execute();
             }
 
-            // Handle wallet payment
-            if ($payment_method === 'wallet' && $user_id) {
-                $update = $conn->prepare("UPDATE users SET balance = balance - ? WHERE id = ?");
-                $update->bind_param("di", $total, $user_id);
-                $update->execute();
+            // If points were used, deduct them (already deducted above? We'll do it now)
+            if ($points_used > 0) {
+                $update_points = $conn->prepare("UPDATE users SET points = points - ? WHERE id = ?");
+                $update_points->bind_param("ii", $points_used, $user_id);
+                $update_points->execute();
 
-                $description = "Payment for order #$order_id";
-                $trans = $conn->prepare("INSERT INTO transactions (user_id, amount, type, description, order_id) VALUES (?, ?, 'payment', ?, ?)");
-                $trans->bind_param("idsi", $user_id, $total, $description, $order_id);
+                // Record the points usage in a transaction (optional)
+                $trans = $conn->prepare("INSERT INTO transactions (user_id, amount, type, description, order_id) VALUES (?, ?, 'points_redemption', ?, ?)");
+                $points_amount = -$points_used; // store negative as points used
+                $desc = "Redeemed $points_used points for discount on order #$order_id";
+                $trans->bind_param("idsi", $user_id, $points_amount, $desc, $order_id);
                 $trans->execute();
-
-                $update_order = $conn->prepare("UPDATE orders SET payment_status = 'paid' WHERE id = ?");
-                $update_order->bind_param("i", $order_id);
-                $update_order->execute();
             }
 
-            // Award points if logged in
+            // Handle wallet payment (using net_total)
+            if ($payment_method === 'wallet' && $user_id) {
+                if ($user_balance >= $net_total) {
+                    $update = $conn->prepare("UPDATE users SET balance = balance - ? WHERE id = ?");
+                    $update->bind_param("di", $net_total, $user_id);
+                    $update->execute();
+
+                    $description = "Payment for order #$order_id";
+                    $trans = $conn->prepare("INSERT INTO transactions (user_id, amount, type, description, order_id) VALUES (?, ?, 'payment', ?, ?)");
+                    $trans->bind_param("idsi", $user_id, $net_total, $description, $order_id);
+                    $trans->execute();
+
+                    $update_order = $conn->prepare("UPDATE orders SET payment_status = 'paid' WHERE id = ?");
+                    $update_order->bind_param("i", $order_id);
+                    $update_order->execute();
+                } else {
+                    throw new Exception("Insufficient wallet balance after discount.");
+                }
+            }
+
+            // Award points if logged in (based on net_total)
             if ($user_id) {
-                $points_earned = floor($total);
+                $points_earned = floor($net_total);
                 $update_points = $conn->prepare("UPDATE users SET points = points + ? WHERE id = ?");
                 $update_points->bind_param("ii", $points_earned, $user_id);
                 $update_points->execute();
@@ -198,17 +237,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             $conn->commit();
 
-            // --- Send confirmation email ---
+            // --- Send confirmation email (unchanged) ---
             $subject = "Order Confirmation #$order_id";
             $body = "<h2>Thank you for your order!</h2>
                      <p>Your order #$order_id has been placed successfully.</p>
-                     <p><strong>Total:</strong> $" . number_format($total, 2) . "</p>
+                     <p><strong>Original Total:</strong> $" . number_format($total, 2) . "</p>";
+            if ($points_used > 0) {
+                $body .= "<p><strong>Points Used:</strong> $points_used points (discount: $" . number_format($discount, 2) . ")</p>";
+            }
+            $body .= "<p><strong>Total Paid:</strong> $" . number_format($net_total, 2) . "</p>
                      <p><strong>Payment Method:</strong> " . ucfirst($payment_method) . "</p>
                      <p><strong>Pickup Time:</strong> " . ($pickup_time ? date('M j, Y g:i a', strtotime($pickup_time)) : 'As soon as possible') . "</p>
                      <p><strong>Special Instructions:</strong> " . nl2br(htmlspecialchars($instructions)) . "</p>
                      <p>You can view your order details in your dashboard.</p>";
 
-            // Determine recipient email
+            // Determine recipient email (same as before)
             if ($user_id) {
                 $email_stmt = $conn->prepare("SELECT email FROM users WHERE id = ?");
                 $email_stmt->bind_param("i", $user_id);
@@ -224,29 +267,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
             // --------------------------------
 
-            // Handle online payment (Stripe already loaded at top)
+            // Handle online payment (use net_total)
             if ($payment_method === 'online') {
-                // Stripe already loaded, but we need to create PaymentIntent
                 Stripe::setApiKey(getenv('STRIPE_SECRET_KEY'));
                 $intent = PaymentIntent::create([
-                    'amount'   => round($total * 100),
+                    'amount'   => round($net_total * 100),
                     'currency' => 'usd',
                     'metadata' => ['order_id' => $order_id],
                 ]);
                 $_SESSION['stripe_intent_id'] = $intent->id;
                 $_SESSION['stripe_client_secret'] = $intent->client_secret;
                 $_SESSION['pending_order'] = $order_id;
-                $_SESSION['stripe_total'] = $total;
+                $_SESSION['stripe_total'] = $net_total;
                 header("Location: stripe-payment.php" . ($kiosk_mode ? '?kiosk=1' : ''));
                 exit;
             }
 
-            // Clear cart (order is placed)
+            // Clear cart and redirect
             $_SESSION['cart'] = [];
 
-            // Handle guest vs. logged-in redirection
             if (!$user_id) {
-                // Guest order: store order info in session and redirect to guest-thanks
                 $_SESSION['guest_order'] = $order_id;
                 $_SESSION['guest_email'] = $guest_email;
                 $redirect = "guest-thanks.php";
@@ -254,7 +294,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 header("Location: $redirect");
                 exit;
             } else {
-                // Logged-in user: go to order confirmation
                 $redirect = "order-confirmation.php?order_id=$order_id";
                 if ($kiosk_mode) $redirect .= '&kiosk=1';
                 header("Location: $redirect");
@@ -264,6 +303,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         } catch (Exception $e) {
             $conn->rollback();
             $error = "Failed to place order: " . $e->getMessage();
+            error_log("Checkout error: " . $e->getMessage());
         }
     }
 }
@@ -280,6 +320,8 @@ error_log("Total checkout time: " . round(($after_commit - $start_time) * 1000, 
         .btn.loading .btn-text { display: none; }
         .btn.loading .loading { display: inline-block; }
         .option-list { margin: 0; padding-left: 1rem; font-size: 0.9rem; }
+        .points-input-group { margin-top: 0.5rem; }
+        #points_amount_group { margin-top: 0.5rem; }
     </style>
 </head>
 <body>
@@ -291,8 +333,8 @@ error_log("Total checkout time: " . round(($after_commit - $start_time) * 1000, 
 
         <div class="order-summary">
             <h3>Order Summary</h3>
-            <table>
-                <thead><tr><th>Item</th><th>Options</th><th>Qty</th><th>Price</th><th>Subtotal</th></tr></thead>
+            表格
+                <thead>  <th>Item</th><th>Options</th><th>Qty</th><th>Price</th><th>Subtotal</th> </thead>
                 <tbody>
                 <?php foreach ($cart_items as $item): ?>
                 <tr>
@@ -314,7 +356,7 @@ error_log("Total checkout time: " . round(($after_commit - $start_time) * 1000, 
                 </tr>
                 <?php endforeach; ?>
                 </tbody>
-            </table>
+            表格
             <div class="total">Total: $<?= number_format($total, 2) ?></div>
         </div>
 
@@ -336,6 +378,21 @@ error_log("Total checkout time: " . round(($after_commit - $start_time) * 1000, 
                 <label>Special Instructions</label>
                 <textarea name="instructions" rows="3"></textarea>
             </div>
+
+            <?php if (isset($_SESSION['user_id']) && $user_points > 0): ?>
+                <div class="form-group">
+                    <label>Loyalty Points</label>
+                    <div class="points-input-group">
+                        <input type="checkbox" id="use_points" name="use_points" value="1">
+                        <label for="use_points">Use my points (<?= $user_points ?> points available)</label>
+                    </div>
+                    <div id="points_amount_group" style="display: none;">
+                        <label for="points_to_use">Points to use (100 points = $1.00):</label>
+                        <input type="number" id="points_to_use" name="points_to_use" min="0" max="<?= min($user_points, floor($total * 100)) ?>" step="1" value="0">
+                        <small>Max discount: $<?= number_format(min($total, $user_points / 100), 2) ?></small>
+                    </div>
+                </div>
+            <?php endif; ?>
 
             <div class="form-group">
                 <label>Payment Method</label>
@@ -362,6 +419,18 @@ error_log("Total checkout time: " . round(($after_commit - $start_time) * 1000, 
             btn.classList.add('loading');
             btn.disabled = true;
         });
+
+        // Show/hide points amount input
+        const usePointsCheckbox = document.getElementById('use_points');
+        const pointsGroup = document.getElementById('points_amount_group');
+        if (usePointsCheckbox) {
+            usePointsCheckbox.addEventListener('change', function() {
+                pointsGroup.style.display = this.checked ? 'block' : 'none';
+                if (!this.checked) {
+                    document.getElementById('points_to_use').value = 0;
+                }
+            });
+        }
     </script>
 
     <?php include 'includes/footer.php'; ?>
