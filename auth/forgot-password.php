@@ -31,7 +31,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $token = bin2hex(random_bytes(32));
             $expires = date('Y-m-d H:i:s', strtotime('+1 hour'));
 
-            // Delete any old token for this user (using prepared statement)
+            // Delete any old token for this user
             $delete = $conn->prepare("DELETE FROM password_resets WHERE user_id = ?");
             $delete->bind_param("i", $user['id']);
             $delete->execute();
@@ -47,7 +47,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             try {
                 // Server settings
                 $mail->isSMTP();
-                $mail->Host       = getenv('SMTP_HOST');       // e.g., smtp.gmail.com
+                $mail->Host       = getenv('SMTP_HOST');
                 $mail->SMTPAuth   = true;
                 $mail->Username   = getenv('SMTP_USER');
                 $mail->Password   = getenv('SMTP_PASS');
@@ -84,28 +84,139 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 
 $page_title = "Forgot Password";
-include __DIR__ . '/../includes/header.php';
 ?>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Forgot Password | TAMCC Deli</title>
+    <link rel="stylesheet" href="../assets/css/global.css">
+    <style>
+        /* Override to ensure full‑width auth container without navbar interference */
+        body {
+            margin: 0;
+            padding: 0;
+            background: linear-gradient(135deg, var(--neutral-50) 0%, var(--neutral-100) 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .auth-container {
+            width: 100%;
+            padding: 2rem;
+        }
+        .auth-card {
+            max-width: 420px;
+            margin: 0 auto;
+            background: white;
+            border-radius: var(--radius-lg);
+            padding: 2rem;
+            box-shadow: var(--shadow-lg);
+            border-top: 4px solid var(--primary-600);
+        }
+        .brand-icon {
+            text-align: center;
+            font-size: 3rem;
+            margin-bottom: 0.5rem;
+        }
+        .auth-card h2 {
+            text-align: center;
+            margin-bottom: 1.5rem;
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: var(--neutral-800);
+        }
+        .form-group {
+            margin-bottom: 1rem;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+            color: var(--neutral-700);
+        }
+        .form-group input {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1.5px solid var(--neutral-300);
+            border-radius: var(--radius);
+            font-size: 1rem;
+            transition: var(--transition);
+        }
+        .form-group input:focus {
+            border-color: var(--primary-600);
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(7,74,242,0.1);
+        }
+        .btn-block {
+            width: 100%;
+            padding: 0.75rem;
+            font-size: 1.1rem;
+            border-radius: 2rem;
+            font-weight: 600;
+            margin-top: 0.5rem;
+        }
+        .auth-footer {
+            text-align: center;
+            margin-top: 1.5rem;
+            font-size: 0.9rem;
+            color: var(--neutral-600);
+        }
+        .auth-footer a {
+            color: var(--primary-600);
+            text-decoration: none;
+            font-weight: 600;
+        }
+        .auth-footer a:hover {
+            text-decoration: underline;
+        }
+        .error-message, .success-message {
+            padding: 0.75rem;
+            border-radius: var(--radius);
+            margin-bottom: 1rem;
+            text-align: center;
+            border-left: 3px solid;
+        }
+        .error-message {
+            background: #fee2e2;
+            color: #dc2626;
+            border-left-color: #dc2626;
+        }
+        .success-message {
+            background: #dcfce7;
+            color: #15803d;
+            border-left-color: #15803d;
+        }
+    </style>
+</head>
+<body>
+    <div class="auth-container">
+        <div class="auth-card">
+            <div class="brand-icon">🔐</div>
+            <h2>Forgot Password</h2>
 
-<div class="auth-container">
-    <div class="auth-card">
-        <h2>Forgot Password</h2>
-        <?php if ($error): ?>
-            <div class="error-message"><?= $error ?></div>
-        <?php endif; ?>
-        <?php if ($success): ?>
-            <div class="success-message"><?= $success ?></div>
-        <?php endif; ?>
-        <form method="POST">
-            <input type="hidden" name="csrf_token" value="<?= generateToken() ?>">
-            <div class="form-group">
-                <label for="email">Email Address</label>
-                <input type="email" id="email" name="email" required>
+            <?php if ($error): ?>
+                <div class="error-message"><?= htmlspecialchars($error) ?></div>
+            <?php endif; ?>
+            <?php if ($success): ?>
+                <div class="success-message"><?= htmlspecialchars($success) ?></div>
+            <?php endif; ?>
+
+            <form method="POST">
+                <input type="hidden" name="csrf_token" value="<?= generateToken() ?>">
+                <div class="form-group">
+                    <label for="email">Email Address</label>
+                    <input type="email" id="email" name="email" required>
+                </div>
+                <button type="submit" class="btn btn-primary btn-block">Send Reset Link</button>
+            </form>
+
+            <div class="auth-footer">
+                <a href="login.php">Back to Login</a>
             </div>
-            <button type="submit" class="btn btn-primary btn-block">Send Reset Link</button>
-        </form>
-        <p class="auth-footer"><a href="login.php">Back to Login</a></p>
+        </div>
     </div>
-</div>
-
-<?php include __DIR__ . '/../includes/footer.php'; ?>
+</body>
+</html>

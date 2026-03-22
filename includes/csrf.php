@@ -11,3 +11,6 @@ function generateToken() {
 function validateToken($token) {
     return isset($_SESSION['csrf_token']) && hash_equals($_SESSION['csrf_token'], $token);
 }
+function regenerateToken() {
+    $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+}

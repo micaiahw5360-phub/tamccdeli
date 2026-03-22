@@ -37,8 +37,11 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 
         // Clear any kiosk mode
         unset($_SESSION['kiosk_mode']);
-        
-        header("Location: ../index.php");
+
+        // Redirect to originally requested page if available
+        $redirect = $_SESSION['redirect_after_login'] ?? '../index.php';
+        unset($_SESSION['redirect_after_login']);
+        header("Location: $redirect");
         exit;
     } else {
         $error = "Invalid login credentials";

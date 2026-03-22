@@ -38,22 +38,30 @@ $transactions = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
             <p>No payment records found.</p>
         <?php else: ?>
             <div class="card">
-                 <table>
-                    <thead>
-                         <tr><th>Description</th><th>Order #</th><th>Amount</th><th>Type</th><th>Date</th></tr>
-                    </thead>
-                    <tbody>
-                        <?php foreach ($transactions as $tx): ?>
-                         <tr>
-                            <td><?= htmlspecialchars($tx['description'] ?: 'Payment') ?></td>
-                            <td><a href="<?= normal_url('order-details.php?id=' . $tx['order_id']) ?>">#<?= $tx['order_id'] ?></a></td>
-                            <td>$<?= number_format($tx['amount'], 2) ?></td>
-                            <td class="status-<?= $tx['type'] ?>"><?= ucfirst($tx['type']) ?></td>
-                            <td><?= date('M j, Y g:i a', strtotime($tx['created_at'])) ?></td>
-                         </tr>
-                        <?php endforeach; ?>
-                    </tbody>
-                 </table>
+                <div class="table-responsive">
+                    表表格
+                        <thead>
+                            <tr>
+                                <th>Description</th>
+                                <th>Order #</th>
+                                <th>Amount</th>
+                                <th>Type</th>
+                                <th>Date</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php foreach ($transactions as $tx): ?>
+                            <tr>
+                                <td><?= htmlspecialchars($tx['description'] ?: 'Payment') ?></td>
+                                <td><a href="<?= normal_url('order-details.php?id=' . $tx['order_id']) ?>">#<?= $tx['order_id'] ?></a></td>
+                                <td>$<?= number_format($tx['amount'], 2) ?></td>
+                                <td class="status-<?= $tx['type'] ?>"><?= ucfirst($tx['type']) ?></td>
+                                <td><?= date('M j, Y g:i a', strtotime($tx['created_at'])) ?></td>
+                            </tr>
+                            <?php endforeach; ?>
+                        </tbody>
+                    表表格
+                </div>
             </div>
         <?php endif; ?>
     </div>

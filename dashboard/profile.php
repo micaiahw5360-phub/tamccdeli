@@ -3,13 +3,14 @@ require __DIR__ . '/../middleware/auth_check.php';
 require __DIR__ . '/../config/database.php';
 require __DIR__ . '/../includes/csrf.php';
 require __DIR__ . '/../includes/kiosk.php';
+require __DIR__ . '/../includes/functions.php';
 
 $user_id = $_SESSION['user_id'];
 $error = '';
 $success = '';
 
 // Fetch current user data
-$stmt = $conn->prepare("SELECT username, email FROM users WHERE id = ?");
+$stmt = $conn->prepare("SELECT username, email, profile_photo, bio FROM users WHERE id = ?");
 $stmt->bind_param("i", $user_id);
 $stmt->execute();
 $user = $stmt->get_result()->fetch_assoc();
@@ -21,6 +22,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     $username = trim($_POST['username']);
     $email = trim($_POST['email']);
+    $bio = trim($_POST['bio']);
     $current_password = $_POST['current_password'];
     $new_password = $_POST['new_password'];
     $confirm_password = $_POST['confirm_password'];
@@ -31,13 +33,34 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $error = "Invalid email address.";
     } else {
         try {
+            // Handle profile photo upload
+            $profile_photo = $user['profile_photo']; // keep current by default
+            if (isset($_FILES['profile_photo']) && $_FILES['profile_photo']['error'] === UPLOAD_ERR_OK) {
+                $allowed = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+                $file_type = mime_content_type($_FILES['profile_photo']['tmp_name']);
+                if (!in_array($file_type, $allowed)) {
+                    $error = "Only JPG, PNG, GIF, and WEBP images are allowed.";
+                } else {
+                    $upload_dir = __DIR__ . '/../uploads/profile/';
+                    if (!is_dir($upload_dir)) mkdir($upload_dir, 0755, true);
+                    $ext = pathinfo($_FILES['profile_photo']['name'], PATHINFO_EXTENSION);
+                    $filename = 'user_' . $user_id . '_' . time() . '.' . $ext;
+                    $target = $upload_dir . $filename;
+                    if (move_uploaded_file($_FILES['profile_photo']['tmp_name'], $target)) {
+                        $profile_photo = '/uploads/profile/' . $filename;
+                    } else {
+                        $error = "Failed to upload image.";
+                    }
+                }
+            }
+
+            // Update user data
             if (!empty($new_password)) {
                 if ($new_password !== $confirm_password) {
                     $error = "New passwords do not match.";
                 } elseif (strlen($new_password) < 12) {
                     $error = "Password must be at least 12 characters.";
                 } else {
-                    // Verify current password
                     $stmt = $conn->prepare("SELECT password FROM users WHERE id = ?");
                     $stmt->bind_param("i", $user_id);
                     $stmt->execute();
@@ -46,22 +69,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         $error = "Current password is incorrect.";
                     } else {
                         $hash = password_hash($new_password, PASSWORD_DEFAULT);
-                        $stmt = $conn->prepare("UPDATE users SET username=?, email=?, password=? WHERE id=?");
-                        $stmt->bind_param("sssi", $username, $email, $hash, $user_id);
+                        $stmt = $conn->prepare("UPDATE users SET username=?, email=?, bio=?, profile_photo=?, password=? WHERE id=?");
+                        $stmt->bind_param("sssssi", $username, $email, $bio, $profile_photo, $hash, $user_id);
                         if ($stmt->execute()) {
                             $success = "Profile updated successfully.";
                             $_SESSION['username'] = $username;
+                            $_SESSION['profile_photo'] = $profile_photo;
+                            regenerateToken(); // new CSRF token after important change
                         } else {
                             $error = "Database error: " . $conn->error;
                         }
                     }
                 }
             } else {
-                $stmt = $conn->prepare("UPDATE users SET username=?, email=? WHERE id=?");
-                $stmt->bind_param("ssi", $username, $email, $user_id);
+                $stmt = $conn->prepare("UPDATE users SET username=?, email=?, bio=?, profile_photo=? WHERE id=?");
+                $stmt->bind_param("ssssi", $username, $email, $bio, $profile_photo, $user_id);
                 if ($stmt->execute()) {
                     $success = "Profile updated successfully.";
                     $_SESSION['username'] = $username;
+                    $_SESSION['profile_photo'] = $profile_photo;
+                    regenerateToken();
                 } else {
                     $error = "Database error: " . $conn->error;
                 }
@@ -72,7 +99,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     }
     // Refresh user data
-    $stmt = $conn->prepare("SELECT username, email FROM users WHERE id = ?");
+    $stmt = $conn->prepare("SELECT username, email, profile_photo, bio FROM users WHERE id = ?");
     $stmt->bind_param("i", $user_id);
     $stmt->execute();
     $user = $stmt->get_result()->fetch_assoc();
@@ -102,7 +129,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <div class="card">
             <?php if ($error): ?><div class="error-message"><?= $error ?></div><?php endif; ?>
             <?php if ($success): ?><div class="success-message"><?= $success ?></div><?php endif; ?>
-            <form method="POST" class="profile-form">
+            <form method="POST" class="profile-form" enctype="multipart/form-data">
                 <input type="hidden" name="csrf_token" value="<?= generateToken() ?>">
                 <div class="form-group">
                     <label for="username">Username</label>
@@ -111,6 +138,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <div class="form-group">
                     <label for="email">Email</label>
                     <input type="email" id="email" name="email" value="<?= htmlspecialchars($user['email']) ?>" required>
+                </div>
+                <div class="form-group">
+                    <label for="bio">Bio</label>
+                    <textarea id="bio" name="bio" rows="3"><?= htmlspecialchars($user['bio'] ?? '') ?></textarea>
+                </div>
+                <div class="form-group">
+                    <label for="profile_photo">Profile Photo</label>
+                    <input type="file" id="profile_photo" name="profile_photo" accept="image/*">
+                    <?php if ($user['profile_photo']): ?>
+                        <div style="margin-top: 0.5rem;">
+                            <img src="<?= htmlspecialchars($user['profile_photo']) ?>" alt="Current profile photo" style="max-width: 100px; border-radius: 50%;">
+                            <p><small>Current photo. Upload a new one to replace.</small></p>
+                        </div>
+                    <?php endif; ?>
                 </div>
                 <hr>
                 <h3>Change Password (leave blank to keep current)</h3>

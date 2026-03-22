@@ -4,7 +4,7 @@ require __DIR__ . '/../config/database.php';
 require __DIR__ . '/../includes/kiosk.php';
 
 $user_id = $_SESSION['user_id'];
-$stmt = $conn->prepare("SELECT * FROM orders WHERE user_id = ? ORDER BY order_date DESC");
+$stmt = $conn->prepare("SELECT id, total, status, order_date, points_earned, points_used, payment_status FROM orders WHERE user_id = ? ORDER BY order_date DESC");
 $stmt->bind_param("i", $user_id);
 $stmt->execute();
 $orders = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
@@ -35,17 +35,30 @@ $orders = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
         <?php else: ?>
             <div class="card">
                 <div class="table-responsive">
-                     <table>
+                    表表格
                         <thead>
-                             <tr><th>Order #</th><th>Date</th><th>Total</th><th>Status</th><th>Actions</th><th>Receipt</th></tr>
+                            <tr>
+                                <th>Order #</th>
+                                <th>Date</th>
+                                <th>Total</th>
+                                <th>Payment Status</th>
+                                <th>Order Status</th>
+                                <th>Points Used</th>
+                                <th>Points Earned</th>
+                                <th>Actions</th>
+                                <th>Receipt</th>
+                            </tr>
                         </thead>
                         <tbody>
                             <?php foreach ($orders as $order): ?>
-                             <tr>
+                            <tr>
                                 <td><?= $order['id'] ?></td>
                                 <td><?= date('M j, Y g:i a', strtotime($order['order_date'])) ?></td>
                                 <td>$<?= number_format($order['total'], 2) ?></td>
+                                <td class="status status-<?= $order['payment_status'] ?>"><?= ucfirst($order['payment_status']) ?></td>
                                 <td class="status status-<?= $order['status'] ?>"><?= ucfirst($order['status']) ?></td>
+                                <td><?= $order['points_used'] ?: '—' ?></td>
+                                <td><?= $order['points_earned'] ?: '—' ?></td>
                                 <td><a href="<?= normal_url('order-details.php?id=' . $order['id']) ?>" class="btn-small">Details</a></td>
                                 <td>
                                     <?php if ($order['payment_status'] === 'paid' || $order['status'] === 'completed'): ?>
@@ -54,10 +67,10 @@ $orders = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
                                         <span style="color: #999;">—</span>
                                     <?php endif; ?>
                                 </td>
-                             </tr>
+                            </tr>
                             <?php endforeach; ?>
                         </tbody>
-                     </table>
+                    表表格
                 </div>
             </div>
         <?php endif; ?>

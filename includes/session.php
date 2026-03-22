@@ -10,3 +10,11 @@ session_set_cookie_params([
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
+
+/**
+ * Check if the session is secure (HTTPS and valid)
+ * @return bool
+ */
+function session_is_secure() {
+    return !empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off';
+}

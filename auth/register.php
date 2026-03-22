@@ -6,6 +6,7 @@ require __DIR__ . '/../includes/kiosk.php';
 
 $error = "";
 $prefill_email = $_POST['email'] ?? $_GET['email'] ?? '';
+$prefill_username = $_POST['username'] ?? '';
 
 if ($_SERVER["REQUEST_METHOD"] === "POST") {
     if (!validateToken($_POST['csrf_token'])) {
@@ -16,6 +17,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
     $email = trim($_POST['email']);
     $password = $_POST['password'];
 
+    // Validate input
     if (strlen($username) < 4) {
         $error = "Username must be at least 4 characters.";
     } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
@@ -23,13 +25,32 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
     } elseif (strlen($password) < 12) {
         $error = "Password must be at least 12 characters.";
     } else {
-        $hash = password_hash($password, PASSWORD_DEFAULT);
-        $stmt = $conn->prepare("INSERT INTO users (username, email, password) VALUES (?, ?, ?)");
-        $stmt->bind_param("sss", $username, $email, $hash);
+        // Check if email already exists
+        $stmt = $conn->prepare("SELECT id FROM users WHERE email = ?");
+        $stmt->bind_param("s", $email);
         $stmt->execute();
-
-        header("Location: login.php");
-        exit;
+        if ($stmt->get_result()->num_rows > 0) {
+            $error = "An account with this email already exists. <a href='login.php'>Login</a> instead.";
+        } else {
+            // Check if username already exists
+            $stmt = $conn->prepare("SELECT id FROM users WHERE username = ?");
+            $stmt->bind_param("s", $username);
+            $stmt->execute();
+            if ($stmt->get_result()->num_rows > 0) {
+                $error = "Username already taken. Please choose another.";
+            } else {
+                // All good – create user
+                $hash = password_hash($password, PASSWORD_DEFAULT);
+                $stmt = $conn->prepare("INSERT INTO users (username, email, password) VALUES (?, ?, ?)");
+                $stmt->bind_param("sss", $username, $email, $hash);
+                if ($stmt->execute()) {
+                    header("Location: login.php");
+                    exit;
+                } else {
+                    $error = "Registration failed. Please try again.";
+                }
+            }
+        }
     }
 }
 ?>
@@ -41,15 +62,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
     <title>Register | TAMCC Deli</title>
     <link rel="stylesheet" href="../assets/css/global.css">
     <style>
-        /* Custom styles to match the modern design */
-        .auth-container {
-            min-height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: var(--space-lg);
-            background: linear-gradient(135deg, var(--neutral-50) 0%, var(--neutral-100) 100%);
-        }
+        /* Styles identical to login page – kept for consistency */
         .auth-card {
             width: 100%;
             max-width: 400px;
@@ -131,8 +144,6 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
             border-radius: 2rem;
             text-decoration: none;
             transition: all 0.2s;
-            font-size: 0.9rem;
-            font-weight: 500;
         }
         .btn-outline:hover {
             background: var(--neutral-100);
@@ -177,14 +188,14 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
             <div class="sub-title">Join TAMCC Deli for fresh, affordable meals on campus</div>
 
             <?php if ($error): ?>
-                <div class="error-message"><?= htmlspecialchars($error) ?></div>
+                <div class="error-message"><?= $error ?></div>
             <?php endif; ?>
 
             <form method="POST">
                 <input type="hidden" name="csrf_token" value="<?= generateToken() ?>">
                 <div class="form-group">
                     <label for="username">Username</label>
-                    <input type="text" id="username" name="username" placeholder="Choose a username" required>
+                    <input type="text" id="username" name="username" value="<?= htmlspecialchars($prefill_username) ?>" placeholder="Choose a username" required>
                 </div>
                 <div class="form-group">
                     <label for="email">Email</label>
@@ -212,6 +223,12 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
                         <path fill="#1976D2" d="M43.611,20.083H42V20H24v8h11.303c-0.792,2.237-2.231,4.166-4.087,5.571c0.001-0.001,0.002-0.001,0.003-0.002l6.19,5.238C36.971,39.205,44,34,44,24C44,22.659,43.862,21.35,43.611,20.083z"></path>
                     </svg>
                     Continue with Google
+                </a>
+                <a href="apple-login.php" class="btn-outline">
+                    <svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 1024 1024" height="18" width="18" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M747.4 535.7c-.4-68.2 30.5-119.6 92.9-157.5-34.9-50-87.7-77.5-157.3-82.8-65.9-5.2-138 38.4-164.4 38.4-27.9 0-91.7-36.6-141.9-36.6C273.1 298.8 163 379.8 163 544.6c0 48.7 8.9 99 26.7 150.8 23.8 68.2 109.6 235.3 199.1 232.6 46.8-1.1 79.9-33.2 140.8-33.2 59.1 0 89.7 33.2 141.9 33.2 90.3-1.3 167.9-153.2 190.5-221.6-121.1-57.1-114.6-167.2-114.6-170.7zm-105.1-305c50.7-60.2 46.1-115 44.6-134.7-44.8 2.6-96.6 30.5-126.1 64.8-32.5 36.8-51.6 82.3-47.5 133.6 48.4 3.7 92.6-21.2 129-63.7z"></path>
+                    </svg>
+                    Continue with Apple
                 </a>
             </div>
         </div>

@@ -38,6 +38,7 @@ foreach ($items as &$item) {
     <style>
         .option-list { margin: 0; padding-left: 1rem; font-size: 0.9rem; color: #6c757d; }
         .option-list li { list-style: disc; }
+        .points-summary { background: var(--neutral-100); padding: 0.75rem; border-radius: var(--radius); margin-top: 1rem; display: flex; justify-content: space-between; align-items: center; }
     </style>
 </head>
 <body>
@@ -66,33 +67,47 @@ foreach ($items as &$item) {
                 <p><a href="<?= normal_url('../receipt.php?id=' . $order['id']) ?>" class="btn">View Receipt</a></p>
             <?php endif; ?>
         </div>
+
         <div class="card">
             <h3>Items</h3>
-             <table>
-                <thead> <tr><th>Item</th><th>Options</th><th>Quantity</th><th>Price</th><th>Subtotal</th></tr> </thead>
-                <tbody>
-                <?php foreach ($items as $item): ?>
-                     <tr>
-                        <td><?= htmlspecialchars($item['name']) ?></td>
-                        <td>
-                            <?php if (!empty($item['options'])): ?>
-                                <ul class="option-list">
-                                    <?php foreach ($item['options'] as $opt): ?>
-                                        <li><?= htmlspecialchars($opt['option_name'] ?? '') ?>: <?= htmlspecialchars($opt['value_name'] ?? '') ?></li>
-                                    <?php endforeach; ?>
-                                </ul>
-                            <?php else: ?>
-                                —
-                            <?php endif; ?>
-                        </td>
-                        <td><?= $item['quantity'] ?></td>
-                        <td>$<?= number_format($item['price'], 2) ?></td>
-                        <td>$<?= number_format($item['quantity'] * $item['price'], 2) ?></td>
-                     </tr>
-                <?php endforeach; ?>
-                </tbody>
-             </table>
-            <div class="total">Total: $<?= number_format($order['total'], 2) ?></div>
+            <div class="table-responsive">
+                表表格
+                    <thead>
+                        <tr><th>Item</th><th>Options</th><th>Quantity</th><th>Price</th><th>Subtotal</th></tr>
+                    </thead>
+                    <tbody>
+                    <?php foreach ($items as $item): ?>
+                        <tr>
+                            <td><?= htmlspecialchars($item['name']) ?></td>
+                            <td>
+                                <?php if (!empty($item['options'])): ?>
+                                    <ul class="option-list">
+                                        <?php foreach ($item['options'] as $opt): ?>
+                                            <li><?= htmlspecialchars($opt['option_name'] ?? '') ?>: <?= htmlspecialchars($opt['value_name'] ?? '') ?></li>
+                                        <?php endforeach; ?>
+                                    </ul>
+                                <?php else: ?>
+                                    —
+                                <?php endif; ?>
+                            </td>
+                            <td><?= $item['quantity'] ?></td>
+                            <td>$<?= number_format($item['price'], 2) ?></td>
+                            <td>$<?= number_format($item['quantity'] * $item['price'], 2) ?></td>
+                        </tr>
+                    <?php endforeach; ?>
+                    </tbody>
+                表表格
+            </div>
+            <div class="points-summary">
+                <span><strong>Subtotal:</strong> $<?= number_format($order['total'] + ($order['points_used'] / 100), 2) ?></span>
+                <?php if ($order['points_used'] > 0): ?>
+                    <span><strong>Points Used:</strong> <?= $order['points_used'] ?> points ( -$<?= number_format($order['points_used'] / 100, 2) ?> )</span>
+                <?php endif; ?>
+                <?php if ($order['points_earned'] > 0): ?>
+                    <span><strong>Points Earned:</strong> <?= $order['points_earned'] ?> points</span>
+                <?php endif; ?>
+                <span><strong>Total:</strong> $<?= number_format($order['total'], 2) ?></span>
+            </div>
         </div>
         <a href="<?= normal_url('orders.php') ?>">← Back to Orders</a>
     </div>

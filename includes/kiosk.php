@@ -67,3 +67,20 @@ function get_site_url() {
 function kiosk_absolute_url($path) {
     return get_site_url() . kiosk_url($path);
 }
+
+/**
+ * Force kiosk mode on (or off) for the current session.
+ * @param bool $enable
+ */
+function set_kiosk_mode($enable = true) {
+    $_SESSION['kiosk_mode'] = $enable;
+}
+
+/**
+ * Check if the current session is in kiosk mode.
+ * @return bool
+ */
+function is_kiosk_mode() {
+    global $kiosk_mode;
+    return $kiosk_mode;
+}
