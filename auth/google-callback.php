@@ -12,9 +12,11 @@ if ($_GET['state'] !== ($_SESSION['google_state'] ?? '')) {
 }
 unset($_SESSION['google_state']);
 
+$protocol = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https://' : 'http://';
+$redirect_uri = $protocol . $_SERVER['HTTP_HOST'] . '/auth/google-callback.php';
+
 $client_id = getenv('GOOGLE_CLIENT_ID');
 $client_secret = getenv('GOOGLE_CLIENT_SECRET');
-$redirect_uri = (isset($_SERVER['HTTPS']) ? 'https://' : 'http://') . $_SERVER['HTTP_HOST'] . '/auth/google-callback.php';
 
 $client = new Google\Client();
 $client->setClientId($client_id);

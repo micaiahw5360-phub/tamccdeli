@@ -2,9 +2,12 @@
 require __DIR__ . '/../includes/session.php';
 require __DIR__ . '/../vendor/autoload.php';
 
+// Determine if we are on HTTPS (Render sets HTTPS environment variable)
+$protocol = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https://' : 'http://';
+$redirect_uri = $protocol . $_SERVER['HTTP_HOST'] . '/auth/google-callback.php';
+
 $client_id = getenv('GOOGLE_CLIENT_ID');
 $client_secret = getenv('GOOGLE_CLIENT_SECRET');
-$redirect_uri = (isset($_SERVER['HTTPS']) ? 'https://' : 'http://') . $_SERVER['HTTP_HOST'] . '/auth/google-callback.php';
 
 $client = new Google\Client();
 $client->setClientId($client_id);

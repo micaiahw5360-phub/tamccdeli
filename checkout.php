@@ -9,11 +9,13 @@ require __DIR__ . '/includes/kiosk.php';
 require __DIR__ . '/includes/mail.php';
 require __DIR__ . '/includes/functions.php';
 
+// Use Stripe classes (must be at top)
+use Stripe\Stripe;
+use Stripe\PaymentIntent;
+
 // For wallet/cash, we may not need Stripe; load only if needed
 if (isset($_POST['payment_method']) && $_POST['payment_method'] === 'online') {
     require_once __DIR__ . '/vendor/autoload.php';
-    use Stripe\Stripe;
-    use Stripe\PaymentIntent;
 }
 
 // ----------------------------------------------------------------------
