@@ -2,6 +2,12 @@
 require_once __DIR__ . '/session.php'; // Starts session with secure cookies
 require_once __DIR__ . '/kiosk.php';   // Load kiosk functions and $kiosk_mode
 
+// Determine if this page is an admin, staff, or dashboard panel
+$is_admin_panel = strpos($_SERVER['SCRIPT_NAME'], '/admin/') !== false;
+$is_staff_panel = strpos($_SERVER['SCRIPT_NAME'], '/staff/') !== false;
+$is_dashboard = strpos($_SERVER['SCRIPT_NAME'], '/dashboard/') !== false;
+$hide_header = $is_admin_panel || $is_staff_panel || $is_dashboard;
+
 // Pass kiosk mode to JavaScript
 echo '<script>var kioskMode = ' . ($kiosk_mode ? 'true' : 'false') . ';</script>';
 ?>
@@ -11,7 +17,7 @@ echo '<script>var kioskMode = ' . ($kiosk_mode ? 'true' : 'false') . ';</script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?php echo isset($page_title) ? $page_title : 'TAMCC Deli'; ?></title>
-    <link rel="manifest" href="/manifest.json"> <!-- PWA manifest -->
+    <link rel="manifest" href="/manifest.json">
     <meta http-equiv="Content-Security-Policy" content="default-src * 'unsafe-inline' 'unsafe-eval'; script-src * 'unsafe-inline' 'unsafe-eval'; style-src * 'unsafe-inline'; img-src * data:; font-src * data:;">
     <link rel="stylesheet" href="/assets/css/global.css">
     <?php if ($kiosk_mode): ?>
@@ -21,9 +27,10 @@ echo '<script>var kioskMode = ' . ($kiosk_mode ? 'true' : 'false') . ';</script>
     <meta name="mobile-web-app-capable" content="yes">
 </head>
 <body>
+<?php if (!$hide_header): ?>
     <div class="navbar">
         <a href="<?= kiosk_url('/index.php') ?>" class="logo">
-            <img src="/assets/images/ta-logo-1536x512.png" alt="TAMCC Deli" style="height: 40px;">
+            <img src="/assets/images/ta-logo-1536x512.png" alt="TAMCC Deli" style="height: 50px;">
             <span class="logo-text" style="display: none;">TAMCC Deli</span>
         </a>
         <button class="menu-toggle" aria-label="Toggle menu">☰</button>
@@ -72,3 +79,4 @@ echo '<script>var kioskMode = ' . ($kiosk_mode ? 'true' : 'false') . ';</script>
 <?php endif; ?>
         </div>
     </div>
+<?php endif; ?>

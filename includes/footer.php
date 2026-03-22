@@ -1,3 +1,12 @@
+<?php
+// Determine if this page is an admin, staff, or dashboard panel
+$is_admin_panel = strpos($_SERVER['SCRIPT_NAME'], '/admin/') !== false;
+$is_staff_panel = strpos($_SERVER['SCRIPT_NAME'], '/staff/') !== false;
+$is_dashboard = strpos($_SERVER['SCRIPT_NAME'], '/dashboard/') !== false;
+$hide_footer = $is_admin_panel || $is_staff_panel || $is_dashboard;
+
+if (!$hide_footer):
+?>
 <footer class="footer">
     <div class="footer-container">
         <div class="footer-section">
@@ -60,12 +69,15 @@
             <a href="?kiosk=0" class="btn-small">Exit Kiosk Mode (Staff)</a>
         </div>
     <?php endif; ?>
+</footer>
+<?php endif; ?>
 
-    <button id="scroll-to-top" class="scroll-to-top" aria-label="Scroll to top">↑</button>
-    <div id="toast-container"></div>
-    <script src="assets/js/script.js"></script>
+<!-- Always include toast container and scripts -->
+<div id="toast-container"></div>
+<script src="assets/js/script.js"></script>
 
-    <!-- JavaScript fallback to ensure every internal link has a query string -->
+<?php if (!$hide_footer): ?>
+    <!-- JavaScript fallback to ensure every internal link has a query string (only needed in normal mode) -->
     <script>
     document.addEventListener('DOMContentLoaded', function() {
         var kiosk = typeof kioskMode !== 'undefined' ? kioskMode : false;
@@ -83,5 +95,6 @@
         });
     });
     </script>
+<?php endif; ?>
 </body>
 </html>

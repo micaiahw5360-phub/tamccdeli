@@ -2,7 +2,7 @@
 require __DIR__ . '/../middleware/auth_check.php';
 require __DIR__ . '/../config/database.php';
 require __DIR__ . '/../includes/csrf.php';
-require __DIR__ . '/../includes/kiosk.php';
+require_once __DIR__ . '/../includes/kiosk.php';
 require __DIR__ . '/../includes/functions.php';
 
 $user_id = $_SESSION['user_id'];

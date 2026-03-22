@@ -2,7 +2,7 @@
 require __DIR__ . '/includes/session.php';
 require 'config/database.php';
 require 'includes/csrf.php';
-require 'includes/kiosk.php';
+require_once __DIR__ . '/../includes/kiosk.php';
 require 'includes/functions.php'; // new shared helper file
 
 $categories = [

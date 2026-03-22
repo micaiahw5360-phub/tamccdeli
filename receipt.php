@@ -1,7 +1,7 @@
 <?php
 require __DIR__ . '/includes/session.php';
 require 'config/database.php';
-require 'includes/kiosk.php';
+require_once __DIR__ . '/../includes/kiosk.php';
 
 if (!isset($_SESSION['user_id'])) {
     header("Location: auth/login.php");

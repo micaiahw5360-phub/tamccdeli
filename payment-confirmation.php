@@ -1,7 +1,7 @@
 <?php
 require __DIR__ . '/includes/session.php';
 require 'config/database.php';
-require 'includes/kiosk.php';
+require_once __DIR__ . '/../includes/kiosk.php';
 
 $payment_intent = $_GET['payment_intent'] ?? null;
 $redirect_status = $_GET['redirect_status'] ?? null;

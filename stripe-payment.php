@@ -1,7 +1,7 @@
 <?php
 require __DIR__ . '/includes/session.php';;
 require __DIR__ . '/vendor/autoload.php';
-require 'includes/kiosk.php';
+require_once __DIR__ . '/../includes/kiosk.php';
 
 if (!isset($_SESSION['stripe_intent_id']) || !isset($_SESSION['pending_order'])) {
     header('Location: index.php');
