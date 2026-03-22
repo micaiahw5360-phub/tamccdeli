@@ -335,8 +335,8 @@ error_log("Total checkout time: " . round(($after_commit - $start_time) * 1000, 
 
         <div class="order-summary">
             <h3>Order Summary</h3>
-            表格
-                <thead>  <th>Item</th><th>Options</th><th>Qty</th><th>Price</th><th>Subtotal</th> </thead>
+            <table>
+                <thead> <tr><th>Item</th><th>Options</th><th>Qty</th><th>Price</th><th>Subtotal</th></tr> </thead>
                 <tbody>
                 <?php foreach ($cart_items as $item): ?>
                 <tr>
@@ -358,7 +358,7 @@ error_log("Total checkout time: " . round(($after_commit - $start_time) * 1000, 
                 </tr>
                 <?php endforeach; ?>
                 </tbody>
-            表格
+            </table>
             <div class="total">Total: $<?= number_format($total, 2) ?></div>
         </div>
 

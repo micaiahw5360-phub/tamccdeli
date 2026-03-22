@@ -104,7 +104,7 @@ $profile_photo = $user['profile_photo'];
                 <p>You haven't placed any orders yet. <a href="<?= kiosk_url('../menu.php') ?>">Order now!</a></p>
             <?php else: ?>
                 <div class="table-responsive">
-                    表表格
+                    <table>
                         <thead>
                             <tr>
                                 <th>Order #</th>
@@ -121,14 +121,14 @@ $profile_photo = $user['profile_photo'];
                                     <td><?php echo $order['id']; ?></td>
                                     <td><?php echo date('M j, Y g:i a', strtotime($order['order_date'])); ?></td>
                                     <td>$<?php echo number_format($order['total'], 2); ?></td>
-                                    <td class="status status-<?php echo $order['status']; ?>"><?php echo ucfirst($order['status']); ?></td>
-                                    <td><?php echo $order['points_used'] ?: '—'; ?></td>
-                                    <td><?php echo $order['points_earned'] ?: '—'; ?></td>
-                                    <td><a href="<?= normal_url('order-details.php?id=' . $order['id']) ?>" class="btn-small">View</a></td>
-                                </tr>
+                                    <td class="status status-<?php echo $order['status']; ?>"><?php echo ucfirst($order['status']); ?><\/td>
+                                    <td><?php echo $order['points_used'] ?: '—'; ?><\/td>
+                                    <td><?php echo $order['points_earned'] ?: '—'; ?><\/td>
+                                    <td><a href="<?= normal_url('order-details.php?id=' . $order['id']) ?>" class="btn-small">View</a><\/td>
+?>
                                 <?php endforeach; ?>
                             </tbody>
-                    表表格
+                    </table>
                 </div>
                 <div class="view-all">
                     <a href="<?= normal_url('orders.php') ?>">View all orders →</a>
@@ -142,7 +142,7 @@ $profile_photo = $user['profile_photo'];
                 <p>No payment records found.</p>
             <?php else: ?>
                 <div class="table-responsive">
-                    表表格
+                    <table>
                         <thead>
                             <tr>
                                 <th>Transaction</th>
@@ -154,15 +154,15 @@ $profile_photo = $user['profile_photo'];
                             <tbody>
                                 <?php foreach ($recent_transactions as $tx): ?>
                                 <tr>
-                                    <td><?php echo htmlspecialchars(substr($tx['description'], 0, 20) . '...'); ?></td>
-                                    <td><a href="<?= normal_url('order-details.php?id=' . $tx['order_id']) ?>">#<?php echo $tx['order_id']; ?></a></td>
-                                    <td>$<?php echo number_format($tx['amount'], 2); ?></td>
-                                    <td class="status-<?php echo $tx['type']; ?>"><?php echo ucfirst($tx['type']); ?></td>
-                                    <td><?php echo date('M j, Y', strtotime($tx['created_at'])); ?></td>
-                                </tr>
+                                    <td><?php echo htmlspecialchars(substr($tx['description'], 0, 20) . '...'); ?><\/td>
+                                    <td><a href="<?= normal_url('order-details.php?id=' . $tx['order_id']) ?>">#<?php echo $tx['order_id']; ?></a><\/td>
+                                    <td>$<?php echo number_format($tx['amount'], 2); ?><\/td>
+                                    <td class="status-<?php echo $tx['type']; ?>"><?php echo ucfirst($tx['type']); ?><\/td>
+                                    <td><?php echo date('M j, Y', strtotime($tx['created_at'])); ?><\/td>
+?>
                                 <?php endforeach; ?>
                             </tbody>
-                    表表格
+                    </table>
                 </div>
                 <div class="view-all">
                     <a href="<?= normal_url('payments.php') ?>">View all payments →</a>
