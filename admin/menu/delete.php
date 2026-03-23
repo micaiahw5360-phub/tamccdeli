@@ -1,7 +1,7 @@
 <?php
 require __DIR__ . '/../../middleware/admin_check.php';
 require __DIR__ . '/../../config/database.php';
-require __DIR__ . '/../../includes/csrf.php';
+require __DIR__ . '/includes/csrf.php';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!validateToken($_POST['csrf_token'])) {

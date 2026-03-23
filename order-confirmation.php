@@ -1,7 +1,7 @@
 <?php
 require __DIR__ . '/includes/session.php';
 require "config/database.php";
-require "includes/kiosk.php";
+require_once __DIR__ . '/includes/kiosk.php';
 
 $order_id = isset($_GET['order_id']) ? intval($_GET['order_id']) : 0;
 if (!$order_id || !isset($_SESSION['user_id'])) {
