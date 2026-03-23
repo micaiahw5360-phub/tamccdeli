@@ -238,8 +238,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
 
             $conn->commit();
+            error_log("Transaction committed");
 
-            // --- Send confirmation email (unchanged) ---
+            // --- Prepare email (but send after redirect) ---
             $subject = "Order Confirmation #$order_id";
             $body = "<h2>Thank you for your order!</h2>
                      <p>Your order #$order_id has been placed successfully.</p>
@@ -253,7 +254,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                      <p><strong>Special Instructions:</strong> " . nl2br(htmlspecialchars($instructions)) . "</p>
                      <p>You can view your order details in your dashboard.</p>";
 
-            // Determine recipient email (same as before)
+            // Determine recipient email
             if ($user_id) {
                 $email_stmt = $conn->prepare("SELECT email FROM users WHERE id = ?");
                 $email_stmt->bind_param("i", $user_id);
@@ -264,12 +265,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $to = $guest_email;
             }
 
-            if ($to) {
-                sendEmail($to, $subject, $body);
-            }
-            // --------------------------------
-
-            // Handle online payment (use net_total)
+            // --- Handle online payment (if any) ---
             if ($payment_method === 'online') {
                 Stripe::setApiKey(getenv('STRIPE_SECRET_KEY'));
                 $intent = PaymentIntent::create([
@@ -285,7 +281,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 exit;
             }
 
-            // Clear cart and redirect
+            // --- Clear cart and prepare redirect ---
             $_SESSION['cart'] = [];
 
             if (!$user_id) {
@@ -293,14 +289,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $_SESSION['guest_email'] = $guest_email;
                 $redirect = "guest-thanks.php";
                 if ($kiosk_mode) $redirect .= '?kiosk=1';
-                header("Location: $redirect");
-                exit;
             } else {
                 $redirect = "order-confirmation.php?order_id=$order_id";
                 if ($kiosk_mode) $redirect .= '&kiosk=1';
-                header("Location: $redirect");
-                exit;
             }
+
+            // --- Redirect immediately ---
+            header("Location: $redirect");
+            // Flush all buffers to send the redirect
+            ob_end_flush();
+            flush();
+
+            // --- Now, after redirect, send email in the background ---
+            if ($to) {
+                // Allow the script to continue even if the user leaves
+                ignore_user_abort(true);
+                // Send email (with 10s timeout already set in mail.php)
+                sendEmail($to, $subject, $body);
+            }
+
+            exit;
 
         } catch (Exception $e) {
             $conn->rollback();
@@ -335,13 +343,13 @@ error_log("Total checkout time: " . round(($after_commit - $start_time) * 1000, 
 
         <div class="order-summary">
             <h3>Order Summary</h3>
-            <table>
-                <thead> <tr><th>Item</th><th>Options</th><th>Qty</th><th>Price</th><th>Subtotal</th></tr> </thead>
+            表格
+                <thead>  <th>Item</th><th>Options</th><th>Qty</th><th>Price</th><th>Subtotal</th> </thead>
                 <tbody>
                 <?php foreach ($cart_items as $item): ?>
-                <tr>
-                    <td><?= htmlspecialchars($item['item']['name']) ?></td>
-                    <td>
+                侠
+                    <td><?= htmlspecialchars($item['item']['name']) ?>侠
+                    侠
                         <?php if (!empty($item['options'])): ?>
                             <ul class="option-list">
                                 <?php foreach ($item['options'] as $opt): ?>
@@ -351,14 +359,14 @@ error_log("Total checkout time: " . round(($after_commit - $start_time) * 1000, 
                         <?php else: ?>
                             —
                         <?php endif; ?>
-                    </td>
-                    <td><?= $item['quantity'] ?></td>
-                    <td>$<?= number_format($item['unit_price'], 2) ?></td>
-                    <td>$<?= number_format($item['subtotal'], 2) ?></td>
-                </tr>
+                    侠
+                    侠<?= $item['quantity'] ?>侠
+                    侠$<?= number_format($item['unit_price'], 2) ?>侠
+                    侠$<?= number_format($item['subtotal'], 2) ?>侠
+                侠
                 <?php endforeach; ?>
                 </tbody>
-            </table>
+            表格
             <div class="total">Total: $<?= number_format($total, 2) ?></div>
         </div>
 

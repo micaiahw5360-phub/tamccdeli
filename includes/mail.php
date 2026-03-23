@@ -16,6 +16,7 @@ function sendEmail($to, $subject, $body, $altBody = '') {
         $mail->Password   = getenv('SMTP_PASS');
         $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
         $mail->Port       = getenv('SMTP_PORT') ?: 587;
+        $mail->Timeout    = 10; // 10 seconds timeout
 
         $mail->setFrom(getenv('SMTP_FROM'), getenv('SMTP_FROM_NAME'));
         $mail->addAddress($to);
