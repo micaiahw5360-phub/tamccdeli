@@ -102,6 +102,17 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
+    // Close mobile dropdown after selecting a link (improves UX)
+    document.querySelectorAll('.dropdown-content a').forEach(link => {
+        link.addEventListener('click', () => {
+            const dropdown = link.closest('.dropdown');
+            if (dropdown && window.innerWidth <= 768) {
+                dropdown.classList.remove('active');
+                // If the mobile menu is also open, keep it open – but dropdown should close
+            }
+        });
+    });
+
     // Auto‑dismiss alerts
     document.querySelectorAll('.error, .success').forEach(alert => {
         setTimeout(() => {
