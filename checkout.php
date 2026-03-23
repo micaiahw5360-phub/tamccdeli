@@ -29,32 +29,6 @@ if (empty($_SESSION['cart'])) {
     exit;
 }
 
-// ----------------------------------------------------------------------
-// Helper to get option value details (cached version)
-function getOptionDetails($conn, $optionValues) {
-    if (empty($optionValues)) return [];
-    
-    static $cache = [];
-    $cache_key = implode(',', array_values($optionValues));
-    
-    if (isset($cache[$cache_key])) {
-        return $cache[$cache_key];
-    }
-    
-    $ids = array_values($optionValues);
-    $placeholders = implode(',', array_fill(0, count($ids), '?'));
-    $stmt = $conn->prepare("SELECT v.*, o.option_name FROM menu_item_option_values v 
-                            JOIN menu_item_options o ON v.option_id = o.id 
-                            WHERE v.id IN ($placeholders)");
-    $stmt->bind_param(str_repeat('i', count($ids)), ...$ids);
-    $stmt->execute();
-    $result = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
-    
-    $cache[$cache_key] = $result;
-    return $result;
-}
-// ----------------------------------------------------------------------
-
 // Fetch all distinct item IDs from cart
 $cart = $_SESSION['cart'];
 $item_ids = array_unique(array_column($cart, 'item_id'));
@@ -85,7 +59,7 @@ foreach ($cart as $key => $entry) {
     $quantity = $entry['quantity'];
     $options = $entry['options'] ?? [];
 
-    $option_details = getOptionDetails($conn, $options);
+    $option_details = getOptionDetails($conn, $options); // from functions.php
     $modifier_total = 0;
     foreach ($option_details as $opt) {
         $modifier_total += $opt['price_modifier'];
@@ -191,15 +165,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $stmt2->execute();
             }
 
-            // If points were used, deduct them (already deducted above? We'll do it now)
+            // If points were used, deduct them
             if ($points_used > 0) {
                 $update_points = $conn->prepare("UPDATE users SET points = points - ? WHERE id = ?");
                 $update_points->bind_param("ii", $points_used, $user_id);
                 $update_points->execute();
 
-                // Record the points usage in a transaction (optional)
+                // Record the points usage in a transaction
                 $trans = $conn->prepare("INSERT INTO transactions (user_id, amount, type, description, order_id) VALUES (?, ?, 'points_redemption', ?, ?)");
-                $points_amount = -$points_used; // store negative as points used
+                $points_amount = -$points_used;
                 $desc = "Redeemed $points_used points for discount on order #$order_id";
                 $trans->bind_param("idsi", $user_id, $points_amount, $desc, $order_id);
                 $trans->execute();
@@ -240,19 +214,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $conn->commit();
             error_log("Transaction committed");
 
-            // --- Prepare email (but send after redirect) ---
-            $subject = "Order Confirmation #$order_id";
-            $body = "<h2>Thank you for your order!</h2>
-                     <p>Your order #$order_id has been placed successfully.</p>
-                     <p><strong>Original Total:</strong> $" . number_format($total, 2) . "</p>";
-            if ($points_used > 0) {
-                $body .= "<p><strong>Points Used:</strong> $points_used points (discount: $" . number_format($discount, 2) . ")</p>";
-            }
-            $body .= "<p><strong>Total Paid:</strong> $" . number_format($net_total, 2) . "</p>
-                     <p><strong>Payment Method:</strong> " . ucfirst($payment_method) . "</p>
-                     <p><strong>Pickup Time:</strong> " . ($pickup_time ? date('M j, Y g:i a', strtotime($pickup_time)) : 'As soon as possible') . "</p>
-                     <p><strong>Special Instructions:</strong> " . nl2br(htmlspecialchars($instructions)) . "</p>
-                     <p>You can view your order details in your dashboard.</p>";
+            // --- Build email using helper function ---
+            $email = buildOrderEmail($order_id, $total, $net_total, $discount, $points_used, $payment_method, $pickup_time, $instructions);
+            $subject = $email['subject'];
+            $body = $email['body'];
 
             // Determine recipient email
             if ($user_id) {
@@ -342,14 +307,22 @@ error_log("Total checkout time: " . round(($after_commit - $start_time) * 1000, 
         <?php if ($error): ?><div class="error-message"><?= $error ?></div><?php endif; ?>
 
         <div class="order-summary">
-            <h3>Order Summary</h3>
-            表格
-                <thead>  <th>Item</th><th>Options</th><th>Qty</th><th>Price</th><th>Subtotal</th> </thead>
-                <tbody>
-                <?php foreach ($cart_items as $item): ?>
-                侠
-                    <td><?= htmlspecialchars($item['item']['name']) ?>侠
-                    侠
+    <h3>Order Summary</h3>
+    <table>
+        <thead>
+            <tr>
+                <th>Item</th>
+                <th>Options</th>
+                <th>Qty</th>
+                <th>Price</th>
+                <th>Subtotal</th>
+            </tr>
+        </thead>
+        <tbody>
+            <?php foreach ($cart_items as $item): ?>
+                <tr>
+                    <td><?= htmlspecialchars($item['item']['name']) ?></td>
+                    <td>
                         <?php if (!empty($item['options'])): ?>
                             <ul class="option-list">
                                 <?php foreach ($item['options'] as $opt): ?>
@@ -359,16 +332,16 @@ error_log("Total checkout time: " . round(($after_commit - $start_time) * 1000, 
                         <?php else: ?>
                             —
                         <?php endif; ?>
-                    侠
-                    侠<?= $item['quantity'] ?>侠
-                    侠$<?= number_format($item['unit_price'], 2) ?>侠
-                    侠$<?= number_format($item['subtotal'], 2) ?>侠
-                侠
-                <?php endforeach; ?>
-                </tbody>
-            表格
-            <div class="total">Total: $<?= number_format($total, 2) ?></div>
-        </div>
+                    </td>
+                    <td><?= $item['quantity'] ?></td>
+                    <td>$<?= number_format($item['unit_price'], 2) ?></td>
+                    <td>$<?= number_format($item['subtotal'], 2) ?></td>
+                </tr>
+            <?php endforeach; ?>
+        </tbody>
+    </table>
+    <div class="total">Total: $<?= number_format($total, 2) ?></div>
+</div>
 
         <form method="POST" id="checkout-form">
             <input type="hidden" name="csrf_token" value="<?= generateToken() ?>">

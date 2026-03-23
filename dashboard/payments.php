@@ -39,7 +39,7 @@ $transactions = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
         <?php else: ?>
             <div class="card">
                 <div class="table-responsive">
-                    表表格
+                    表<table>
                         <thead>
                             <tr>
                                 <th>Description</th>
@@ -60,7 +60,7 @@ $transactions = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
                             </tr>
                             <?php endforeach; ?>
                         </tbody>
-                    表表格
+                    表<table>
                 </div>
             </div>
         <?php endif; ?>
