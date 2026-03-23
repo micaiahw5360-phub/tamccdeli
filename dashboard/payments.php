@@ -1,7 +1,7 @@
 <?php
 require __DIR__ . '/../middleware/auth_check.php';
 require __DIR__ . '/../config/database.php';
-require_once __DIR__ . '/includes/kiosk.php';
+require_once __DIR__ . '/../includes/kiosk.php';
 
 $user_id = $_SESSION['user_id'];
 $stmt = $conn->prepare("SELECT t.*, o.id as order_id, o.total 

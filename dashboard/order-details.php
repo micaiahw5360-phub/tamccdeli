@@ -1,7 +1,7 @@
 <?php
 require __DIR__ . '/../middleware/auth_check.php';
 require __DIR__ . '/../config/database.php';
-require_once __DIR__ . '/includes/kiosk.php';
+require_once __DIR__ . '/../includes/kiosk.php';
 
 $order_id = isset($_GET['id']) ? intval($_GET['id']) : 0;
 if (!$order_id) {

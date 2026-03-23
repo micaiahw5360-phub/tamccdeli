@@ -1,7 +1,7 @@
 <?php
 require __DIR__ . '/../middleware/auth_check.php';
 require __DIR__ . '/../config/database.php';
-require_once __DIR__ . '/includes/kiosk.php';
+require_once __DIR__ . '/../includes/kiosk.php';
 
 $user_id = $_SESSION['user_id'];
 $stmt = $conn->prepare("SELECT id, total, status, order_date, points_earned, points_used, payment_status FROM orders WHERE user_id = ? ORDER BY order_date DESC");
