@@ -230,14 +230,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $to = $guest_email;
             }
 
-             
 if ($payment_method === 'online') {
     Stripe::setApiKey(getenv('STRIPE_SECRET_KEY'));
     $intent = PaymentIntent::create([
         'amount'   => round($net_total * 100),
         'currency' => 'usd',
         'metadata' => ['order_id' => $order_id],
-        'timeout'  => 30, // timeout in seconds
+    ], [
+        'timeout' => 30, // request timeout in seconds
     ]);
     $_SESSION['stripe_intent_id'] = $intent->id;
     $_SESSION['stripe_client_secret'] = $intent->client_secret;

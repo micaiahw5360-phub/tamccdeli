@@ -37,7 +37,8 @@ $intent = PaymentIntent::create([
     'amount'   => round($amount * 100),
     'currency' => 'usd',
     'metadata' => ['user_id' => $user_id, 'type' => 'topup'],
-    'timeout'  => 30, // timeout in seconds
+], [
+    'timeout' => 30,
 ]);
 
 $_SESSION['stripe_intent_id'] = $intent->id;
