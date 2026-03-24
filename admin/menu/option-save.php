@@ -2,6 +2,7 @@
 require __DIR__ . '/../../middleware/admin_check.php';
 require __DIR__ . '/../../config/database.php';
 require __DIR__ . '/../../includes/csrf.php';
+require_once __DIR__ . '/../../includes/functions.php'; // for clearMenuCache()
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!validateToken($_POST['csrf_token'])) {
@@ -21,6 +22,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $stmt = $conn->prepare("INSERT INTO menu_item_options (menu_item_id, option_name, option_type, required, sort_order) VALUES (?, ?, ?, ?, ?)");
     $stmt->bind_param("issii", $menu_item_id, $option_name, $option_type, $required, $sort_order);
     $stmt->execute();
+
+    clearMenuCache(); // Clear cache after adding option
 
     $redirect = "options.php?item_id=" . $menu_item_id;
     if (isset($_SESSION['kiosk_mode']) && $_SESSION['kiosk_mode']) {

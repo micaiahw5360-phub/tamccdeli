@@ -39,8 +39,10 @@ if (!$reset || strtotime($reset['expires_at']) < time()) {
             $stmt->bind_param("si", $hash, $user_id);
             $stmt->execute();
 
-            // Mark token as used
-            $conn->query("UPDATE password_resets SET used = 1 WHERE token = '$token'");
+            // Mark token as used (prepared statement)
+            $stmt2 = $conn->prepare("UPDATE password_resets SET used = 1 WHERE token = ?");
+            $stmt2->bind_param("s", $token);
+            $stmt2->execute();
 
             $success = 'Password updated successfully. You can now <a href="login.php">login</a>.';
         }

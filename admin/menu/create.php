@@ -3,6 +3,7 @@ require __DIR__ . '/../../middleware/admin_check.php';
 require __DIR__ . '/../../config/database.php';
 require __DIR__ . '/../../includes/csrf.php';
 require __DIR__ . '/../../includes/kiosk.php';
+require_once __DIR__ . '/../../includes/functions.php'; // for clearMenuCache()
 
 $error = '';
 $success = '';
@@ -25,6 +26,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $stmt = $conn->prepare("INSERT INTO menu_items (name, category, price, image, sort_order) VALUES (?, ?, ?, ?, ?)");
         $stmt->bind_param("ssdsi", $name, $category, $price, $image, $sort_order);
         if ($stmt->execute()) {
+            clearMenuCache(); // Clear cache after adding item
             $redirect = "index.php";
             if (isset($_SESSION['kiosk_mode']) && $_SESSION['kiosk_mode']) {
                 $redirect .= '?kiosk=1';

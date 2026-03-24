@@ -2,6 +2,7 @@
 require __DIR__ . '/../../middleware/admin_check.php';
 require __DIR__ . '/../../config/database.php';
 require __DIR__ . '/../../includes/csrf.php';
+require_once __DIR__ . '/../../includes/functions.php'; // for clearMenuCache()
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!validateToken($_POST['csrf_token'])) {
@@ -20,6 +21,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $delete = $conn->prepare("DELETE FROM menu_item_option_values WHERE id = ?");
         $delete->bind_param("i", $id);
         $delete->execute();
+
+        clearMenuCache(); // Clear cache after deleting value
 
         if ($menu_item_id) {
             $redirect = "options.php?item_id=" . $menu_item_id;

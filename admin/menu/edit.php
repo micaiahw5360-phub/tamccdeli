@@ -3,6 +3,7 @@ require __DIR__ . '/../../middleware/admin_check.php';
 require __DIR__ . '/../../config/database.php';
 require __DIR__ . '/../../includes/csrf.php';
 require __DIR__ . '/../../includes/kiosk.php';
+require_once __DIR__ . '/../../includes/functions.php'; // for clearMenuCache()
 
 $id = isset($_GET['id']) ? intval($_GET['id']) : 0;
 if (!$id) {
@@ -42,6 +43,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $stmt = $conn->prepare("UPDATE menu_items SET name=?, category=?, price=?, image=?, sort_order=? WHERE id=?");
         $stmt->bind_param("ssdsii", $name, $category, $price, $image, $sort_order, $id);
         if ($stmt->execute()) {
+            clearMenuCache(); // Clear cache after updating item
             $redirect = "index.php";
             if (isset($_SESSION['kiosk_mode']) && $_SESSION['kiosk_mode']) {
                 $redirect .= '?kiosk=1';

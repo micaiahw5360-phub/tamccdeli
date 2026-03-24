@@ -2,6 +2,7 @@
 require __DIR__ . '/../../middleware/admin_check.php';
 require __DIR__ . '/../../config/database.php';
 require __DIR__ . '/../../includes/csrf.php';
+require_once __DIR__ . '/../../includes/functions.php'; // for clearMenuCache()
 
 $id = isset($_GET['id']) ? intval($_GET['id']) : 0;
 if (!$id) {
@@ -35,6 +36,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $update = $conn->prepare("UPDATE menu_item_options SET option_name=?, option_type=?, required=?, sort_order=? WHERE id=?");
         $update->bind_param("ssiii", $option_name, $option_type, $required, $sort_order, $id);
         $update->execute();
+
+        clearMenuCache(); // Clear cache after updating option
 
         $redirect = "options.php?item_id=" . $option['menu_item_id'];
         if (isset($_SESSION['kiosk_mode']) && $_SESSION['kiosk_mode']) {

@@ -1,18 +1,13 @@
 <?php
 require __DIR__ . '/includes/session.php';
 require "config/database.php";
+require "includes/functions.php"; // Required for getPopularItems()
 
 $page_title = "TAMCC Deli | Marryshow Mealhouse";
 include 'includes/header.php';
 
-// Fetch a few random menu items for the preview
-$preview_items = [];
-$stmt = $conn->prepare("SELECT name, price, image FROM menu_items ORDER BY RAND() LIMIT 3");
-if ($stmt) {
-    $stmt->execute();
-    $preview_items = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
-    $stmt->close();
-}
+// Fetch popular items from cache (top 3 items by sales in last 30 days)
+$popular_items = getPopularItems($conn, 3);
 ?>
 
 <style>
@@ -139,8 +134,8 @@ if ($stmt) {
 <section class="section menu-preview">
     <h2>Popular Picks</h2>
     <div class="menu-grid">
-        <?php if (!empty($preview_items)): ?>
-            <?php foreach ($preview_items as $item): ?>
+        <?php if (!empty($popular_items)): ?>
+            <?php foreach ($popular_items as $item): ?>
             <div class="menu-card">
                 <?php if (!empty($item['image'])): ?>
                     <img src="<?= htmlspecialchars($item['image']) ?>" alt="<?= htmlspecialchars($item['name']) ?>">
@@ -155,7 +150,7 @@ if ($stmt) {
             </div>
             <?php endforeach; ?>
         <?php else: ?>
-            <!-- Fallback items -->
+            <!-- Fallback items when no popular data exists -->
             <div class="menu-card">
                 <img src="https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=500&auto=format" alt="Pizza">
                 <div class="card-content">

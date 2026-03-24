@@ -120,5 +120,77 @@ function getUserBalance($conn, $user_id) {
     return $balances[$user_id];
 }
 
+require_once __DIR__ . '/cache.php';
+
+/**
+ * Get menu items with their options (cached)
+ */
+function getMenuItemsWithOptions($conn, $category = null) {
+    $cache_key = 'menu_items_' . ($category ? str_replace(' ', '_', $category) : 'all');
+    $items = Cache::get($cache_key);
+    if ($items === null) {
+        $sql = "SELECT * FROM menu_items";
+        if ($category) {
+            $sql .= " WHERE category = ?";
+        }
+        $sql .= " ORDER BY FIELD(category, 'Breakfast', 'A La Carte', 'Combo', 'Beverage', 'Dessert'), sort_order, name";
+        $stmt = $conn->prepare($sql);
+        if ($category) {
+            $stmt->bind_param("s", $category);
+        }
+        $stmt->execute();
+        $result = $stmt->get_result();
+        $items = $result->fetch_all(MYSQLI_ASSOC);
+        
+        // Attach options to each item
+        foreach ($items as &$item) {
+            $item['options'] = getItemOptions($conn, $item['id']);
+        }
+        Cache::set($cache_key, $items, 3600); // cache for 1 hour
+    }
+    return $items;
+}
+
+/**
+ * Get popular items for homepage (cached)
+ */
+function getPopularItems($conn, $limit = 6) {
+    $cache_key = 'popular_items';
+    $items = Cache::get($cache_key);
+    if ($items === null) {
+        $stmt = $conn->prepare("SELECT mi.id, mi.name, mi.price, mi.image, SUM(oi.quantity) as total_sold
+                                FROM order_items oi
+                                JOIN menu_items mi ON oi.menu_item_id = mi.id
+                                JOIN orders o ON oi.order_id = o.id
+                                WHERE o.order_date > DATE_SUB(NOW(), INTERVAL 30 DAY)
+                                GROUP BY mi.id
+                                ORDER BY total_sold DESC
+                                LIMIT ?");
+        $stmt->bind_param("i", $limit);
+        $stmt->execute();
+        $items = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+        Cache::set($cache_key, $items, 7200); // 2 hours
+    }
+    return $items;
+}
+
+/**
+ * Clear menu cache (call after adding/editing/deleting menu items or options)
+ */
+function clearMenuCache() {
+    $cache_keys = [
+        'menu_items_all',
+        'menu_items_Breakfast',
+        'menu_items_A_La_Carte',
+        'menu_items_Combo',
+        'menu_items_Beverage',
+        'menu_items_Dessert'
+    ];
+    foreach ($cache_keys as $key) {
+        Cache::delete($key);
+    }
+    // Also clear popular items cache (since it depends on menu)
+    Cache::delete('popular_items');
+}
 // Add other shared functions here if needed
 ?>

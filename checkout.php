@@ -233,6 +233,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             // --- Handle online payment (if any) ---
             if ($payment_method === 'online') {
                 Stripe::setApiKey(getenv('STRIPE_SECRET_KEY'));
+                Stripe::setTimeout(30); // global timeout
                 $intent = PaymentIntent::create([
                     'amount'   => round($net_total * 100),
                     'currency' => 'usd',
@@ -307,41 +308,40 @@ error_log("Total checkout time: " . round(($after_commit - $start_time) * 1000, 
         <?php if ($error): ?><div class="error-message"><?= $error ?></div><?php endif; ?>
 
         <div class="order-summary">
-    <h3>Order Summary</h3>
-    <table>
-        <thead>
-            <tr>
-                <th>Item</th>
-                <th>Options</th>
-                <th>Qty</th>
-                <th>Price</th>
-                <th>Subtotal</th>
-            </tr>
-        </thead>
-        <tbody>
-            <?php foreach ($cart_items as $item): ?>
-                <tr>
-                    <td><?= htmlspecialchars($item['item']['name']) ?></td>
-                    <td>
-                        <?php if (!empty($item['options'])): ?>
-                            <ul class="option-list">
-                                <?php foreach ($item['options'] as $opt): ?>
-                                    <li><?= htmlspecialchars($opt['option_name']) ?>: <?= htmlspecialchars($opt['value_name']) ?></li>
-                                <?php endforeach; ?>
-                            </ul>
-                        <?php else: ?>
-                            —
-                        <?php endif; ?>
-                    </td>
-                    <td><?= $item['quantity'] ?></td>
-                    <td>$<?= number_format($item['unit_price'], 2) ?></td>
-                    <td>$<?= number_format($item['subtotal'], 2) ?></td>
-                </tr>
-            <?php endforeach; ?>
-        </tbody>
-    </table>
-    <div class="total">Total: $<?= number_format($total, 2) ?></div>
-</div>
+            <h3>Order Summary</h3>
+            表格
+                <thead>
+                    <tr>
+                        <th>Item</th>
+                        <th>Options</th>
+                        <th>Qty</th>
+                        <th>Price</th>
+                        <th>Subtotal</th>
+                    </thead>
+                <tbody>
+                    <?php foreach ($cart_items as $item): ?>
+                        侠
+                            <td><?= htmlspecialchars($item['item']['name']) ?></td>
+                            侠
+                                <?php if (!empty($item['options'])): ?>
+                                    <ul class="option-list">
+                                        <?php foreach ($item['options'] as $opt): ?>
+                                            <li><?= htmlspecialchars($opt['option_name']) ?>: <?= htmlspecialchars($opt['value_name']) ?></li>
+                                        <?php endforeach; ?>
+                                    </ul>
+                                <?php else: ?>
+                                    —
+                                <?php endif; ?>
+                            </td>
+                            <td><?= $item['quantity'] ?></td>
+                            <td>$<?= number_format($item['unit_price'], 2) ?></td>
+                            <td>$<?= number_format($item['subtotal'], 2) ?></td>
+                        </tr>
+                    <?php endforeach; ?>
+                </tbody>
+            </table>
+            <div class="total">Total: $<?= number_format($total, 2) ?></div>
+        </div>
 
         <form method="POST" id="checkout-form">
             <input type="hidden" name="csrf_token" value="<?= generateToken() ?>">

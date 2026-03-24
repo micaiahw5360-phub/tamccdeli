@@ -33,6 +33,7 @@ if ($amount <= 0 || $amount > 1000) {
 
 // Create a Stripe PaymentIntent
 Stripe::setApiKey(getenv('STRIPE_SECRET_KEY'));
+Stripe::setTimeout(30); // global timeout
 $intent = PaymentIntent::create([
     'amount'   => round($amount * 100),
     'currency' => 'usd',

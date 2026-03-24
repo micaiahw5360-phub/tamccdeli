@@ -2,6 +2,7 @@
 require __DIR__ . '/../../middleware/admin_check.php';
 require __DIR__ . '/../../config/database.php';
 require __DIR__ . '/../../includes/csrf.php';
+require_once __DIR__ . '/../../includes/functions.php'; // for clearMenuCache()
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!validateToken($_POST['csrf_token'])) {
@@ -20,6 +21,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $stmt = $conn->prepare("INSERT INTO menu_item_option_values (option_id, value_name, price_modifier, sort_order) VALUES (?, ?, ?, ?)");
     $stmt->bind_param("isdi", $option_id, $value_name, $price_modifier, $sort_order);
     $stmt->execute();
+
+    clearMenuCache(); // Clear cache after adding value
 
     // Get menu_item_id for redirection
     $opt_stmt = $conn->prepare("SELECT menu_item_id FROM menu_item_options WHERE id = ?");
