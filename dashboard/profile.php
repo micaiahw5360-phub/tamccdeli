@@ -110,6 +110,45 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <head>
     <title>Profile | TAMCC Deli</title>
     <link rel="stylesheet" href="../assets/css/global.css">
+    <style>
+        .dashboard-wrapper { background: var(--neutral-100); }
+        .sidebar a:hover { background: var(--primary-600); transform: translateX(4px); }
+        .card { transition: transform 0.2s, box-shadow 0.2s; }
+        .card:hover { transform: translateY(-2px); box-shadow: var(--shadow-md); }
+        .profile-form .btn {
+            width: 100%;
+            margin-top: 1rem;
+            padding: 0.75rem;
+            font-size: 1rem;
+        }
+        .profile-photo-preview {
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            object-fit: cover;
+            margin: 0 auto 1rem;
+            display: block;
+            border: 3px solid var(--primary-600);
+        }
+        .profile-photo-placeholder {
+            width: 120px;
+            height: 120px;
+            background: var(--neutral-200);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 3rem;
+            margin: 0 auto 1rem;
+            border: 3px solid var(--primary-600);
+        }
+        @media (max-width: 768px) {
+            .profile-photo-preview, .profile-photo-placeholder {
+                width: 100px;
+                height: 100px;
+            }
+        }
+    </style>
 </head>
 <body>
 <div class="dashboard-wrapper">
@@ -131,6 +170,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <?php if ($success): ?><div class="success-message"><?= $success ?></div><?php endif; ?>
             <form method="POST" class="profile-form" enctype="multipart/form-data">
                 <input type="hidden" name="csrf_token" value="<?= generateToken() ?>">
+                
+                <!-- Profile Photo Preview -->
+                <div style="text-align: center;">
+                    <?php if ($user['profile_photo']): ?>
+                        <img src="<?= htmlspecialchars($user['profile_photo']) ?>" alt="Profile Photo" class="profile-photo-preview" id="profile-preview">
+                    <?php else: ?>
+                        <div class="profile-photo-placeholder" id="profile-preview-placeholder">👤</div>
+                        <img style="display:none;" id="profile-preview" class="profile-photo-preview">
+                    <?php endif; ?>
+                    <div class="form-group">
+                        <label for="profile_photo">Change Profile Photo</label>
+                        <input type="file" id="profile_photo" name="profile_photo" accept="image/*" onchange="previewPhoto(event)">
+                        <small class="small-note">JPG, PNG, GIF, WEBP up to 2MB</small>
+                    </div>
+                </div>
+
                 <div class="form-group">
                     <label for="username">Username</label>
                     <input type="text" id="username" name="username" value="<?= htmlspecialchars($user['username']) ?>" required>
@@ -142,16 +197,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <div class="form-group">
                     <label for="bio">Bio</label>
                     <textarea id="bio" name="bio" rows="3"><?= htmlspecialchars($user['bio'] ?? '') ?></textarea>
-                </div>
-                <div class="form-group">
-                    <label for="profile_photo">Profile Photo</label>
-                    <input type="file" id="profile_photo" name="profile_photo" accept="image/*">
-                    <?php if ($user['profile_photo']): ?>
-                        <div style="margin-top: 0.5rem;">
-                            <img src="<?= htmlspecialchars($user['profile_photo']) ?>" alt="Current profile photo" style="max-width: 100px; border-radius: 50%;">
-                            <p><small>Current photo. Upload a new one to replace.</small></p>
-                        </div>
-                    <?php endif; ?>
                 </div>
                 <hr>
                 <h3>Change Password (leave blank to keep current)</h3>
@@ -172,6 +217,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         </div>
     </div>
 </div>
+<script>
+function previewPhoto(event) {
+    const file = event.target.files[0];
+    if (file) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            const previewImg = document.getElementById('profile-preview');
+            const placeholder = document.getElementById('profile-preview-placeholder');
+            if (placeholder) placeholder.style.display = 'none';
+            previewImg.src = e.target.result;
+            previewImg.style.display = 'block';
+        }
+        reader.readAsDataURL(file);
+    }
+}
+</script>
 <?php include __DIR__ . '/../includes/footer.php'; ?>
 </body>
 </html>
