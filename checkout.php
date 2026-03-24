@@ -230,23 +230,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $to = $guest_email;
             }
 
-            // --- Handle online payment (if any) ---
-            if ($payment_method === 'online') {
-                Stripe::setApiKey(getenv('STRIPE_SECRET_KEY'));
-                Stripe::setTimeout(30); // global timeout
-                $intent = PaymentIntent::create([
-                    'amount'   => round($net_total * 100),
-                    'currency' => 'usd',
-                    'metadata' => ['order_id' => $order_id],
-                ]);
-                $_SESSION['stripe_intent_id'] = $intent->id;
-                $_SESSION['stripe_client_secret'] = $intent->client_secret;
-                $_SESSION['pending_order'] = $order_id;
-                $_SESSION['stripe_total'] = $net_total;
-                header("Location: stripe-payment.php" . ($kiosk_mode ? '?kiosk=1' : ''));
-                exit;
-            }
-
+             
+if ($payment_method === 'online') {
+    Stripe::setApiKey(getenv('STRIPE_SECRET_KEY'));
+    $intent = PaymentIntent::create([
+        'amount'   => round($net_total * 100),
+        'currency' => 'usd',
+        'metadata' => ['order_id' => $order_id],
+        'timeout'  => 30, // timeout in seconds
+    ]);
+    $_SESSION['stripe_intent_id'] = $intent->id;
+    $_SESSION['stripe_client_secret'] = $intent->client_secret;
+    $_SESSION['pending_order'] = $order_id;
+    $_SESSION['stripe_total'] = $net_total;
+    header("Location: stripe-payment.php" . ($kiosk_mode ? '?kiosk=1' : ''));
+    exit;
+}
             // --- Clear cart and prepare redirect ---
             $_SESSION['cart'] = [];
 
@@ -309,7 +308,7 @@ error_log("Total checkout time: " . round(($after_commit - $start_time) * 1000, 
 
         <div class="order-summary">
             <h3>Order Summary</h3>
-            表格
+            <table>
                 <thead>
                     <tr>
                         <th>Item</th>
@@ -320,9 +319,9 @@ error_log("Total checkout time: " . round(($after_commit - $start_time) * 1000, 
                     </thead>
                 <tbody>
                     <?php foreach ($cart_items as $item): ?>
-                        侠
+                        <tr>
                             <td><?= htmlspecialchars($item['item']['name']) ?></td>
-                            侠
+                            <td>
                                 <?php if (!empty($item['options'])): ?>
                                     <ul class="option-list">
                                         <?php foreach ($item['options'] as $opt): ?>

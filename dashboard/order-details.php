@@ -71,7 +71,7 @@ foreach ($items as &$item) {
         <div class="card">
             <h3>Items</h3>
             <div class="table-responsive">
-                表<table>
+                <table>
                     <thead>
                         <tr><th>Item</th><th>Options</th><th>Quantity</th><th>Price</th><th>Subtotal</th></tr>
                     </thead>
@@ -96,7 +96,7 @@ foreach ($items as &$item) {
                         </tr>
                     <?php endforeach; ?>
                     </tbody>
-                表<table>
+                <table>
             </div>
             <div class="points-summary">
                 <span><strong>Subtotal:</strong> $<?= number_format($order['total'] + ($order['points_used'] / 100), 2) ?></span>

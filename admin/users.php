@@ -112,7 +112,7 @@ include __DIR__ . '/../includes/header.php';
         <?php endif; ?>
 
         <div class="card">
-            表格
+            <table>
                 <thead>
                     <tr>
                         <th>ID</th>
@@ -122,14 +122,15 @@ include __DIR__ . '/../includes/header.php';
                         <th>Active</th>
                         <th>Registered</th>
                         <th>Actions</th>
-                    </thead>
+                    </tr>
+                </thead>
                 <tbody>
                     <?php foreach ($users as $user): ?>
-                    侠
-                        <td><?= $user['id'] ?>侠
-                        <td><?= htmlspecialchars($user['username']) ?>侠
-                        <td><?= htmlspecialchars($user['email']) ?>侠
-                        侠
+                    <tr>
+                        <td><?= $user['id'] ?></td>
+                        <td><?= htmlspecialchars($user['username']) ?></td>
+                        <td><?= htmlspecialchars($user['email']) ?></td>
+                        <td>
                             <form method="post" class="inline-form">
                                 <input type="hidden" name="csrf_token" value="<?= generateToken() ?>">
                                 <input type="hidden" name="user_id" value="<?= $user['id'] ?>">
@@ -140,10 +141,10 @@ include __DIR__ . '/../includes/header.php';
                                 </select>
                                 <button type="submit" name="update_role" class="btn-small">Update</button>
                             </form>
-                        侠
-                        <td><?= $user['is_active'] ? 'Yes' : 'No' ?>侠
-                        <td><?= date('M j, Y', strtotime($user['created_at'])) ?>侠
-                        侠
+                        </td>
+                        <td><?= $user['is_active'] ? 'Yes' : 'No' ?></td>
+                        <td><?= date('M j, Y', strtotime($user['created_at'])) ?></td>
+                        <td>
                             <form method="post" class="inline-form" style="display:inline;">
                                 <input type="hidden" name="csrf_token" value="<?= generateToken() ?>">
                                 <input type="hidden" name="user_id" value="<?= $user['id'] ?>">
@@ -157,13 +158,12 @@ include __DIR__ . '/../includes/header.php';
                                 <input type="hidden" name="user_id" value="<?= $user['id'] ?>">
                                 <button type="submit" name="delete_user" class="btn-small btn-danger">Delete</button>
                             </form>
-                        侠
-                    侠
+                        </td>
+                    </tr>
                     <?php endforeach; ?>
                 </tbody>
-            表格
+            </table>
         </div>
     </div>
 </div>
-
 <?php include __DIR__ . '/../includes/footer.php'; ?>

@@ -33,11 +33,11 @@ if ($amount <= 0 || $amount > 1000) {
 
 // Create a Stripe PaymentIntent
 Stripe::setApiKey(getenv('STRIPE_SECRET_KEY'));
-Stripe::setTimeout(30); // global timeout
 $intent = PaymentIntent::create([
     'amount'   => round($amount * 100),
     'currency' => 'usd',
     'metadata' => ['user_id' => $user_id, 'type' => 'topup'],
+    'timeout'  => 30, // timeout in seconds
 ]);
 
 $_SESSION['stripe_intent_id'] = $intent->id;
