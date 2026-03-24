@@ -1,7 +1,7 @@
 <?php
 require __DIR__ . '/includes/session.php';
 require "config/database.php";
-require_once __DIR__ . '/includes/kiosk.php';
+require "includes/kiosk.php";
 
 $order_id = isset($_GET['order_id']) ? intval($_GET['order_id']) : 0;
 if (!$order_id || !isset($_SESSION['user_id'])) {
@@ -40,11 +40,12 @@ $payment_method_display = $payment_display[$order['payment_method']] ?? ucfirst(
     <p><strong>Payment Method:</strong> <?= $payment_method_display ?></p>
 
     <div style="margin-top: 2rem; display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap;">
-        <!-- View Receipt button (keeps kiosk mode) -->
-        <?php if ($order['payment_status'] === 'paid' || $order['status'] === 'completed'): ?>
+        <!-- Show receipt only for paid orders -->
+        <?php if ($order['payment_status'] === 'paid'): ?>
             <a href="<?= kiosk_url('receipt.php?id=' . $order_id) ?>" class="btn btn-primary">View Receipt</a>
         <?php endif; ?>
         <a href="<?= kiosk_url('menu.php') ?>" class="btn btn-accent">Order Again</a>
+        <a href="<?= normal_url('dashboard/orders.php') ?>" class="btn">My Orders</a>
     </div>
 </div>
 
