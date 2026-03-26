@@ -312,3 +312,227 @@ function showToast(message, type = 'info') {
         setTimeout(() => toast.remove(), 300);
     }, 3000);
 }
+
+// --- Additional helper functions as requested ---
+
+/**
+ * Display a temporary flash message.
+ * @param {string} message - The text to display.
+ * @param {string} type - 'success', 'error', or 'info'.
+ * @param {number} duration - Milliseconds to show the message.
+ */
+function showFlashMessage(message, type = 'info', duration = 3000) {
+    let container = document.getElementById('flash-container');
+    if (!container) {
+        container = document.createElement('div');
+        container.id = 'flash-container';
+        container.style.cssText = 'position:fixed; top:20px; left:50%; transform:translateX(-50%); z-index:100000;';
+        document.body.appendChild(container);
+    }
+    const flash = document.createElement('div');
+    flash.className = `flash flash-${type}`;
+    flash.textContent = message;
+    flash.style.cssText = `
+        background: ${type === 'success' ? '#4caf50' : type === 'error' ? '#f44336' : '#2196f3'};
+        color: white;
+        padding: 12px 24px;
+        border-radius: 8px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+        margin-bottom: 10px;
+        opacity: 0;
+        transition: opacity 0.3s ease;
+        font-size: 1rem;
+        text-align: center;
+        min-width: 200px;
+        pointer-events: none;
+    `;
+    container.appendChild(flash);
+    setTimeout(() => flash.style.opacity = 1, 10);
+    setTimeout(() => {
+        flash.style.opacity = 0;
+        setTimeout(() => flash.remove(), 300);
+    }, duration);
+}
+
+/**
+ * Show a confirmation modal with customizable buttons and callbacks.
+ * @param {Object} options - Configuration object.
+ * @param {string} options.message - The confirmation message.
+ * @param {string} [options.title='Confirm'] - Modal title.
+ * @param {string} [options.confirmText='Yes'] - Text for confirm button.
+ * @param {string} [options.cancelText='Cancel'] - Text for cancel button.
+ * @param {Function} [options.onConfirm] - Callback when confirm is clicked.
+ * @param {Function} [options.onCancel] - Callback when cancel or close is clicked.
+ */
+function showConfirmModal(options) {
+    const {
+        message,
+        title = 'Confirm',
+        confirmText = 'Yes',
+        cancelText = 'Cancel',
+        onConfirm = () => {},
+        onCancel = () => {}
+    } = options;
+
+    // Remove any existing modal to avoid stacking
+    const existingModal = document.getElementById('custom-confirm-modal');
+    if (existingModal) existingModal.remove();
+
+    const modal = document.createElement('div');
+    modal.id = 'custom-confirm-modal';
+    modal.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0,0,0,0.5);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 100001;
+        font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+    `;
+
+    const modalContent = document.createElement('div');
+    modalContent.style.cssText = `
+        background: white;
+        border-radius: 12px;
+        max-width: 400px;
+        width: 90%;
+        padding: 20px;
+        box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+        text-align: center;
+    `;
+
+    const titleEl = document.createElement('h3');
+    titleEl.textContent = title;
+    titleEl.style.margin = '0 0 15px 0';
+    titleEl.style.fontSize = '1.25rem';
+
+    const messageEl = document.createElement('p');
+    messageEl.textContent = message;
+    messageEl.style.margin = '0 0 20px 0';
+    messageEl.style.lineHeight = '1.5';
+
+    const buttonContainer = document.createElement('div');
+    buttonContainer.style.display = 'flex';
+    buttonContainer.style.gap = '12px';
+    buttonContainer.style.justifyContent = 'center';
+
+    const confirmBtn = document.createElement('button');
+    confirmBtn.textContent = confirmText;
+    confirmBtn.style.cssText = `
+        background: #4caf50;
+        border: none;
+        color: white;
+        padding: 8px 20px;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 0.9rem;
+        font-weight: 600;
+    `;
+    const cancelBtn = document.createElement('button');
+    cancelBtn.textContent = cancelText;
+    cancelBtn.style.cssText = `
+        background: #f44336;
+        border: none;
+        color: white;
+        padding: 8px 20px;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 0.9rem;
+        font-weight: 600;
+    `;
+
+    const closeModal = (callback) => {
+        if (typeof callback === 'function') callback();
+        modal.remove();
+    };
+
+    confirmBtn.addEventListener('click', () => closeModal(onConfirm));
+    cancelBtn.addEventListener('click', () => closeModal(onCancel));
+    modal.addEventListener('click', (e) => {
+        if (e.target === modal) closeModal(onCancel);
+    });
+    document.addEventListener('keydown', function handler(e) {
+        if (e.key === 'Escape') {
+            closeModal(onCancel);
+            document.removeEventListener('keydown', handler);
+        }
+    });
+
+    buttonContainer.appendChild(confirmBtn);
+    buttonContainer.appendChild(cancelBtn);
+    modalContent.appendChild(titleEl);
+    modalContent.appendChild(messageEl);
+    modalContent.appendChild(buttonContainer);
+    modal.appendChild(modalContent);
+    document.body.appendChild(modal);
+
+    // Focus the confirm button by default for accessibility
+    confirmBtn.focus();
+}
+
+/**
+ * Attach loading state to a form's submit button.
+ * Optionally runs an async callback while managing the loading state.
+ * @param {HTMLFormElement} form - The form element.
+ * @param {Function} [onSubmit] - Async function that receives the form and event.
+ *                                If provided, it will prevent default and handle loading.
+ * @returns {Object} - Contains startLoading() and stopLoading() methods.
+ */
+function attachFormLoading(form, onSubmit) {
+    const submitBtn = form.querySelector('button[type="submit"], input[type="submit"]');
+    if (!submitBtn) {
+        console.warn('attachFormLoading: No submit button found in form');
+        return { startLoading: () => {}, stopLoading: () => {} };
+    }
+
+    let originalText = submitBtn.textContent;
+    let originalDisabled = false;
+    let loading = false;
+
+    const setLoading = (isLoading) => {
+        loading = isLoading;
+        if (isLoading) {
+            originalDisabled = submitBtn.disabled;
+            originalText = submitBtn.textContent;
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Loading...';
+            // Optionally add a spinner icon (simple)
+            if (!submitBtn.querySelector('.spinner')) {
+                const spinner = document.createElement('span');
+                spinner.className = 'spinner';
+                spinner.textContent = ' ⏳';
+                submitBtn.appendChild(spinner);
+            }
+        } else {
+            submitBtn.disabled = originalDisabled;
+            submitBtn.textContent = originalText;
+            const spinner = submitBtn.querySelector('.spinner');
+            if (spinner) spinner.remove();
+        }
+    };
+
+    const startLoading = () => setLoading(true);
+    const stopLoading = () => setLoading(false);
+
+    if (onSubmit && typeof onSubmit === 'function') {
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            if (loading) return;
+            startLoading();
+            try {
+                await onSubmit(form, e);
+            } catch (error) {
+                console.error('Error in onSubmit callback:', error);
+                showFlashMessage('An error occurred. Please try again.', 'error');
+            } finally {
+                stopLoading();
+            }
+        });
+    }
+
+    return { startLoading, stopLoading };
+}
