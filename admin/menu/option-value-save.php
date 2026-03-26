@@ -22,7 +22,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $stmt->bind_param("isdi", $option_id, $value_name, $price_modifier, $sort_order);
     $stmt->execute();
 
-    clearMenuCache(); // Clear cache after adding value
+    clearMenuCache();
 
     // Get menu_item_id for redirection
     $opt_stmt = $conn->prepare("SELECT menu_item_id FROM menu_item_options WHERE id = ?");

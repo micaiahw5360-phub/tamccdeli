@@ -37,7 +37,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $update->bind_param("ssiii", $option_name, $option_type, $required, $sort_order, $id);
         $update->execute();
 
-        clearMenuCache(); // Clear cache after updating option
+        clearMenuCache();
 
         $redirect = "options.php?item_id=" . $option['menu_item_id'];
         if (isset($_SESSION['kiosk_mode']) && $_SESSION['kiosk_mode']) {

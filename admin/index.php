@@ -40,18 +40,22 @@ include __DIR__ . '/../includes/header.php';
 
         <div class="stats-grid">
             <div class="stat-card">
+                <div class="stat-icon">📦</div>
                 <h3><?= $total_orders ?></h3>
                 <p>Total Orders</p>
             </div>
             <div class="stat-card">
+                <div class="stat-icon">⏳</div>
                 <h3><?= $pending_orders ?></h3>
                 <p>Pending Orders</p>
             </div>
             <div class="stat-card">
+                <div class="stat-icon">👥</div>
                 <h3><?= $total_users ?></h3>
                 <p>Total Users</p>
             </div>
             <div class="stat-card">
+                <div class="stat-icon">🍽️</div>
                 <h3><?= $total_menu_items ?></h3>
                 <p>Menu Items</p>
             </div>
@@ -88,7 +92,7 @@ include __DIR__ . '/../includes/header.php';
                 <p>No orders yet.</p>
             <?php else: ?>
                 <div class="table-responsive">
-                    <table>
+                    <table class="admin-table">
                         <thead>
                             <tr>
                                 <th>Order #</th>
@@ -118,23 +122,22 @@ include __DIR__ . '/../includes/header.php';
     </div>
 </div>
 
-<!-- Chart.js and custom script -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
     let salesChart, popularChart;
+    const refreshBtn = document.getElementById('refresh-charts');
 
     function loadChartData() {
+        if (refreshBtn) refreshBtn.disabled = true;
         fetch('get-sales-data.php')
             .then(response => {
                 if (!response.ok) throw new Error('Network response was not ok');
                 return response.json();
             })
             .then(data => {
-                // Destroy existing charts if they exist
                 if (salesChart) salesChart.destroy();
                 if (popularChart) popularChart.destroy();
 
-                // Create Sales Chart
                 salesChart = new Chart(document.getElementById('salesChart'), {
                     type: 'line',
                     data: {
@@ -150,7 +153,6 @@ include __DIR__ . '/../includes/header.php';
                     options: { responsive: true }
                 });
 
-                // Create Popular Items Chart
                 popularChart = new Chart(document.getElementById('popularChart'), {
                     type: 'bar',
                     data: {
@@ -166,17 +168,16 @@ include __DIR__ . '/../includes/header.php';
             })
             .catch(error => {
                 console.error('Error loading chart data:', error);
-                document.querySelector('.admin-panel').insertAdjacentHTML('beforeend',
-                    '<div class="error-message">Could not load chart data.</div>');
+                showToast('Could not load chart data.', 'error');
+            })
+            .finally(() => {
+                if (refreshBtn) refreshBtn.disabled = false;
             });
     }
 
     document.addEventListener('DOMContentLoaded', function() {
-        loadChartData(); // initial load
-        const refreshBtn = document.getElementById('refresh-charts');
-        if (refreshBtn) {
-            refreshBtn.addEventListener('click', loadChartData);
-        }
+        loadChartData();
+        if (refreshBtn) refreshBtn.addEventListener('click', loadChartData);
     });
 </script>
 

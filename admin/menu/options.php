@@ -42,36 +42,36 @@ include __DIR__ . '/../../includes/header.php';
     <h1>Options for: <?= htmlspecialchars($item['name']) ?></h1>
     <p><a href="<?= normal_url('index.php') ?>" class="btn btn-secondary">← Back to Menu</a></p>
 
-    <h2>Add New Option</h2>
-    <form method="post" action="option-save.php" class="form-inline">
-        <input type="hidden" name="csrf_token" value="<?= generateToken() ?>">
-        <input type="hidden" name="menu_item_id" value="<?= $menu_item_id ?>">
-        <div class="form-group">
-            <label>Option Name</label>
-            <input type="text" name="option_name" required>
-        </div>
-        <div class="form-group">
-            <label>Type</label>
-            <select name="option_type">
-                <option value="dropdown">Dropdown</option>
-                <option value="radio">Radio Buttons</option>
-            </select>
-        </div>
-        <div class="form-group">
-            <label>Required?</label>
-            <input type="checkbox" name="required" value="1" checked>
-        </div>
-        <div class="form-group">
-            <label>Sort Order</label>
-            <input type="number" name="sort_order" value="0">
-        </div>
-        <button type="submit" class="btn btn-primary">Add Option</button>
-    </form>
-
-    <hr>
+    <div class="card">
+        <h2>Add New Option</h2>
+        <form method="post" action="option-save.php" class="form-inline">
+            <input type="hidden" name="csrf_token" value="<?= generateToken() ?>">
+            <input type="hidden" name="menu_item_id" value="<?= $menu_item_id ?>">
+            <div class="form-group">
+                <label>Option Name</label>
+                <input type="text" name="option_name" required>
+            </div>
+            <div class="form-group">
+                <label>Type</label>
+                <select name="option_type">
+                    <option value="dropdown">Dropdown</option>
+                    <option value="radio">Radio Buttons</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Required?</label>
+                <input type="checkbox" name="required" value="1" checked>
+            </div>
+            <div class="form-group">
+                <label>Sort Order</label>
+                <input type="number" name="sort_order" value="0">
+            </div>
+            <button type="submit" class="btn btn-primary">Add Option</button>
+        </form>
+    </div>
 
     <?php foreach ($options as $opt): ?>
-        <div class="card" style="margin-top:20px;">
+        <div class="card">
             <h3><?= htmlspecialchars($opt['option_name']) ?>
                 <small>(<?= $opt['option_type'] ?>, <?= $opt['required'] ? 'Required' : 'Optional' ?>)</small>
                 <a href="option-edit.php?id=<?= $opt['id'] ?>" class="btn-small btn-edit">Edit</a>
@@ -81,33 +81,35 @@ include __DIR__ . '/../../includes/header.php';
                     <button type="submit" class="btn-small btn-danger">Delete</button>
                 </form>
             </h3>
-            <table class="table">
-                <thead>
-                    <tr>
-                        <th>Value</th>
-                        <th>Price Modifier</th>
-                        <th>Sort</th>
-                        <th>Actions</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <?php foreach ($opt['values'] as $val): ?>
-                    <tr>
-                        <td><?= htmlspecialchars($val['value_name']) ?></td>
-                        <td>$<?= number_format($val['price_modifier'], 2) ?></td>
-                        <td><?= $val['sort_order'] ?></td>
-                        <td>
-                            <a href="option-value-edit.php?id=<?= $val['id'] ?>" class="btn-small btn-edit">Edit</a>
-                            <form method="post" action="option-value-delete.php" style="display:inline;" onsubmit="return confirm('Delete this value?');">
-                                <input type="hidden" name="csrf_token" value="<?= generateToken() ?>">
-                                <input type="hidden" name="id" value="<?= $val['id'] ?>">
-                                <button type="submit" class="btn-small btn-danger">Delete</button>
-                            </form>
-                        </td>
-                    </tr>
-                    <?php endforeach; ?>
-                </tbody>
-            </table>
+            <div class="table-responsive">
+                <table class="admin-table">
+                    <thead>
+                        <tr>
+                            <th>Value</th>
+                            <th>Price Modifier</th>
+                            <th>Sort</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php foreach ($opt['values'] as $val): ?>
+                            <tr>
+                                <td><?= htmlspecialchars($val['value_name']) ?></td>
+                                <td>$<?= number_format($val['price_modifier'], 2) ?></td>
+                                <td><?= $val['sort_order'] ?></td>
+                                <td>
+                                    <a href="option-value-edit.php?id=<?= $val['id'] ?>" class="btn-small btn-edit">Edit</a>
+                                    <form method="post" action="option-value-delete.php" style="display:inline;" onsubmit="return confirm('Delete this value?');">
+                                        <input type="hidden" name="csrf_token" value="<?= generateToken() ?>">
+                                        <input type="hidden" name="id" value="<?= $val['id'] ?>">
+                                        <button type="submit" class="btn-small btn-danger">Delete</button>
+                                    </form>
+                                </td>
+                            </tr>
+                        <?php endforeach; ?>
+                    </tbody>
+                </table>
+            </div>
             <h4>Add Value</h4>
             <form method="post" action="option-value-save.php" class="form-inline">
                 <input type="hidden" name="csrf_token" value="<?= generateToken() ?>">

@@ -21,6 +21,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_status'])) {
     }
     $stmt->execute();
     
+    $_SESSION['flash_message'] = "Order #$order_id status updated to " . ucfirst($new_status);
+    $_SESSION['flash_type'] = 'success';
+    
     $redirect = "orders.php";
     if (isset($_SESSION['kiosk_mode']) && $_SESSION['kiosk_mode']) {
         $redirect .= '?kiosk=1';
@@ -51,7 +54,7 @@ if ($status_filter === 'all') {
 $stmt->execute();
 $orders = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
 
-// Get staff list for assignment (use prepared statement for consistency)
+// Get staff list for assignment
 $stmt = $conn->prepare("SELECT id, username FROM users WHERE role IN ('admin', 'staff')");
 $stmt->execute();
 $staff_list = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
@@ -87,7 +90,7 @@ include __DIR__ . '/../includes/header.php';
         <?php else: ?>
             <div class="card">
                 <div class="table-responsive">
-                    <table>
+                    <table class="admin-table">
                         <thead>
                             <tr>
                                 <th>Order #</th>
@@ -102,51 +105,52 @@ include __DIR__ . '/../includes/header.php';
                         </thead>
                         <tbody>
                             <?php foreach ($orders as $order): ?>
-                            <tr>
-                                <td><?= $order['id'] ?></td>
-                                <td><?= htmlspecialchars($order['customer_name']) ?></td>
-                                <td><?= date('M j, Y', strtotime($order['order_date'])) ?></td>
-                                <td>$<?= number_format($order['total'], 2) ?></td>
-                                <td class="status-<?= $order['payment_status'] ?>"><?= ucfirst($order['payment_status']) ?></td>
-                                <td class="status status-<?= $order['status'] ?>"><?= ucfirst($order['status']) ?></td>
-                                <td>
-                                    <?php if ($order['status'] === 'pending'): ?>
-                                        <form method="post" class="inline-form">
-                                            <input type="hidden" name="csrf_token" value="<?= generateToken() ?>">
-                                            <input type="hidden" name="order_id" value="<?= $order['id'] ?>">
-                                            <input type="hidden" name="status" value="processing">
-                                            <select name="staff_id" required>
-                                                <option value="">Assign to...</option>
-                                                <?php foreach ($staff_list as $staff): ?>
-                                                    <option value="<?= $staff['id'] ?>"><?= htmlspecialchars($staff['username']) ?></option>
-                                                <?php endforeach; ?>
-                                            </select>
-                                            <button type="submit" name="update_status" class="btn-small">Accept & Assign</button>
-                                        </form>
-                                    <?php else: ?>
-                                        <?= htmlspecialchars($order['staff_name'] ?? '—') ?>
-                                    <?php endif; ?>
-                                </td>
-                                <td>
-                                    <a href="<?= normal_url('../staff/order-details.php?id=' . $order['id']) ?>" class="btn-small">View</a>
-                                    <?php if ($order['status'] === 'processing'): ?>
-                                        <form method="post" class="inline-form">
-                                            <input type="hidden" name="csrf_token" value="<?= generateToken() ?>">
-                                            <input type="hidden" name="order_id" value="<?= $order['id'] ?>">
-                                            <input type="hidden" name="status" value="completed">
-                                            <button type="submit" name="update_status" class="btn-small btn-success">Complete</button>
-                                        </form>
-                                    <?php endif; ?>
-                                    <?php if ($order['status'] !== 'cancelled'): ?>
-                                        <form method="post" class="inline-form" onsubmit="return confirm('Cancel this order?');">
-                                            <input type="hidden" name="csrf_token" value="<?= generateToken() ?>">
-                                            <input type="hidden" name="order_id" value="<?= $order['id'] ?>">
-                                            <input type="hidden" name="status" value="cancelled">
-                                            <button type="submit" name="update_status" class="btn-small btn-danger">Cancel</button>
-                                        </form>
-                                    <?php endif; ?>
-                                </td>
-                            </tr>
+                                <tr>
+                                    <td><?= $order['id'] ?></td>
+                                    <td><?= htmlspecialchars($order['customer_name']) ?></td>
+                                    <td><?= date('M j, Y', strtotime($order['order_date'])) ?></td>
+                                    <td>$<?= number_format($order['total'], 2) ?></td>
+                                    <td class="status-<?= $order['payment_status'] ?>"><?= ucfirst($order['payment_status']) ?></td>
+                                    <td class="status status-<?= $order['status'] ?>"><?= ucfirst($order['status']) ?></td>
+                                    <td>
+                                        <?php if ($order['status'] === 'pending'): ?>
+                                            <form method="post" class="inline-form">
+                                                <input type="hidden" name="csrf_token" value="<?= generateToken() ?>">
+                                                <input type="hidden" name="order_id" value="<?= $order['id'] ?>">
+                                                <input type="hidden" name="status" value="processing">
+                                                <select name="staff_id" required>
+                                                    <option value="">Assign to...</option>
+                                                    <?php foreach ($staff_list as $staff): ?>
+                                                        <option value="<?= $staff['id'] ?>"><?= htmlspecialchars($staff['username']) ?></option>
+                                                    <?php endforeach; ?>
+                                                </select>
+                                                <button type="submit" name="update_status" class="btn-small">Accept & Assign</button>
+                                            </form>
+                                        <?php else: ?>
+                                            <?= htmlspecialchars($order['staff_name'] ?? '—') ?>
+                                        <?php endif; ?>
+                                    </td>
+                                    <td>
+                                        <a href="<?= normal_url('../staff/order-details.php?id=' . $order['id']) ?>" class="btn-small">View</a>
+                                        <?php if ($order['status'] === 'processing'): ?>
+                                            <form method="post" class="inline-form">
+                                                <input type="hidden" name="csrf_token" value="<?= generateToken() ?>">
+                                                <input type="hidden" name="order_id" value="<?= $order['id'] ?>">
+                                                <input type="hidden" name="status" value="completed">
+                                                <button type="submit" name="update_status" class="btn-small btn-success">Complete</button>
+                                            </form>
+                                        <?php endif; ?>
+                                        <?php if ($order['status'] !== 'cancelled'): ?>
+                                            <button class="btn-small btn-danger" data-action="cancel" data-order-id="<?= $order['id'] ?>" data-csrf="<?= generateToken() ?>">Cancel</button>
+                                            <form id="cancel-form-<?= $order['id'] ?>" method="post" style="display:none;">
+                                                <input type="hidden" name="csrf_token" value="<?= generateToken() ?>">
+                                                <input type="hidden" name="order_id" value="<?= $order['id'] ?>">
+                                                <input type="hidden" name="status" value="cancelled">
+                                                <input type="hidden" name="update_status" value="1">
+                                            </form>
+                                        <?php endif; ?>
+                                    </td>
+                                </tr>
                             <?php endforeach; ?>
                         </tbody>
                     </table>
@@ -155,5 +159,23 @@ include __DIR__ . '/../includes/header.php';
         <?php endif; ?>
     </div>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const cancelBtns = document.querySelectorAll('[data-action="cancel"]');
+    cancelBtns.forEach(btn => {
+        btn.addEventListener('click', async (e) => {
+            e.preventDefault();
+            const orderId = btn.dataset.orderId;
+            const confirmed = await showConfirmModal({
+                message: `Are you sure you want to cancel order #${orderId}?`
+            });
+            if (confirmed) {
+                document.getElementById(`cancel-form-${orderId}`).submit();
+            }
+        });
+    });
+});
+</script>
 
 <?php include __DIR__ . '/../includes/footer.php'; ?>

@@ -124,7 +124,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // Image preview
     const imageUrlInput = document.getElementById('image-url');
     const preview = document.getElementById('image-preview');
     if (imageUrlInput) {
@@ -142,7 +141,6 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // Client-side validation
     const form = document.getElementById('menu-form');
     form.addEventListener('submit', function(e) {
         const name = document.getElementById('name').value.trim();

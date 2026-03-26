@@ -14,7 +14,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_role'])) {
     $stmt->bind_param("si", $new_role, $user_id);
     $stmt->execute();
     
-    // Redirect with kiosk parameter preserved
+    $_SESSION['flash_message'] = "User role updated successfully";
+    $_SESSION['flash_type'] = 'success';
+    
     $redirect = "users.php";
     if (isset($_SESSION['kiosk_mode']) && $_SESSION['kiosk_mode']) {
         $redirect .= '?kiosk=1';
@@ -35,6 +37,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['toggle_active'])) {
     $stmt->bind_param("ii", $new_active, $user_id);
     $stmt->execute();
     
+    $_SESSION['flash_message'] = "User status updated successfully";
+    $_SESSION['flash_type'] = 'success';
+    
     $redirect = "users.php";
     if (isset($_SESSION['kiosk_mode']) && $_SESSION['kiosk_mode']) {
         $redirect .= '?kiosk=1';
@@ -50,30 +55,28 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_user'])) {
     }
     $user_id = intval($_POST['user_id']);
 
-    // Start transaction to ensure consistency
     $conn->begin_transaction();
     try {
-        // Nullify user_id in transactions to avoid foreign key constraint
         $stmt = $conn->prepare("UPDATE transactions SET user_id = NULL WHERE user_id = ?");
         $stmt->bind_param("i", $user_id);
         $stmt->execute();
 
-        // Nullify user_id in orders (if the table has a foreign key)
         $stmt2 = $conn->prepare("UPDATE orders SET user_id = NULL WHERE user_id = ?");
         $stmt2->bind_param("i", $user_id);
         $stmt2->execute();
 
-        // Delete the user
         $stmt3 = $conn->prepare("DELETE FROM users WHERE id = ?");
         $stmt3->bind_param("i", $user_id);
         $stmt3->execute();
 
         $conn->commit();
+        $_SESSION['flash_message'] = "User deleted successfully";
+        $_SESSION['flash_type'] = 'success';
     } catch (Exception $e) {
         $conn->rollback();
         error_log("User deletion failed: " . $e->getMessage());
-        // Optionally set a session error message
-        $_SESSION['admin_error'] = "Could not delete user. Please try again.";
+        $_SESSION['flash_message'] = "Could not delete user. Please try again.";
+        $_SESSION['flash_type'] = 'error';
     }
     
     $redirect = "users.php";
@@ -106,64 +109,86 @@ include __DIR__ . '/../includes/header.php';
     <div class="main-content admin-panel">
         <h1>Manage Users</h1>
 
-        <?php if (isset($_SESSION['admin_error'])): ?>
-            <div class="error-message"><?= $_SESSION['admin_error'] ?></div>
-            <?php unset($_SESSION['admin_error']); ?>
+        <?php if (isset($_SESSION['flash_message'])): ?>
+            <div id="flash-message" data-message="<?= htmlspecialchars($_SESSION['flash_message']) ?>" data-type="<?= $_SESSION['flash_type'] ?>"></div>
+            <?php unset($_SESSION['flash_message'], $_SESSION['flash_type']); ?>
         <?php endif; ?>
 
         <div class="card">
-            <table>
-                <thead>
-                    <tr>
-                        <th>ID</th>
-                        <th>Username</th>
-                        <th>Email</th>
-                        <th>Role</th>
-                        <th>Active</th>
-                        <th>Registered</th>
-                        <th>Actions</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <?php foreach ($users as $user): ?>
-                    <tr>
-                        <td><?= $user['id'] ?></td>
-                        <td><?= htmlspecialchars($user['username']) ?></td>
-                        <td><?= htmlspecialchars($user['email']) ?></td>
-                        <td>
-                            <form method="post" class="inline-form">
-                                <input type="hidden" name="csrf_token" value="<?= generateToken() ?>">
-                                <input type="hidden" name="user_id" value="<?= $user['id'] ?>">
-                                <select name="role">
-                                    <option value="customer" <?= $user['role'] === 'customer' ? 'selected' : '' ?>>Customer</option>
-                                    <option value="staff" <?= $user['role'] === 'staff' ? 'selected' : '' ?>>Staff</option>
-                                    <option value="admin" <?= $user['role'] === 'admin' ? 'selected' : '' ?>>Admin</option>
-                                </select>
-                                <button type="submit" name="update_role" class="btn-small">Update</button>
-                            </form>
-                        </td>
-                        <td><?= $user['is_active'] ? 'Yes' : 'No' ?></td>
-                        <td><?= date('M j, Y', strtotime($user['created_at'])) ?></td>
-                        <td>
-                            <form method="post" class="inline-form" style="display:inline;">
-                                <input type="hidden" name="csrf_token" value="<?= generateToken() ?>">
-                                <input type="hidden" name="user_id" value="<?= $user['id'] ?>">
-                                <input type="hidden" name="current_active" value="<?= $user['is_active'] ?>">
-                                <button type="submit" name="toggle_active" class="btn-small <?= $user['is_active'] ? 'btn-warning' : 'btn-success' ?>">
-                                    <?= $user['is_active'] ? 'Disable' : 'Enable' ?>
-                                </button>
-                            </form>
-                            <form method="post" class="inline-form" style="display:inline;" onsubmit="return confirm('Are you sure you want to delete this user? This action cannot be undone.');">
-                                <input type="hidden" name="csrf_token" value="<?= generateToken() ?>">
-                                <input type="hidden" name="user_id" value="<?= $user['id'] ?>">
-                                <button type="submit" name="delete_user" class="btn-small btn-danger">Delete</button>
-                            </form>
-                        </td>
-                    </tr>
-                    <?php endforeach; ?>
-                </tbody>
-            </table>
+            <div class="table-responsive">
+                <table class="admin-table">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Username</th>
+                            <th>Email</th>
+                            <th>Role</th>
+                            <th>Active</th>
+                            <th>Registered</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php foreach ($users as $user): ?>
+                            <tr>
+                                <td><?= $user['id'] ?></td>
+                                <td><?= htmlspecialchars($user['username']) ?></td>
+                                <td><?= htmlspecialchars($user['email']) ?></td>
+                                <td>
+                                    <form method="post" class="inline-form">
+                                        <input type="hidden" name="csrf_token" value="<?= generateToken() ?>">
+                                        <input type="hidden" name="user_id" value="<?= $user['id'] ?>">
+                                        <select name="role">
+                                            <option value="customer" <?= $user['role'] === 'customer' ? 'selected' : '' ?>>Customer</option>
+                                            <option value="staff" <?= $user['role'] === 'staff' ? 'selected' : '' ?>>Staff</option>
+                                            <option value="admin" <?= $user['role'] === 'admin' ? 'selected' : '' ?>>Admin</option>
+                                        </select>
+                                        <button type="submit" name="update_role" class="btn-small">Update</button>
+                                    </form>
+                                </td>
+                                <td><?= $user['is_active'] ? 'Yes' : 'No' ?></td>
+                                <td><?= date('M j, Y', strtotime($user['created_at'])) ?></td>
+                                <td>
+                                    <form method="post" class="inline-form" style="display:inline;">
+                                        <input type="hidden" name="csrf_token" value="<?= generateToken() ?>">
+                                        <input type="hidden" name="user_id" value="<?= $user['id'] ?>">
+                                        <input type="hidden" name="current_active" value="<?= $user['is_active'] ?>">
+                                        <button type="submit" name="toggle_active" class="btn-small <?= $user['is_active'] ? 'btn-warning' : 'btn-success' ?>">
+                                            <?= $user['is_active'] ? 'Disable' : 'Enable' ?>
+                                        </button>
+                                    </form>
+                                    <button class="btn-small btn-danger" data-action="delete" data-user-id="<?= $user['id'] ?>" data-csrf="<?= generateToken() ?>">Delete</button>
+                                    <form id="delete-form-<?= $user['id'] ?>" method="post" style="display:none;">
+                                        <input type="hidden" name="csrf_token" value="<?= generateToken() ?>">
+                                        <input type="hidden" name="user_id" value="<?= $user['id'] ?>">
+                                        <input type="hidden" name="delete_user" value="1">
+                                    </form>
+                                </td>
+                            </tr>
+                        <?php endforeach; ?>
+                    </tbody>
+                </table>
+            </div>
         </div>
     </div>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const deleteBtns = document.querySelectorAll('[data-action="delete"]');
+    deleteBtns.forEach(btn => {
+        btn.addEventListener('click', async (e) => {
+            e.preventDefault();
+            const userId = btn.dataset.userId;
+            const confirmed = await showConfirmModal({
+                message: `Are you sure you want to delete this user? This action cannot be undone.`
+            });
+            if (confirmed) {
+                document.getElementById(`delete-form-${userId}`).submit();
+            }
+        });
+    });
+});
+</script>
+
 <?php include __DIR__ . '/../includes/footer.php'; ?>

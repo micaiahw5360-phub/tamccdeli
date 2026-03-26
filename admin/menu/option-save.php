@@ -23,7 +23,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $stmt->bind_param("issii", $menu_item_id, $option_name, $option_type, $required, $sort_order);
     $stmt->execute();
 
-    clearMenuCache(); // Clear cache after adding option
+    clearMenuCache();
 
     $redirect = "options.php?item_id=" . $menu_item_id;
     if (isset($_SESSION['kiosk_mode']) && $_SESSION['kiosk_mode']) {

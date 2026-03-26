@@ -36,7 +36,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $update->bind_param("sdii", $value_name, $price_modifier, $sort_order, $id);
         $update->execute();
 
-        clearMenuCache(); // Clear cache after updating value
+        clearMenuCache();
 
         $redirect = "options.php?item_id=" . $value['menu_item_id'];
         if (isset($_SESSION['kiosk_mode']) && $_SESSION['kiosk_mode']) {

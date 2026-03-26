@@ -22,7 +22,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $delete->bind_param("i", $id);
         $delete->execute();
 
-        clearMenuCache(); // Clear cache after deleting value
+        clearMenuCache();
 
         if ($menu_item_id) {
             $redirect = "options.php?item_id=" . $menu_item_id;
