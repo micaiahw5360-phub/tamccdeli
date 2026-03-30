@@ -28,13 +28,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $error = 'Name, category, and a valid price are required.';
         } else {
             if ($id) {
-                // Update existing
                 $stmt = $conn->prepare("UPDATE menu_items SET name=?, category=?, price=?, image=?, sort_order=? WHERE id=?");
                 $stmt->bind_param("ssdsii", $name, $category, $price, $image, $sort_order, $id);
                 if ($stmt->execute()) clearMenuCache();
                 else $error = 'Database error: ' . $conn->error;
             } else {
-                // Insert new
                 $stmt = $conn->prepare("INSERT INTO menu_items (name, category, price, image, sort_order) VALUES (?, ?, ?, ?, ?)");
                 $stmt->bind_param("ssdsi", $name, $category, $price, $image, $sort_order);
                 if ($stmt->execute()) clearMenuCache();
@@ -42,7 +40,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
         }
         if (!$error) {
-            header('Location: ' . (isset($_SESSION['kiosk_mode']) && $_SESSION['kiosk_mode'] ? '?kiosk=1' : ''));
+            header('Location: ?action=list' . (isset($_SESSION['kiosk_mode']) && $_SESSION['kiosk_mode'] ? '&kiosk=1' : ''));
             exit;
         }
     }
@@ -54,7 +52,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $stmt->bind_param("i", $id);
         $stmt->execute();
         clearMenuCache();
-        header('Location: ' . (isset($_SESSION['kiosk_mode']) && $_SESSION['kiosk_mode'] ? '?kiosk=1' : ''));
+        header('Location: ?action=list' . (isset($_SESSION['kiosk_mode']) && $_SESSION['kiosk_mode'] ? '&kiosk=1' : ''));
         exit;
     }
 
@@ -89,7 +87,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // ---- Delete Option ----
     if ($action === 'option_delete' && isset($_POST['id'])) {
         $id = intval($_POST['id']);
-        // Get menu_item_id for redirect
         $stmt = $conn->prepare("SELECT menu_item_id FROM menu_item_options WHERE id = ?");
         $stmt->bind_param("i", $id);
         $stmt->execute();
@@ -125,7 +122,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             else $error = 'Database error: ' . $conn->error;
         }
         if (!$error) {
-            // Get menu_item_id for redirect
             $opt_stmt = $conn->prepare("SELECT menu_item_id FROM menu_item_options WHERE id = ?");
             $opt_stmt->bind_param("i", $option_id);
             $opt_stmt->execute();
@@ -139,7 +135,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // ---- Delete Option Value ----
     if ($action === 'value_delete' && isset($_POST['id'])) {
         $id = intval($_POST['id']);
-        // Get menu_item_id before deleting
         $stmt = $conn->prepare("SELECT o.menu_item_id FROM menu_item_option_values v JOIN menu_item_options o ON v.option_id = o.id WHERE v.id = ?");
         $stmt->bind_param("i", $id);
         $stmt->execute();
@@ -163,10 +158,10 @@ include __DIR__ . '/../../includes/header.php';
     <div class="sidebar">
         <h2>⚙️ Admin Panel</h2>
         <ul>
-            <li><a href="<?= normal_url('../dashboard/index.php') ?>">Dashboard</a></li>
-            <li><a href="<?= normal_url('index.php') ?>" class="active">Manage Menu</a></li>
-            <li><a href="<?= normal_url('../orders.php') ?>">Manage Orders</a></li>
-            <li><a href="<?= normal_url('../users.php') ?>">Manage Users</a></li>
+            <li><a href="<?= normal_url('admin/index.php') ?>">Dashboard</a></li>
+            <li><a href="<?= normal_url('admin/menu/index.php') ?>" class="active">Manage Menu</a></li>
+            <li><a href="<?= normal_url('admin/index.php?action=orders') ?>">Manage Orders</a></li>
+            <li><a href="<?= normal_url('admin/index.php?action=users') ?>">Manage Users</a></li>
             <li><a href="<?= kiosk_url('../../menu.php') ?>">View Site</a></li>
             <li><a href="<?= normal_url('../../auth/logout.php') ?>">Logout</a></li>
         </ul>
@@ -191,31 +186,30 @@ include __DIR__ . '/../../includes/header.php';
                 <div class="table-wrapper">
                     <table class="admin-table">
                         <thead>
-                            <tr><th>ID</th><th>Image</th><th>Name</th><th>Category</th><th>Price</th><th>Sort</th><th>Actions</th></tr>
-                        </thead>
+                            <tr><th>ID</th><th>Image</th><th>Name</th><th>Category</th><th>Price</th><th>Sort</th><th>Actions</th> </thead>
                         <tbody>
                             <?php foreach ($items as $item): ?>
-                                <tr>
-                                    <td><?= $item['id'] ?></td>
-                                    <td>
-                                        <?php if (!empty($item['image'])): ?>
-                                            <img src="<?= htmlspecialchars($item['image']) ?>" alt="<?= htmlspecialchars($item['name']) ?>" class="item-image" style="width:50px; height:50px; object-fit:cover;">
-                                        <?php else: ?>—<?php endif; ?>
-                                    </td>
-                                    <td><?= htmlspecialchars($item['name']) ?></td>
-                                    <td><?= htmlspecialchars($item['category']) ?></td>
-                                    <td>$<?= number_format($item['price'], 2) ?></td>
-                                    <td><?= $item['sort_order'] ?></td>
-                                    <td>
-                                        <a href="?action=options&item_id=<?= $item['id'] ?>" class="btn-small btn-options">Options</a>
-                                        <a href="?action=edit&id=<?= $item['id'] ?>" class="btn-small btn-edit">Edit</a>
-                                        <form method="post" style="display:inline;" onsubmit="return confirm('Delete this menu item?');">
-                                            <input type="hidden" name="csrf_token" value="<?= generateToken() ?>">
-                                            <input type="hidden" name="id" value="<?= $item['id'] ?>">
-                                            <button type="submit" name="action" value="delete" class="btn-small btn-danger">Delete</button>
-                                        </form>
-                                    </td>
-                                </tr>
+                             <tr>
+                                <td><?= $item['id'] ?></td>
+                                <td>
+                                    <?php if (!empty($item['image'])): ?>
+                                        <img src="<?= htmlspecialchars($item['image']) ?>" alt="<?= htmlspecialchars($item['name']) ?>" class="item-image" style="width:50px; height:50px; object-fit:cover;">
+                                    <?php else: ?>—<?php endif; ?>
+                                </td>
+                                <td><?= htmlspecialchars($item['name']) ?></td>
+                                <td><?= htmlspecialchars($item['category']) ?></td>
+                                <td>$<?= number_format($item['price'], 2) ?></td>
+                                <td><?= $item['sort_order'] ?></td>
+                                <td>
+                                    <a href="?action=options&item_id=<?= $item['id'] ?>" class="btn-small btn-options">Options</a>
+                                    <a href="?action=edit&id=<?= $item['id'] ?>" class="btn-small btn-edit">Edit</a>
+                                    <form method="post" style="display:inline;" onsubmit="return confirm('Delete this menu item?');">
+                                        <input type="hidden" name="csrf_token" value="<?= generateToken() ?>">
+                                        <input type="hidden" name="id" value="<?= $item['id'] ?>">
+                                        <button type="submit" name="action" value="delete" class="btn-small btn-danger">Delete</button>
+                                    </form>
+                                </td>
+                             </tr>
                             <?php endforeach; ?>
                         </tbody>
                     </table>
@@ -307,7 +301,7 @@ include __DIR__ . '/../../includes/header.php';
                 exit;
             }
 
-            // If we are editing an option (GET)
+            // Edit option
             if ($action === 'option_edit') {
                 $option_id = isset($_GET['option_id']) ? intval($_GET['option_id']) : 0;
                 $stmt = $conn->prepare("SELECT * FROM menu_item_options WHERE id = ? AND menu_item_id = ?");
@@ -388,7 +382,7 @@ include __DIR__ . '/../../includes/header.php';
                 </div>
                 <?php
             }
-            // Default options view (list options and their values)
+            // Default options view
             else {
                 $opt_stmt = $conn->prepare("SELECT * FROM menu_item_options WHERE menu_item_id = ? ORDER BY sort_order");
                 $opt_stmt->bind_param("i", $menu_item_id);

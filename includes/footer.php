@@ -74,7 +74,7 @@ if (!$hide_footer):
 
 <!-- Always include toast container and scripts -->
 <div id="toast-container"></div>
-<script src="assets/js/script.js"></script>
+<script src="/assets/js/script.js"></script>
 
 <?php if (!$hide_footer): ?>
     <!-- JavaScript fallback to ensure every internal link has a query string (only needed in normal mode) -->
@@ -83,11 +83,9 @@ if (!$hide_footer):
         var kiosk = typeof kioskMode !== 'undefined' ? kioskMode : false;
         document.querySelectorAll('a[href^="/"]').forEach(function(link) {
             var href = link.getAttribute('href');
-            // Skip if it's an external link or already has a query string
             if (href.indexOf('?') === -1) {
-                href += '?'; // add empty query string
+                href += '?';
             }
-            // If in kiosk mode and the kiosk parameter is missing, add it
             if (kiosk && href.indexOf('kiosk=') === -1) {
                 href += (href.endsWith('?') ? '' : '&') + 'kiosk=1';
             }
