@@ -1,6 +1,6 @@
 <?php
-require_once __DIR__ . '/session.php'; // Start session first
-require_once __DIR__ . '/kiosk.php';   // Now normal_url() is defined
+require_once __DIR__ . '/session.php';
+require_once __DIR__ . '/kiosk.php';
 
 function redirect_to_login() {
     global $kiosk_mode;
