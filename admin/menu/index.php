@@ -14,66 +14,79 @@ $page_title = "Manage Menu";
 include __DIR__ . '/../../includes/header.php';
 ?>
 
-<div class="admin-container">
-    <div class="admin-header">
-        <h1>Menu Management</h1>
-        <a href="<?= normal_url('create.php') ?>" class="btn btn-primary">+ Add New Item</a>
+<div class="dashboard-wrapper">
+    <div class="sidebar">
+        <h2>⚙️ Admin Panel</h2>
+        <ul>
+            <li><a href="<?= normal_url('../dashboard/index.php') ?>">Dashboard</a></li>
+            <li><a href="<?= normal_url('index.php') ?>" class="active">Manage Menu</a></li>
+            <li><a href="<?= normal_url('../orders.php') ?>">Manage Orders</a></li>
+            <li><a href="<?= normal_url('../users.php') ?>">Manage Users</a></li>
+            <li><a href="<?= kiosk_url('../../menu.php') ?>">View Site</a></li>
+            <li><a href="<?= normal_url('../../auth/logout.php') ?>">Logout</a></li>
+        </ul>
     </div>
-
-    <?php if (empty($items)): ?>
-        <p>No menu items yet. <a href="<?= normal_url('create.php') ?>">Add your first item</a>.</p>
-    <?php else: ?>
-        <div class="table-responsive">
-            <table class="admin-table">
-                <thead>
-                    <tr>
-                        <th>ID</th>
-                        <th>Image</th>
-                        <th>Name</th>
-                        <th>Category</th>
-                        <th>Price</th>
-                        <th>Sort Order</th>
-                        <th>Actions</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <?php foreach ($items as $item): 
-                        $rowClass = 'category-' . strtolower(str_replace(' ', '', $item['category']));
-                    ?>
-                        <tr class="<?= $rowClass ?>">
-                            <td><?= $item['id'] ?></td>
-                            <td>
-                                <?php if (!empty($item['image'])): ?>
-                                    <img src="<?= htmlspecialchars($item['image']) ?>" alt="<?= htmlspecialchars($item['name']) ?>" class="item-image">
-                                <?php else: ?>
-                                    <span class="no-image">—</span>
-                                <?php endif; ?>
-                            </td>
-                            <td><?= htmlspecialchars($item['name']) ?></td>
-                            <td><?= htmlspecialchars($item['category']) ?></td>
-                            <td>$<?= number_format($item['price'], 2) ?></td>
-                            <td><?= $item['sort_order'] ?></td>
-                            <td>
-                                <a href="<?= normal_url('options.php?item_id=' . $item['id']) ?>" class="btn-small btn-options">Options</a>
-                                <a href="<?= normal_url('edit.php?id=' . $item['id']) ?>" class="btn-small btn-edit">Edit</a>
-                                <button class="btn-small btn-delete" data-action="delete-item" data-item-id="<?= $item['id'] ?>" data-csrf="<?= generateToken() ?>">Delete</button>
-                                <form id="delete-item-form-<?= $item['id'] ?>" method="post" action="<?= normal_url('delete.php') ?>" style="display:none;">
-                                    <input type="hidden" name="csrf_token" value="<?= generateToken() ?>">
-                                    <input type="hidden" name="id" value="<?= $item['id'] ?>">
-                                </form>
-                            </td>
-                        </tr>
-                    <?php endforeach; ?>
-                </tbody>
-            </table>
+    <div class="main-content admin-panel">
+        <div class="admin-header">
+            <h1>Menu Management</h1>
+            <a href="<?= normal_url('create.php') ?>" class="btn btn-primary">+ Add New Item</a>
         </div>
-    <?php endif; ?>
-    <p style="margin-top:20px;"><a href="<?= normal_url('../../dashboard/index.php') ?>">← Back to Dashboard</a></p>
+
+        <?php if (empty($items)): ?>
+            <p>No menu items yet. <a href="<?= normal_url('create.php') ?>">Add your first item</a>.</p>
+        <?php else: ?>
+            <div class="table-responsive">
+                <table class="admin-table">
+                    <thead>
+                         <tr>
+                            <th>ID</th>
+                            <th>Image</th>
+                            <th>Name</th>
+                            <th>Category</th>
+                            <th>Price</th>
+                            <th>Sort Order</th>
+                            <th>Actions</th>
+                         </tr>
+                    </thead>
+                    <tbody>
+                        <?php foreach ($items as $item): 
+                            $rowClass = 'category-' . strtolower(str_replace(' ', '', $item['category']));
+                        ?>
+                            <tr class="<?= $rowClass ?>">
+                                <td><?= $item['id'] ?></td>
+                                <td>
+                                    <?php if (!empty($item['image'])): ?>
+                                        <img src="<?= htmlspecialchars($item['image']) ?>" alt="<?= htmlspecialchars($item['name']) ?>" class="item-image">
+                                    <?php else: ?>
+                                        <span class="no-image">—</span>
+                                    <?php endif; ?>
+                                </td>
+                                <td><?= htmlspecialchars($item['name']) ?></td>
+                                <td><?= htmlspecialchars($item['category']) ?></td>
+                                <td>$<?= number_format($item['price'], 2) ?></td>
+                                <td><?= $item['sort_order'] ?></td>
+                                <td>
+                                    <a href="<?= normal_url('options.php?item_id=' . $item['id']) ?>" class="btn-small btn-options">Options</a>
+                                    <a href="<?= normal_url('edit.php?id=' . $item['id']) ?>" class="btn-small btn-edit">Edit</a>
+                                    <button class="btn-small btn-delete" data-item-id="<?= $item['id'] ?>">Delete</button>
+                                    <form id="delete-item-form-<?= $item['id'] ?>" method="post" action="<?= normal_url('delete.php') ?>" style="display:none;">
+                                        <input type="hidden" name="csrf_token" value="<?= generateToken() ?>">
+                                        <input type="hidden" name="id" value="<?= $item['id'] ?>">
+                                    </form>
+                                </td>
+                            </tr>
+                        <?php endforeach; ?>
+                    </tbody>
+                </table>
+            </div>
+        <?php endif; ?>
+        <p style="margin-top:20px;"><a href="<?= normal_url('../dashboard/index.php') ?>">← Back to Dashboard</a></p>
+    </div>
 </div>
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    const deleteBtns = document.querySelectorAll('[data-action="delete-item"]');
+    const deleteBtns = document.querySelectorAll('.btn-delete');
     deleteBtns.forEach(btn => {
         btn.addEventListener('click', async (e) => {
             e.preventDefault();

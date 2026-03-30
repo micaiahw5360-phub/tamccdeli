@@ -1,235 +1,128 @@
 <?php
 require __DIR__ . '/includes/session.php';
 require "config/database.php";
-require "includes/functions.php"; // Required for getPopularItems()
+require "includes/functions.php";
 
 $page_title = "TAMCC Deli | Marryshow Mealhouse";
-include 'includes/header.php';
-
-// Fetch popular items from cache (top 3 items by sales in last 30 days)
 $popular_items = getPopularItems($conn, 3);
+include 'includes/header.php';
 ?>
 
-<style>
-    /* Additional homepage styles (hero, features, etc.) – can be moved to global.css if preferred */
-    .hero {
-        background: linear-gradient(rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0.5)),
-                    url('https://www.tamcc.edu.gd/wp-content/uploads/2024/01/Drone-Shot-Tanteen-scaled.jpg');
-        background-size: cover;
-        background-position: center;
-        height: 80vh;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        text-align: center;
-        color: white;
-        padding: 20px;
-    }
-    .hero h1 { font-size: clamp(2.5rem, 8vw, 4rem); text-shadow: 2px 2px 4px rgba(255, 255, 255, 0.7); }
-    .hero p { font-size: clamp(1.2rem, 3vw, 1.8rem); max-width: 800px; margin: 0 auto 2rem; }
-    .section { padding: 60px 20px; max-width: 1200px; margin: 0 auto; }
-    .section h2 { text-align: center; margin-bottom: 40px; position: relative; }
-    .section h2:after {
-        content: '';
-        display: block;
-        width: 80px;
-        height: 4px;
-        background: var(--primary-600);
-        margin: 15px auto 0;
-        border-radius: 2px;
-    }
-    .features {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-        gap: 30px;
-        margin-top: 40px;
-    }
-    .feature {
-        text-align: center;
-        padding: 30px 20px;
-        background: white;
-        border-radius: var(--radius-lg);
-        box-shadow: var(--shadow);
-        transition: var(--transition);
-    }
-    .feature:hover { transform: translateY(-5px); box-shadow: var(--shadow-lg); }
-    .feature img { width: 80px; height: 80px; margin-bottom: 20px; }
-    .menu-preview { background: var(--neutral-100); }
-    .menu-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-        gap: 30px;
-        margin-top: 30px;
-    }
-    .menu-card {
-        background: white; border-radius: var(--radius-lg); overflow: hidden; box-shadow: var(--shadow); transition: var(--transition);
-    }
-    .menu-card:hover { transform: translateY(-5px); box-shadow: var(--shadow-lg); }
-    .menu-card img { width: 100%; height: 180px; object-fit: cover; }
-    .menu-card .card-content { padding: 20px; }
-    .menu-card .price { font-size: 1.5rem; color: var(--primary-600); font-weight: 700; }
-    .about-content {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 50px;
-        align-items: center;
-    }
-    .about-image img { width: 100%; border-radius: var(--radius-lg); }
-    .hours {
-        background: var(--neutral-900);
-        color: white;
-        text-align: center;
-        padding: 60px 20px;
-    }
-    .hours h2 { color: white; }
-    .hours-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-        gap: 20px;
-        max-width: 800px;
-        margin: 30px auto 0;
-    }
-    .hours-item { background: rgba(255,255,255,0.1); padding: 20px; border-radius: var(--radius); }
-    .hours-item h4 { color: var(--primary-400); margin-bottom: 10px; }
-    @media (max-width:768px) {
-        .hero h1 { font-size: 2.5rem; }
-        .hero p { font-size: 1.2rem; }
-        .about-content { grid-template-columns:1fr; }
-        .about-image { order:-1; }
-    }
-</style>
-
 <!-- Hero Section -->
-<div class="hero">
-    <div>
-        <h1>Marryshow Mealhouse</h1>
-        <p>Fresh. Local. Affordable.<br>Serving the T.A. Marryshow Community College since 2024.</p>
-        <a href="<?= kiosk_url('menu.php') ?>" class="btn btn-accent">View Our Menu</a>
+<section class="hero" style="background-image: url('https://images.unsplash.com/photo-1641772094405-6a7db15e8291?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&w=1920&h=1080');">
+    <div class="hero-overlay"></div>
+    <div class="hero-content">
+        <h1>Welcome to Marryshow Mealhouse</h1>
+        <p>Fresh, affordable meals made daily for the TAMCC community. Order online and skip the line!</p>
+        <a href="<?= kiosk_url('menu.php') ?>" class="btn btn-accent btn-lg">View Our Menu</a>
     </div>
-</div>
+</section>
 
-<!-- Why Choose Us -->
-<section class="section">
-    <h2>Why Students Love Us</h2>
-    <div class="features">
-        <div class="feature">
-            <img src="https://cdn-icons-png.flaticon.com/512/1046/1046857.png" alt="Fresh">
-            <h3>Fresh Ingredients</h3>
-            <p>We source locally from Grenadian farmers for the freshest meals on campus.</p>
-        </div>
-        <div class="feature">
-            <img src="https://cdn-icons-png.flaticon.com/512/2331/2331966.png" alt="Affordable">
-            <h3>Student Budget</h3>
-            <p>Delicious meals from $0.50 breakfast bakes to hearty combos.</p>
-        </div>
-        <div class="feature">
-            <img src="https://cdn-icons-png.flaticon.com/512/1903/1903162.png" alt="Convenient">
-            <h3>Right on Campus</h3>
-            <p>Located in the heart of Tanteen, perfect for a quick bite between classes.</p>
+<!-- Features -->
+<section class="features">
+    <div class="container">
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+            <div class="feature-card">
+                <div class="feature-icon">🌿</div>
+                <h3 class="text-xl font-bold mb-2">Fresh Ingredients</h3>
+                <p class="text-gray-600">We use only the freshest local ingredients to prepare your meals daily.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">💰</div>
+                <h3 class="text-xl font-bold mb-2">Student Budget</h3>
+                <p class="text-gray-600">Affordable prices designed with students in mind. Great value, great taste!</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">📍</div>
+                <h3 class="text-xl font-bold mb-2">Right on Campus</h3>
+                <p class="text-gray-600">Conveniently located in the heart of TAMCC. Quick pickup between classes.</p>
+            </div>
         </div>
     </div>
 </section>
 
-<!-- Menu Preview -->
-<section class="section menu-preview">
-    <h2>Popular Picks</h2>
-    <div class="menu-grid">
-        <?php if (!empty($popular_items)): ?>
-            <?php foreach ($popular_items as $item): ?>
-            <div class="menu-card">
-                <?php if (!empty($item['image'])): ?>
-                    <img src="<?= htmlspecialchars($item['image']) ?>" alt="<?= htmlspecialchars($item['name']) ?>">
-                <?php else: ?>
-                    <img src="https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=500&auto=format" alt="Food">
-                <?php endif; ?>
-                <div class="card-content">
-                    <h3><?= htmlspecialchars($item['name']) ?></h3>
-                    <div class="price">$<?= number_format($item['price'], 2) ?></div>
-                    <a href="<?= kiosk_url('menu.php') ?>" class="btn btn-small">Order Now</a>
+<!-- Popular Items -->
+<section class="py-12 bg-gray-50">
+    <div class="container">
+        <div class="text-center mb-8">
+            <h2 class="text-3xl font-bold mb-2">Popular Menu Items</h2>
+            <p class="text-gray-600">Try our customer favorites</p>
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+            <?php if (!empty($popular_items)): ?>
+                <?php foreach ($popular_items as $item): ?>
+                    <div class="card">
+                        <img src="<?= htmlspecialchars($item['image'] ?? 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=500') ?>" alt="<?= htmlspecialchars($item['name']) ?>" class="w-full h-48 object-cover">
+                        <div class="card-content">
+                            <h3 class="text-xl font-bold mb-2"><?= htmlspecialchars($item['name']) ?></h3>
+                            <p class="text-gray-600 text-sm mb-4"><?= htmlspecialchars($item['description'] ?? '') ?></p>
+                            <div class="flex justify-between items-center">
+                                <span class="text-2xl font-bold text-primary">$<?= number_format($item['price'], 2) ?></span>
+                                <a href="<?= kiosk_url('menu.php') ?>" class="btn btn-accent btn-sm">Order Now</a>
+                            </div>
+                        </div>
+                    </div>
+                <?php endforeach; ?>
+            <?php else: ?>
+                <!-- Fallback items -->
+                <div class="card">
+                    <img src="https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=500" alt="Pizza" class="w-full h-48 object-cover">
+                    <div class="card-content">
+                        <h3 class="text-xl font-bold mb-2">Chef's Special Pizza</h3>
+                        <p class="text-gray-600 text-sm mb-4">Delicious pizza with fresh toppings</p>
+                        <div class="flex justify-between items-center">
+                            <span class="text-2xl font-bold text-primary">$12.99</span>
+                            <a href="<?= kiosk_url('menu.php') ?>" class="btn btn-accent btn-sm">Order Now</a>
+                        </div>
+                    </div>
                 </div>
-            </div>
-            <?php endforeach; ?>
-        <?php else: ?>
-            <!-- Fallback items when no popular data exists -->
-            <div class="menu-card">
-                <img src="https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=500&auto=format" alt="Pizza">
-                <div class="card-content">
-                    <h3>Chef's Special Pizza</h3>
-                    <div class="price">$12.99</div>
-                    <a href="<?= kiosk_url('menu.php') ?>" class="btn btn-small">Order Now</a>
-                </div>
-            </div>
-            <div class="menu-card">
-                <img src="https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=500&auto=format" alt="Salad">
-                <div class="card-content">
-                    <h3>Island Salad Bowl</h3>
-                    <div class="price">$8.50</div>
-                    <a href="<?= kiosk_url('menu.php') ?>" class="btn btn-small">Order Now</a>
-                </div>
-            </div>
-            <div class="menu-card">
-                <img src="https://images.unsplash.com/photo-1606755962773-d324e0c130d2?w=500&auto=format" alt="Burger">
-                <div class="card-content">
-                    <h3>Marryshow Burger</h3>
-                    <div class="price">$10.75</div>
-                    <a href="<?= kiosk_url('menu.php') ?>" class="btn btn-small">Order Now</a>
-                </div>
-            </div>
-        <?php endif; ?>
-    </div>
-    <div style="text-align: center; margin-top: 40px;">
-        <a href="<?= kiosk_url('menu.php') ?>" class="btn">View Full Menu</a>
+                <!-- Add more fallback items if needed -->
+            <?php endif; ?>
+        </div>
+        <div class="text-center mt-8">
+            <a href="<?= kiosk_url('menu.php') ?>" class="btn btn-outline btn-lg">View Full Menu</a>
+        </div>
     </div>
 </section>
 
 <!-- About -->
-<section class="section">
-    <h2>About Marryshow Mealhouse</h2>
-    <div class="about-content">
-        <div class="about-text">
-            <p>Welcome to TAMCC Deli – your on‑campus dining destination at T.A. Marryshow Community College. We believe that good food fuels great minds, and we're dedicated to providing students, faculty, and staff with delicious, nutritious, and affordable meals.</p>
-            <p>Our menu features a mix of local favourites and student‑tested classics, from hearty breakfast bakes to satisfying lunch combos. We use fresh ingredients sourced from Grenadian farmers whenever possible, and we're always open to your feedback.</p>
-            <p>Stop by the Tanteen campus to grab a bite, or order online for pickup between classes. We can't wait to serve you!</p>
-        </div>
-        <div class="about-image">
-            <img src="https://images.unsplash.com/photo-1522071820081-009f0129c71c?ixlib=rb-1.2.1&auto=format&fit=crop&w=1350&q=80" alt="TAMCC Campus">
+<section class="py-12">
+    <div class="container">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
+            <div>
+                <h2 class="text-3xl font-bold mb-4">About Marryshow Mealhouse</h2>
+                <p class="text-gray-600 mb-4">Located in the heart of T.A. Marryshow Community College, our cafeteria has been serving the TAMCC community for over a decade. We're committed to providing nutritious, delicious, and affordable meals to students, staff, and faculty.</p>
+                <p class="text-gray-600 mb-6">Our online ordering system makes it easy to skip the line and get your food when you need it. Simply browse our menu, place your order, and pick it up at your convenience.</p>
+                <a href="<?= kiosk_url('auth/register.php') ?>" class="btn btn-primary">Get Started Today</a>
+            </div>
+            <div>
+                <img src="https://images.unsplash.com/photo-1522071820081-009f0129c71c?w=600" alt="Cafeteria" class="rounded-lg shadow-lg w-full">
+            </div>
         </div>
     </div>
 </section>
 
 <!-- Hours -->
-<section class="hours">
-    <h2>Opening Hours</h2>
-    <div class="hours-grid">
-        <div class="hours-item"><h4>Monday–Friday</h4><p>7:30 AM – 4:00 PM</p></div>
-        <div class="hours-item"><h4>Saturday & Sunday</h4><p>Closed</p></div>
-        <div class="hours-item"><h4>Holidays</h4><p>Check Facebook</p></div>
+<section class="bg-primary-600 text-white py-12">
+    <div class="container text-center">
+        <div class="flex justify-center mb-4">
+            <span class="dashicons dashicons-clock" style="font-size: 3rem;"></span>
+        </div>
+        <h2 class="text-3xl font-bold mb-8">Opening Hours</h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-2xl mx-auto">
+            <div>
+                <h3 class="font-bold text-accent-500 mb-2">Weekdays</h3>
+                <p>Monday - Friday</p>
+                <p class="text-lg">7:00 AM - 6:00 PM</p>
+            </div>
+            <div>
+                <h3 class="font-bold text-accent-500 mb-2">Weekends</h3>
+                <p>Saturday</p>
+                <p class="text-lg">8:00 AM - 2:00 PM</p>
+                <p class="text-sm text-white/70 mt-2">Closed Sunday</p>
+            </div>
+        </div>
     </div>
 </section>
-
-<!-- Install App Button (only in normal mode) -->
-<?php if (!$kiosk_mode): ?>
-    <div id="install-container" style="display: none; position: fixed; bottom: 20px; left: 20px; z-index: 1000;">
-        <button id="install-app" class="btn btn-primary">📱 Install App</button>
-    </div>
-    <script>
-        let deferredPrompt;
-        window.addEventListener('beforeinstallprompt', (e) => {
-            e.preventDefault();
-            deferredPrompt = e;
-            document.getElementById('install-container').style.display = 'block';
-        });
-        document.getElementById('install-app').addEventListener('click', () => {
-            deferredPrompt.prompt();
-            deferredPrompt.userChoice.then((choiceResult) => {
-                if (choiceResult.outcome === 'accepted') {
-                    console.log('User accepted the install prompt');
-                }
-                deferredPrompt = null;
-                document.getElementById('install-container').style.display = 'none';
-            });
-        });
-    </script>
-<?php endif; ?>
 
 <?php include 'includes/footer.php'; ?>

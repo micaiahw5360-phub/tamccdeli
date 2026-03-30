@@ -1,295 +1,119 @@
-/* ==================== KIOSK MODE – RESPONSIVE & TOUCH‑FRIENDLY ==================== */
-/* Hide normal header/footer */
-body .navbar,
-body .footer {
-    display: none !important;
+/* ==================== KIOSK MODE – LARGE TOUCH TARGETS, MINIMAL ANIMATIONS ==================== */
+body.kiosk-mode {
+  font-size: 20px; /* base larger */
 }
 
-body {
-    background: #f8f9fa !important;
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+.kiosk-mode .navbar,
+.kiosk-mode .footer {
+  display: none !important;
 }
 
-/* Category selection screen */
-.kiosk-categories-container {
-    max-width: 1400px;
-    margin: 2rem auto;
-    padding: 2rem;
-    text-align: center;
-}
-.kiosk-categories {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-    gap: 2rem;
-    margin-top: 2rem;
-}
-.kiosk-category {
-    background: white;
-    border: 3px solid #074af2;
-    border-radius: 1rem;
-    padding: 2rem;
-    text-align: center;
-    font-size: clamp(1.5rem, 5vw, 3rem);
-    font-weight: bold;
-    color: #074af2;
-    text-decoration: none;
-    transition: all 0.2s ease;
-    box-shadow: 0 8px 16px rgba(0,0,0,0.1);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    min-height: 200px;
-}
-.kiosk-category:hover {
-    background: #e9ecef;
-    transform: scale(1.02);
-    border-color: #0538c2;
-    color: #0538c2;
-    box-shadow: 0 12px 24px rgba(0,0,0,0.15); /* deeper shadow on hover */
-}
-.kiosk-category:focus {
-    outline: 2px solid #074af2;
-    outline-offset: 2px;
-    transform: scale(1.02);
+.kiosk-mode .container,
+.kiosk-mode .menu-container,
+.kiosk-mode .cart-container,
+.kiosk-mode .checkout-container {
+  max-width: 1400px;
+  margin: var(--space-8) auto;
+  padding: var(--space-6);
 }
 
-/* Back button for category view */
-.kiosk-header {
-    max-width: 1400px;
-    margin: 1rem auto 0;
-    padding: 0 2rem;
-    display: flex;
-    align-items: center;
-    gap: 2rem;
-    flex-wrap: wrap;
+.kiosk-mode h1 {
+  font-size: 3rem;
 }
-.back-to-categories {
-    background: #6c757d;
-    color: white;
-    padding: 0.75rem 1.5rem;
-    border-radius: 2rem;
-    text-decoration: none;
-    font-size: 1.2rem;
-    transition: background 0.2s;
+.kiosk-mode h2 {
+  font-size: 2.5rem;
 }
-.back-to-categories:hover {
-    background: #5a6268;
-}
-.kiosk-header h1 {
-    margin: 0;
-    flex: 1;
-    text-align: center;
+.kiosk-mode h3 {
+  font-size: 2rem;
 }
 
-/* Containers – fluid, responsive */
-body .container,
-body .menu-container,
-body .cart-container,
-body .checkout-container,
-body .order-summary,
-body .card {
-    max-width: 1400px;
-    margin: 2rem auto;
-    padding: clamp(1rem, 4vw, 2rem);
-    background: white;
-    border-radius: 1rem;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-    border: 1px solid #e9ecef;
+.kiosk-mode .btn,
+.kiosk-mode .btn-sm,
+.kiosk-mode .filter-btn {
+  padding: 1rem 2rem;
+  font-size: 1.5rem;
+  border-radius: 1rem;
 }
-
-/* Headings – larger but responsive */
-body h1,
-body h2,
-body h3,
-body .kiosk-header {
-    color: #074af2 !important;
-    margin: 1.5rem 0;
-    font-weight: 700;
-    letter-spacing: -0.02em;
+.kiosk-mode .form-input,
+.kiosk-mode .form-select,
+.kiosk-mode .form-textarea {
+  padding: 1rem;
+  font-size: 1.5rem;
 }
-body h1 { font-size: clamp(2rem, 6vw, 3.5rem); }
-body h2 { font-size: clamp(1.8rem, 5vw, 3rem); }
-body h3 { font-size: clamp(1.5rem, 4vw, 2.5rem); }
-
-/* Buttons – flexible, touch‑friendly */
-body .btn,
-body .btn-small,
-body .btn-primary,
-body .btn-accent,
-body .add-to-cart-btn,
-body .filter-btn,
-body .category-filter button,
-body .menu-item-footer button,
-body .floating-cart,
-body .btn-danger,
-body .btn-success,
-body .btn-warning {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    gap: 0.5rem;
-    background: #074af2 !important;
-    color: white !important;
-    border: none !important;
-    border-radius: 0.5rem !important;
-    padding: 0.75rem 1.5rem !important;
-    font-size: clamp(1rem, 3vw, 2rem) !important;
-    font-weight: 600;
-    box-shadow: 0 4px 6px rgba(0,0,0,0.1) !important;
-    transition: background-color 0.2s, transform 0.1s;
-    text-decoration: none;
-    cursor: pointer;
-    line-height: 1.2;
+.kiosk-mode .menu-item {
+  padding: 1rem;
 }
-body .btn:hover,
-body .btn-small:hover,
-body .btn-primary:hover,
-body .btn-accent:hover,
-body .add-to-cart-btn:hover,
-body .kiosk-category:hover {
-    background: #0538c2 !important;
-    transform: translateY(-2px);
-    box-shadow: 0 6px 12px rgba(0,0,0,0.15) !important;
+.kiosk-mode .menu-item-title {
+  font-size: 1.8rem;
 }
-body .btn:active,
-body .btn-small:active {
-    transform: translateY(1px);
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1) !important;
+.kiosk-mode .menu-item-price {
+  font-size: 2rem;
 }
-
-/* Floating cart button – fixed at bottom right */
-.floating-cart {
-    position: fixed;
-    bottom: 30px;
-    right: 30px;
-    background: #28a745 !important;
-    color: white !important;
-    border-radius: 60px !important;
-    padding: 1rem 2rem !important;
-    font-size: clamp(1rem, 3vw, 2rem) !important;
-    box-shadow: 0 8px 16px rgba(0,0,0,0.2) !important;
-    z-index: 1000;
-    border: none !important;
+.kiosk-mode .floating-cart {
+  position: fixed;
+  bottom: 2rem;
+  right: 2rem;
+  background: var(--accent);
+  color: var(--accent-foreground);
+  padding: 1rem 2rem;
+  border-radius: 3rem;
+  font-size: 1.8rem;
+  font-weight: bold;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  box-shadow: var(--shadow-lg);
+  z-index: 1000;
 }
-.floating-cart:hover {
-    background: #218838 !important;
-    transform: scale(1.05);
+.kiosk-mode .floating-cart:hover {
+  background: color-mix(in srgb, var(--accent) 80%, black);
+  transform: scale(1.05);
 }
-.floating-cart .cart-count {
-    background: white;
-    color: #28a745;
-    border-radius: 50%;
-    padding: 0.3rem 0.8rem;
-    font-size: clamp(1rem, 2.5vw, 1.5rem);
-    margin-left: 0.8rem;
-    font-weight: bold;
+.kiosk-mode .kiosk-categories {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 2rem;
+  margin-top: 2rem;
 }
-
-/* Menu items – like cards, responsive */
-body .menu-item {
-    background: white;
-    border: 1px solid #dee2e6;
-    border-radius: 0.75rem;
-    padding: 1rem;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-    transition: box-shadow 0.2s;
-    height: 100%;
+.kiosk-mode .kiosk-category {
+  background: var(--card);
+  border: 3px solid var(--primary);
+  border-radius: 1rem;
+  padding: 2rem;
+  text-align: center;
+  font-size: 2rem;
+  font-weight: bold;
+  color: var(--primary);
+  text-decoration: none;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 200px;
 }
-body .menu-item:hover {
-    box-shadow: 0 8px 16px rgba(0,0,0,0.1);
+.kiosk-mode .kiosk-category:hover {
+  background: var(--secondary);
+  transform: scale(1.02);
 }
-body .menu-item h3 {
-    font-size: clamp(1.2rem, 3vw, 2rem);
-    color: #074af2;
-    margin: 0 0 0.5rem;
+.kiosk-mode .back-to-categories {
+  background: var(--muted-foreground);
+  color: var(--primary-foreground);
+  padding: 1rem 2rem;
+  border-radius: 2rem;
+  font-size: 1.5rem;
+  text-decoration: none;
+  display: inline-block;
+  margin-bottom: 1rem;
 }
-body .menu-item .price {
-    font-size: clamp(1.2rem, 3vw, 2rem);
-    font-weight: 700;
-    color: #f97316;
-    margin: 0.5rem 0;
+.kiosk-mode .back-to-categories:hover {
+  background: color-mix(in srgb, var(--muted-foreground) 80%, black);
 }
-body .items-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-    gap: 2rem;
+.kiosk-mode .table th,
+.kiosk-mode .table td {
+  padding: 1.5rem;
+  font-size: 1.2rem;
 }
-
-/* Form inputs – large but responsive */
-body input[type="text"],
-body input[type="number"],
-body input[type="email"],
-body input[type="datetime-local"],
-body select,
-body textarea {
-    font-size: clamp(1rem, 3vw, 1.8rem) !important;
-    padding: 0.75rem 1rem !important;
-    border: 2px solid #ced4da !important;
-    border-radius: 0.5rem !important;
-    width: 100%;
-    box-sizing: border-box;
-}
-body input:focus,
-body select:focus,
-body textarea:focus {
-    border-color: #074af2 !important;
-    outline: none;
-    box-shadow: 0 0 0 3px rgba(7,74,242,0.25);
-}
-body .form-group label {
-    font-size: clamp(1rem, 3vw, 1.8rem);
-    font-weight: 600;
-    color: #495057;
-    margin-bottom: 0.5rem;
-    display: block;
-}
-body .table-responsive {
-    overflow-x: auto;
-}
-body table {
-    width: 100%;
-    border-collapse: collapse;
-    font-size: clamp(0.9rem, 2.5vw, 1.5rem);
-    background: white;
-    border-radius: 0.75rem;
-    overflow: hidden;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
-}
-body th {
-    background: #e9ecef;
-    color: #074af2;
-    font-weight: 700;
-    padding: 1rem;
-    text-align: left;
-}
-body td {
-    padding: 1rem;
-    border-bottom: 1px solid #dee2e6;
-}
-body .total {
-    font-size: clamp(1.2rem, 4vw, 2rem);
-    font-weight: 700;
-    color: #074af2;
-    text-align: right;
-    margin-top: 2rem;
-}
-body .empty-cart-message {
-    text-align: center;
-    padding: 2rem;
-}
-body .empty-cart-message .dashicons {
-    font-size: clamp(4rem, 10vw, 6rem) !important;
-    color: #adb5bd;
-}
-body .empty-cart-message h2 {
-    font-size: clamp(1.5rem, 5vw, 2.5rem);
-    color: #074af2;
-}
-@media (max-width: 768px) {
-    body .items-grid {
-        grid-template-columns: 1fr;
-    }
-    .kiosk-category {
-        min-height: 150px;
-    }
+.kiosk-mode .status {
+  font-size: 1rem;
+  padding: 0.5rem 1rem;
 }

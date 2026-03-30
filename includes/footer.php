@@ -1,5 +1,4 @@
 <?php
-// Determine if this page is an admin, staff, or dashboard panel
 $is_admin_panel = strpos($_SERVER['SCRIPT_NAME'], '/admin/') !== false;
 $is_staff_panel = strpos($_SERVER['SCRIPT_NAME'], '/staff/') !== false;
 $is_dashboard = strpos($_SERVER['SCRIPT_NAME'], '/dashboard/') !== false;
@@ -8,93 +7,63 @@ $hide_footer = $is_admin_panel || $is_staff_panel || $is_dashboard;
 if (!$hide_footer):
 ?>
 <footer class="footer">
-    <div class="footer-container">
-        <div class="footer-section">
-            <h3>About TAMCC Deli</h3>
-            <img src="/assets/images/About-Us.png" alt="TAMCC Logo" style="max-width: 150px; margin-bottom: 10px;">
-            <p>Fuel your studies with fresh, local, and affordable meals at T.A. Marryshow Community College. We're here to serve students, staff, and faculty.</p>
-            <div class="social-links">
-                <a href="#" aria-label="Facebook" class="dashicons dashicons-facebook-alt"></a>
-                <a href="#" aria-label="Instagram" class="dashicons dashicons-instagram"></a>
-                <a href="#" aria-label="Twitter" class="dashicons dashicons-twitter"></a>
+    <div class="container">
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-8 py-12">
+            <div>
+                <h3 class="text-lg font-bold mb-4">About TAMCC Deli</h3>
+                <img src="/assets/images/About-Us.png" alt="TAMCC Logo" style="max-width: 150px; margin-bottom: 10px;">
+                <p class="text-gray-600 text-sm">Fuel your studies with fresh, local, and affordable meals at T.A. Marryshow Community College.</p>
+                <div class="flex gap-4 mt-4">
+                    <a href="#" class="text-gray-500 hover:text-primary"><span class="dashicons dashicons-facebook-alt"></span></a>
+                    <a href="#" class="text-gray-500 hover:text-primary"><span class="dashicons dashicons-instagram"></span></a>
+                    <a href="#" class="text-gray-500 hover:text-primary"><span class="dashicons dashicons-twitter"></span></a>
+                </div>
+            </div>
+            <div>
+                <h3 class="text-lg font-bold mb-4">Quick Links</h3>
+                <ul class="space-y-2">
+                    <li><a href="<?= kiosk_url('menu.php') ?>" class="text-gray-600 hover:text-primary">Our Menu</a></li>
+                    <li><a href="<?= kiosk_url('cart.php') ?>" class="text-gray-600 hover:text-primary">Cart</a></li>
+                    <?php if (isset($_SESSION['user_id'])): ?>
+                        <li><a href="<?= kiosk_url('dashboard/index.php') ?>" class="text-gray-600 hover:text-primary">Dashboard</a></li>
+                    <?php else: ?>
+                        <li><a href="<?= kiosk_url('auth/login.php') ?>" class="text-gray-600 hover:text-primary">Login</a></li>
+                        <li><a href="<?= kiosk_url('auth/register.php') ?>" class="text-gray-600 hover:text-primary">Register</a></li>
+                    <?php endif; ?>
+                </ul>
+            </div>
+            <div>
+                <h3 class="text-lg font-bold mb-4">Legal & Info</h3>
+                <ul class="space-y-2">
+                    <li><a href="<?= kiosk_url('terms.php') ?>" class="text-gray-600 hover:text-primary">Terms & Conditions</a></li>
+                    <li><a href="<?= kiosk_url('privacy.php') ?>" class="text-gray-600 hover:text-primary">Privacy Policy</a></li>
+                    <li><a href="<?= kiosk_url('cookies.php') ?>" class="text-gray-600 hover:text-primary">Cookie Policy</a></li>
+                    <li><a href="<?= kiosk_url('accessibility.php') ?>" class="text-gray-600 hover:text-primary">Accessibility</a></li>
+                    <li><a href="<?= kiosk_url('help.php') ?>" class="text-gray-600 hover:text-primary">Help / FAQ</a></li>
+                </ul>
+            </div>
+            <div>
+                <h3 class="text-lg font-bold mb-4">Contact Us</h3>
+                <ul class="space-y-2 text-gray-600">
+                    <li class="flex items-center gap-2"><span class="dashicons dashicons-phone"></span> +1 (473) 440-1234 ext. 789</li>
+                    <li class="flex items-center gap-2"><span class="dashicons dashicons-email"></span> deli@tamcc.edu.gd</li>
+                    <li class="flex items-center gap-2"><span class="dashicons dashicons-location"></span> Tanteen Campus, Grenada</li>
+                </ul>
             </div>
         </div>
-
-        <div class="footer-section">
-            <h3>Quick Links</h3>
-            <ul>
-                <li><a href="<?= kiosk_url('menu.php') ?>"><span class="dashicons dashicons-menu"></span> Our Menu</a></li>
-                <li><a href="<?= kiosk_url('cart.php') ?>"><span class="dashicons dashicons-cart"></span> Cart</a></li>
-                <?php if (isset($_SESSION['user_id'])): ?>
-                    <li><a href="<?= kiosk_url('dashboard/index.php') ?>"><span class="dashicons dashicons-dashboard"></span> Dashboard</a></li>
-                <?php else: ?>
-                    <li><a href="<?= kiosk_url('auth/login.php') ?>"><span class="dashicons dashicons-lock"></span> Login</a></li>
-                    <li><a href="<?= kiosk_url('auth/register.php') ?>"><span class="dashicons dashicons-edit"></span> Register</a></li>
-                <?php endif; ?>
-            </ul>
-        </div>
-
-        <div class="footer-section">
-            <h3>Legal & Info</h3>
-            <ul>
-                <li><a href="<?= kiosk_url('terms.php') ?>"><span class="dashicons dashicons-media-text"></span> Terms & Conditions</a></li>
-                <li><a href="<?= kiosk_url('privacy.php') ?>"><span class="dashicons dashicons-privacy"></span> Privacy Policy</a></li>
-                <li><a href="<?= kiosk_url('cookies.php') ?>"><span class="dashicons dashicons-admin-generic"></span> Cookie Policy</a></li>
-                <li><a href="<?= kiosk_url('accessibility.php') ?>"><span class="dashicons dashicons-universal-access"></span> Accessibility</a></li>
-                <li><a href="<?= kiosk_url('help.php') ?>"><span class="dashicons dashicons-editor-help"></span> Help / FAQ</a></li>
-            </ul>
-        </div>
-
-        <div class="footer-section">
-            <h3>Contact Us</h3>
-            <p><span class="dashicons dashicons-phone"></span> +1 (473) 440-1234 ext. 789</p>
-            <p><span class="dashicons dashicons-email"></span> deli@tamcc.edu.gd</p>
-            <p><span class="dashicons dashicons-location"></span> Tanteen Campus, Grenada</p>
+        <div class="border-t border-gray-200 py-6 text-center text-gray-500 text-sm">
+            <p>&copy; <?php echo date('Y'); ?> T.A. Marryshow Community College – Marryshow Mealhouse. All rights reserved.</p>
+            <?php if (isset($kiosk_mode) && $kiosk_mode): ?>
+                <div class="mt-2">
+                    <a href="?kiosk=0" class="text-primary hover:underline">Exit Kiosk Mode (Staff)</a>
+                </div>
+            <?php endif; ?>
         </div>
     </div>
-
-    <div class="footer-bottom">
-        <p>&copy; <?php echo date('Y'); ?> T.A. Marryshow Community College – Marryshow Mealhouse. All rights reserved.</p>
-        <p>
-            <a href="<?= kiosk_url('terms.php') ?>">Terms</a> | 
-            <a href="<?= kiosk_url('privacy.php') ?>">Privacy</a> | 
-            <a href="<?= kiosk_url('cookies.php') ?>">Cookies</a> | 
-            <a href="<?= kiosk_url('accessibility.php') ?>">Accessibility</a> | 
-            <a href="<?= kiosk_url('help.php') ?>">Help</a>
-        </p>
-    </div>
-
-    <?php if (isset($kiosk_mode) && $kiosk_mode): ?>
-        <div style="text-align:center; margin:10px;">
-            <a href="?kiosk=0" class="btn-small">Exit Kiosk Mode (Staff)</a>
-        </div>
-    <?php endif; ?>
 </footer>
 <?php endif; ?>
 
-<!-- Always include toast container and scripts -->
-<div id="toast-container"></div>
-<script src="assets/js/script.js"></script>
-
-<?php if (!$hide_footer): ?>
-    <!-- JavaScript fallback to ensure every internal link has a query string (only needed in normal mode) -->
-    <script>
-    document.addEventListener('DOMContentLoaded', function() {
-        var kiosk = typeof kioskMode !== 'undefined' ? kioskMode : false;
-        document.querySelectorAll('a[href^="/"]').forEach(function(link) {
-            var href = link.getAttribute('href');
-            // Skip if it's an external link or already has a query string
-            if (href.indexOf('?') === -1) {
-                href += '?'; // add empty query string
-            }
-            // If in kiosk mode and the kiosk parameter is missing, add it
-            if (kiosk && href.indexOf('kiosk=') === -1) {
-                href += (href.endsWith('?') ? '' : '&') + 'kiosk=1';
-            }
-            link.setAttribute('href', href);
-        });
-    });
-    </script>
-<?php endif; ?>
+<div id="toast-container" class="toast-container"></div>
+<script src="/assets/js/script.js"></script>
 </body>
 </html>
