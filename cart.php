@@ -3,14 +3,14 @@ require __DIR__ . '/includes/session.php';
 require 'config/database.php';
 require 'includes/csrf.php';
 require_once __DIR__ . '/includes/kiosk.php';
-require 'includes/functions.php';
+require 'includes/functions.php'; // new shared helper file
 
-// Initialize cart if not exists
+// Initialize cart if not exists (new structure)
 if (!isset($_SESSION['cart'])) {
     $_SESSION['cart'] = [];
 }
 
-// Helper function for option details
+// Helper function to get option value details (for display) – kept as is (not moved)
 function getOptionDetails($conn, $optionValues) {
     if (empty($optionValues)) return [];
     $ids = array_values($optionValues);
@@ -23,26 +23,35 @@ function getOptionDetails($conn, $optionValues) {
     return $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
 }
 
-// Handle AJAX add
+// --- AJAX Add to Cart handler (new) ---
 if (isset($_GET['action']) && $_GET['action'] === 'add' && $_SERVER['REQUEST_METHOD'] === 'POST') {
+    // Validate CSRF token (if present in form)
     if (!validateToken($_POST['csrf_token'] ?? '')) {
-        http_response_code(403);
-        echo json_encode(['success' => false, 'error' => 'Invalid CSRF']);
-        exit;
+        if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) == 'xmlhttprequest') {
+            echo json_encode(['success' => false, 'error' => 'Invalid CSRF']);
+            exit;
+        } else {
+            die('Invalid CSRF token');
+        }
     }
+
     $item_id = intval($_POST['item_id'] ?? 0);
     $quantity = max(1, intval($_POST['quantity'] ?? 1));
-    $options = $_POST['options'] ?? [];
+    $options = $_POST['options'] ?? []; // array of option_id => value_id
+
     if (!$item_id) {
         http_response_code(400);
         echo json_encode(['success' => false, 'error' => 'Invalid item']);
         exit;
     }
+
+    // Generate a unique key for this item + options
     $key = 'item_' . $item_id;
     if (!empty($options)) {
         ksort($options);
         $key .= '_opt_' . implode('_', array_map(function($k, $v) { return $k . '-' . $v; }, array_keys($options), $options));
     }
+
     if (isset($_SESSION['cart'][$key])) {
         $_SESSION['cart'][$key]['quantity'] += $quantity;
     } else {
@@ -52,13 +61,27 @@ if (isset($_GET['action']) && $_GET['action'] === 'add' && $_SERVER['REQUEST_MET
             'options' => $options
         ];
     }
-    echo json_encode(['success' => true, 'cart_count' => array_sum(array_column($_SESSION['cart'], 'quantity'))]);
+
+    // Return JSON response for AJAX
+    if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) == 'xmlhttprequest') {
+        header('Content-Type: application/json');
+        echo json_encode([
+            'success' => true,
+            'cart_count' => array_sum(array_column($_SESSION['cart'], 'quantity'))
+        ]);
+        exit;
+    }
+
+    // Fallback for non-AJAX (should not happen with our JS)
+    header('Location: ' . ($_SERVER['HTTP_REFERER'] ?? 'menu.php'));
     exit;
 }
 
-// Handle update cart
+// --- Handle Update Cart ---
 if (isset($_POST['update'])) {
-    if (!validateToken($_POST['csrf_token'])) die('Invalid CSRF');
+    if (!validateToken($_POST['csrf_token'])) {
+        die('Invalid CSRF token');
+    }
     if (isset($_POST['quantity']) && is_array($_POST['quantity'])) {
         foreach ($_POST['quantity'] as $key => $qty) {
             $qty = intval($qty);
@@ -69,25 +92,36 @@ if (isset($_POST['update'])) {
             }
         }
     }
-    header('Location: ' . kiosk_url('cart.php'));
+    $redirect = 'cart.php';
+    if (isset($_SESSION['kiosk_mode']) && $_SESSION['kiosk_mode']) {
+        $redirect .= '?kiosk=1';
+    }
+    header("Location: $redirect");
     exit;
 }
 
-// Handle remove item
+// --- Handle Remove Item ---
 if (isset($_POST['remove'])) {
-    if (!validateToken($_POST['csrf_token'])) die('Invalid CSRF');
+    if (!validateToken($_POST['csrf_token'])) {
+        die('Invalid CSRF token');
+    }
     $key = $_POST['key'] ?? '';
     if ($key && isset($_SESSION['cart'][$key])) {
         unset($_SESSION['cart'][$key]);
     }
-    header('Location: ' . kiosk_url('cart.php'));
+    $redirect = 'cart.php';
+    if (isset($_SESSION['kiosk_mode']) && $_SESSION['kiosk_mode']) {
+        $redirect .= '?kiosk=1';
+    }
+    header("Location: $redirect");
     exit;
 }
 
-// Fetch cart items for display
+// --- Fetch cart items for display ---
 $cart_items = [];
 $total = 0;
 if (!empty($_SESSION['cart'])) {
+    // Get all distinct item IDs
     $item_ids = array_unique(array_column($_SESSION['cart'], 'item_id'));
     $items_data = [];
     if (!empty($item_ids)) {
@@ -100,19 +134,31 @@ if (!empty($_SESSION['cart'])) {
             $items_data[$row['id']] = $row;
         }
     }
+
+    // Build cart items with options
     foreach ($_SESSION['cart'] as $key => $entry) {
         $item_id = $entry['item_id'];
-        if (!isset($items_data[$item_id])) continue;
+        if (!isset($items_data[$item_id])) continue; // item missing? skip
+
         $item = $items_data[$item_id];
         $quantity = $entry['quantity'];
         $options = $entry['options'] ?? [];
-        $option_details = getOptionDetails($conn, $options);
+
+        // Get option value details
+        $option_details = [];
+        if (!empty($options)) {
+            $option_details = getOptionDetails($conn, $options);
+        }
+
+        // Calculate price modifiers
+        $base_price = $item['price'];
         $modifier_total = 0;
         foreach ($option_details as $opt) {
             $modifier_total += $opt['price_modifier'];
         }
-        $unit_price = $item['price'] + $modifier_total;
+        $unit_price = $base_price + $modifier_total;
         $subtotal = $unit_price * $quantity;
+
         $cart_items[] = [
             'key' => $key,
             'item' => $item,
@@ -124,138 +170,89 @@ if (!empty($_SESSION['cart'])) {
         $total += $subtotal;
     }
 }
-
-$page_title = "Shopping Cart | TAMCC Deli";
-include 'includes/header.php';
 ?>
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Shopping Cart | TAMCC Deli</title>
+    <link rel="stylesheet" href="assets/css/global.css">
+    <style>
+        .cart-container { min-height: 60vh; display: flex; flex-direction: column; }
+        .empty-cart-message { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: var(--space-xl) 0; text-align: center; }
+        .empty-cart-message .dashicons { font-size: 5rem; width: auto; height: auto; color: var(--neutral-400); margin-bottom: var(--space); }
+        .empty-cart-message h2 { color: var(--neutral-700); margin-bottom: var(--space); }
+        .option-list { margin: 0; padding-left: 1rem; font-size: 0.9rem; color: var(--neutral-600); }
+        .option-list li { list-style: disc; }
+    </style>
+</head>
+<body>
+    <?php include 'includes/header.php'; ?>
 
-<div class="container">
-    <h1 class="text-3xl font-bold mb-4">Shopping Cart</h1>
-    <?php if (empty($cart_items)): ?>
-        <div class="text-center py-12">
-            <div class="inline-flex items-center justify-center w-24 h-24 bg-gray-100 rounded-full mb-6">
-                <span class="dashicons dashicons-cart text-gray-400" style="font-size: 3rem;"></span>
+    <div class="cart-container">
+        <h1>Your Cart</h1>
+        <?php if (empty($cart_items)): ?>
+            <div class="empty-cart-message">
+                <span class="dashicons dashicons-cart"></span>
+                <h2>Your cart is empty</h2>
+                <p>Looks like you haven't added anything yet.</p>
+                <a href="<?= kiosk_url('menu.php') ?>" class="btn btn-primary">Browse Menu</a>
             </div>
-            <h2 class="text-2xl font-bold mb-2">Your cart is empty</h2>
-            <p class="text-gray-600 mb-8">Add some delicious items from our menu to get started!</p>
-            <a href="<?= kiosk_url('menu.php') ?>" class="btn btn-primary">Browse Menu</a>
-        </div>
-    <?php else: ?>
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            <!-- Cart Items -->
-            <div class="lg:col-span-2">
-                <div class="card">
-                    <div class="card-content p-0">
-                        <!-- Desktop Table -->
-                        <div class="hidden md:block overflow-x-auto">
-                            <table class="table">
-                                <thead>
-                                    <tr>
-                                        <th>Item</th>
-                                        <th>Details</th>
-                                        <th>Price</th>
-                                        <th>Quantity</th>
-                                        <th>Subtotal</th>
-                                        <th></th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <?php foreach ($cart_items as $item): ?>
-                                    <tr>
-                                        <td>
-                                            <img src="<?= htmlspecialchars($item['item']['image']) ?>" alt="<?= htmlspecialchars($item['item']['name']) ?>" class="w-20 h-20 object-cover rounded">
-                                        </td>
-                                        <td>
-                                            <p class="font-medium"><?= htmlspecialchars($item['item']['name']) ?></p>
-                                            <?php if (!empty($item['options'])): ?>
-                                                <p class="text-sm text-gray-500">
-                                                    <?= implode(', ', array_map(function($opt) { return htmlspecialchars($opt['value_name']); }, $item['options'])) ?>
-                                                </p>
-                                            <?php endif; ?>
-                                        </td>
-                                        <td>$<?= number_format($item['unit_price'], 2) ?></td>
-                                        <td>
-                                            <form method="post" class="inline">
-                                                <input type="hidden" name="csrf_token" value="<?= generateToken() ?>">
-                                                <input type="number" name="quantity[<?= $item['key'] ?>]" value="<?= $item['quantity'] ?>" min="1" class="form-input w-20">
-                                        </td>
-                                        <td class="font-medium">$<?= number_format($item['subtotal'], 2) ?></td>
-                                        <td>
-                                            <button type="submit" name="update" class="btn btn-sm btn-primary mr-2">Update</button>
-                                            </form>
-                                            <form method="post" class="inline">
-                                                <input type="hidden" name="csrf_token" value="<?= generateToken() ?>">
-                                                <input type="hidden" name="key" value="<?= $item['key'] ?>">
-                                                <button type="submit" name="remove" class="btn btn-sm btn-danger">Remove</button>
-                                            </form>
-                                        </td>
-                                    </tr>
-                                    <?php endforeach; ?>
-                                </tbody>
-                            </table>
-                        </div>
-                        <!-- Mobile Card View -->
-                        <div class="md:hidden divide-y">
-                            <?php foreach ($cart_items as $item): ?>
-                            <div class="p-4">
-                                <div class="flex space-x-4">
-                                    <img src="<?= htmlspecialchars($item['item']['image']) ?>" alt="<?= htmlspecialchars($item['item']['name']) ?>" class="w-20 h-20 object-cover rounded">
-                                    <div class="flex-1">
-                                        <h3 class="font-medium mb-1"><?= htmlspecialchars($item['item']['name']) ?></h3>
-                                        <?php if (!empty($item['options'])): ?>
-                                            <p class="text-gray-500 text-sm mb-2">
-                                                <?= implode(', ', array_map(function($opt) { return htmlspecialchars($opt['value_name']); }, $item['options'])) ?>
-                                            </p>
-                                        <?php endif; ?>
-                                        <div class="flex items-center space-x-4 mb-2">
-                                            <form method="post" class="inline">
-                                                <input type="hidden" name="csrf_token" value="<?= generateToken() ?>">
-                                                <input type="number" name="quantity[<?= $item['key'] ?>]" value="<?= $item['quantity'] ?>" min="1" class="form-input w-16">
-                                                <button type="submit" name="update" class="btn btn-sm btn-primary">Update</button>
-                                            </form>
-                                            <span class="font-medium">$<?= number_format($item['subtotal'], 2) ?></span>
-                                        </div>
-                                        <form method="post" class="inline">
-                                            <input type="hidden" name="csrf_token" value="<?= generateToken() ?>">
-                                            <input type="hidden" name="key" value="<?= $item['key'] ?>">
-                                            <button type="submit" name="remove" class="text-red-500 hover:text-red-700">Remove</button>
-                                        </form>
-                                    </div>
-                                </div>
-                            </div>
+        <?php else: ?>
+            <form method="post">
+                <input type="hidden" name="csrf_token" value="<?= generateToken() ?>">
+                <div class="table-responsive">
+                     <table>
+                        <thead>
+                             <tr>
+                                <th>Item</th>
+                                <th>Options</th>
+                                <th>Unit Price</th>
+                                <th>Quantity</th>
+                                <th>Subtotal</th>
+                                <th></th>
+                             </tr>
+                        </thead>
+                        <tbody>
+                            <?php foreach ($cart_items as $cart_item): ?>
+                            <tr>
+                                 <td><?= htmlspecialchars($cart_item['item']['name']) ?></td>
+                                 <td>
+                                    <?php if (!empty($cart_item['options'])): ?>
+                                        <ul class="option-list">
+                                            <?php foreach ($cart_item['options'] as $opt): ?>
+                                                <li><?= htmlspecialchars($opt['option_name']) ?>: <?= htmlspecialchars($opt['value_name']) ?>
+                                                    (<?= ($opt['price_modifier'] > 0 ? '+' : '-') ?>$<?= number_format(abs($opt['price_modifier']), 2) ?>)
+                                                </li>
+                                            <?php endforeach; ?>
+                                        </ul>
+                                    <?php else: ?>
+                                        —
+                                    <?php endif; ?>
+                                 </td>
+                                 <td>$<?= number_format($cart_item['unit_price'], 2) ?></td>
+                                 <td>
+                                    <input type="number" name="quantity[<?= $cart_item['key'] ?>]" value="<?= $cart_item['quantity'] ?>" min="0" max="10" style="width:60px;">
+                                 </td>
+                                 <td>$<?= number_format($cart_item['subtotal'], 2) ?></td>
+                                 <td>
+                                    <form method="post" style="display:inline;">
+                                        <input type="hidden" name="csrf_token" value="<?= generateToken() ?>">
+                                        <input type="hidden" name="key" value="<?= $cart_item['key'] ?>">
+                                        <button type="submit" name="remove" class="btn btn-danger btn-small">Remove</button>
+                                    </form>
+                                 </td>
+                            </tr>
                             <?php endforeach; ?>
-                        </div>
-                    </div>
+                        </tbody>
+                     </table>
                 </div>
-            </div>
-            <!-- Order Summary -->
-            <div>
-                <div class="card sticky top-20">
-                    <div class="card-content">
-                        <h2 class="text-xl font-bold mb-4">Order Summary</h2>
-                        <div class="space-y-4">
-                            <div class="flex justify-between">
-                                <span class="text-gray-600">Subtotal</span>
-                                <span class="font-medium">$<?= number_format($total, 2) ?></span>
-                            </div>
-                            <div class="flex justify-between">
-                                <span class="text-gray-600">Tax (10%)</span>
-                                <span class="font-medium">$<?= number_format($total * 0.1, 2) ?></span>
-                            </div>
-                            <div class="border-t pt-4">
-                                <div class="flex justify-between">
-                                    <span class="font-bold text-lg">Total</span>
-                                    <span class="font-bold text-primary text-xl">$<?= number_format($total * 1.1, 2) ?></span>
-                                </div>
-                            </div>
-                        </div>
-                        <a href="<?= kiosk_url('checkout.php') ?>" class="btn btn-accent w-full mt-6">Proceed to Checkout</a>
-                        <a href="<?= kiosk_url('menu.php') ?>" class="btn btn-outline w-full mt-3">Continue Shopping</a>
-                    </div>
-                </div>
-            </div>
-        </div>
-    <?php endif; ?>
-</div>
+                <div class="total">Total: $<?= number_format($total, 2) ?></div>
+                <button type="submit" name="update" class="btn">Update Cart</button>
+                <a href="<?= kiosk_url('checkout.php') ?>" class="btn btn-accent">Proceed to Checkout</a>
+            </form>
+        <?php endif; ?>
+    </div>
 
-<?php include 'includes/footer.php'; ?>
+    <?php include 'includes/footer.php'; ?>
+</body>
+</html>

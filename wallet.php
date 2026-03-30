@@ -1,8 +1,8 @@
 <?php
 require_once 'config/database.php';
 require_once 'includes/csrf.php';
+require_once 'includes/header.php';
 require_once 'includes/session.php';
-require_once 'includes/kiosk.php';
 
 if (!isset($_SESSION['user_id'])) {
     header("Location: auth/login.php");
@@ -11,127 +11,192 @@ if (!isset($_SESSION['user_id'])) {
 
 $user_id = $_SESSION['user_id'];
 
-// Fetch balance
-$stmt = $conn->prepare("SELECT balance FROM users WHERE id = ?");
-$stmt->bind_param("i", $user_id);
-$stmt->execute();
-$user = $stmt->get_result()->fetch_assoc();
-$balance = $user['balance'] ?? 0;
+// Fetch current balance with error handling
+try {
+    $stmt = $conn->prepare("SELECT balance FROM users WHERE id = ?");
+    $stmt->bind_param("i", $user_id);
+    $stmt->execute();
+    $user = $stmt->get_result()->fetch_assoc();
+    $balance = $user['balance'] ?? 0;
+} catch (Exception $e) {
+    error_log("Balance fetch error: " . $e->getMessage());
+    $balance = 0;
+    $error_msg = "Could not retrieve balance. Please try again later.";
+}
 
-// Fetch transactions
-$stmt = $conn->prepare("SELECT * FROM transactions WHERE user_id = ? ORDER BY created_at DESC LIMIT 20");
-$stmt->bind_param("i", $user_id);
-$stmt->execute();
-$transactions = $stmt->get_result();
+// Handle success/error messages from topup.php
+$success_msg = $_SESSION['topup_success'] ?? '';
+$error_msg = isset($error_msg) ? $error_msg : ($_SESSION['topup_error'] ?? '');
+unset($_SESSION['topup_success'], $_SESSION['topup_error']);
 
-$page_title = "My Wallet | TAMCC Deli";
-include 'includes/header.php';
+// Fetch recent transactions with error handling
+try {
+    $stmt = $conn->prepare("SELECT * FROM transactions WHERE user_id = ? ORDER BY created_at DESC LIMIT 20");
+    $stmt->bind_param("i", $user_id);
+    $stmt->execute();
+    $transactions = $stmt->get_result();
+} catch (Exception $e) {
+    error_log("Transaction fetch error: " . $e->getMessage());
+    $transactions = null;
+    $error_msg = "Could not load transaction history.";
+}
 ?>
 
-<div class="container">
-    <h1 class="text-3xl font-bold mb-8">My Wallet</h1>
+<div class="checkout-container">
+    <h1>My Wallet</h1>
 
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        <!-- Balance Card -->
-        <div class="lg:col-span-1">
-            <div class="card bg-gradient-to-br from-primary-600 to-primary-700 text-white">
-                <div class="card-content text-center">
-                    <div class="inline-flex items-center justify-center w-16 h-16 bg-white/20 rounded-full mb-4">
-                        <span class="dashicons dashicons-money" style="font-size: 2rem;"></span>
-                    </div>
-                    <p class="text-white/80 mb-2">Current Balance</p>
-                    <p class="text-4xl font-bold">$<?= number_format($balance, 2) ?></p>
-                </div>
-            </div>
+    <?php if ($success_msg): ?>
+        <div class="success-message"><?= htmlspecialchars($success_msg) ?></div>
+    <?php endif; ?>
+    <?php if ($error_msg): ?>
+        <div class="error-message"><?= htmlspecialchars($error_msg) ?></div>
+    <?php endif; ?>
 
-            <!-- Top-up Form -->
-            <div class="card mt-6">
-                <div class="card-header">
-                    <h3 class="card-title flex items-center gap-2">
-                        <span class="dashicons dashicons-plus-alt"></span> Top Up Wallet
-                    </h3>
-                </div>
-                <div class="card-content">
-                    <form method="post" action="topup.php">
-                        <input type="hidden" name="csrf_token" value="<?= generateToken() ?>">
-                        <div class="form-group">
-                            <label class="form-label">Amount ($)</label>
-                            <input type="number" name="amount" step="0.01" min="1" max="1000" class="form-input" required>
-                            <p class="text-sm text-gray-500 mt-1">Maximum $1000 per transaction</p>
-                        </div>
-                        <div class="grid grid-cols-3 gap-2 mb-4">
-                            <?php foreach ([10, 25, 50] as $amt): ?>
-                                <button type="button" class="btn btn-outline btn-sm" onclick="this.form.amount.value=<?= $amt ?>">$<?= $amt ?></button>
-                            <?php endforeach; ?>
-                        </div>
-                        <button type="submit" class="btn btn-accent w-full">Add Funds</button>
-                    </form>
-                </div>
-            </div>
+    <div class="order-summary" style="text-align: center;">
+        <h2>Current Balance</h2>
+        <div style="font-size: 4rem; color: var(--primary-600); font-weight: 800;">$<?= number_format($balance, 2) ?></div>
+    </div>
 
-            <div class="mt-6">
-                <a href="<?= kiosk_url('menu.php') ?>" class="btn btn-outline w-full">Continue Shopping</a>
+    <div class="card">
+        <h3>Top Up Wallet</h3>
+        <form method="post" action="topup.php">
+            <input type="hidden" name="csrf_token" value="<?= generateToken() ?>">
+            <div class="form-group">
+                <label>Amount ($)</label>
+                <input type="number" name="amount" step="0.01" min="1" max="1000" required>
             </div>
-        </div>
+            <button type="submit" class="btn btn-primary">Proceed to Top Up</button>
+        </form>
+    </div>
 
-        <!-- Transaction History -->
-        <div class="lg:col-span-2">
-            <div class="card">
-                <div class="card-header">
-                    <h3 class="card-title">Recent Transactions</h3>
-                </div>
-                <div class="card-content">
-                    <div class="table-wrapper">
-                        <table class="table">
-                            <thead>
-                                <tr>
-                                    <th>Date</th>
-                                    <th>Type</th>
-                                    <th>Description</th>
-                                    <th class="text-right">Amount</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <?php if ($transactions && $transactions->num_rows > 0): ?>
-                                    <?php while ($tx = $transactions->fetch_assoc()): ?>
-                                    <tr>
-                                        <td><?= date('M j, Y g:i a', strtotime($tx['created_at'])) ?></td>
-                                        <td>
-                                            <span class="inline-block px-2 py-1 rounded-full text-xs font-medium <?= $tx['type'] === 'topup' ? 'bg-green-100 text-green-800' : ($tx['type'] === 'payment' ? 'bg-red-100 text-red-800' : 'bg-gray-100 text-gray-800') ?>">
-                                                <?= ucfirst($tx['type']) ?>
-                                            </span>
-                                        </td>
-                                        <td><?= htmlspecialchars($tx['description'] ?? '—') ?></td>
-                                        <td class="text-right <?= $tx['type'] === 'topup' ? 'text-green-600' : 'text-red-600' ?>">
-                                            <?= $tx['type'] === 'topup' ? '+' : '-' ?> $<?= number_format($tx['amount'], 2) ?>
-                                        </td>
-                                    </tr>
-                                    <?php endwhile; ?>
-                                <?php else: ?>
-                                    <tr>
-                                        <td colspan="4" class="text-center text-gray-500">No transactions yet</td>
-                                    </tr>
-                                <?php endif; ?>
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Wallet Info -->
-            <div class="card mt-6">
-                <div class="card-content">
-                    <h3 class="text-lg font-bold mb-3">How It Works</h3>
-                    <ul class="space-y-2 text-sm text-gray-600">
-                        <li class="flex items-start gap-2">• Add funds to your wallet using a credit/debit card</li>
-                        <li class="flex items-start gap-2">• Use your wallet balance to pay for orders quickly at checkout</li>
-                        <li class="flex items-start gap-2">• Your balance never expires and can be used anytime</li>
-                        <li class="flex items-start gap-2">• Track all your transactions in the history above</li>
-                    </ul>
-                </div>
-            </div>
+    <?php if ($transactions && $transactions->num_rows > 0): ?>
+    <div class="card">
+        <h3>Recent Transactions</h3>
+        <div class="table-responsive">
+            <table class="transactions-table">
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Type</th>
+                        <th>Amount</th>
+                        <th>Description</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <?php while ($tx = $transactions->fetch_assoc()): ?>
+                    <tr>
+                        <td class="transaction-date"><?= date('M j, Y g:i a', strtotime($tx['created_at'])) ?></td>
+                        <td>
+                            <span class="transaction-type transaction-type-<?= $tx['type'] ?>">
+                                <?= ucfirst($tx['type']) ?>
+                            </span>
+                        </td>
+                        <td class="transaction-amount <?= $tx['type'] == 'topup' ? 'amount-positive' : 'amount-negative' ?>">
+                            <?= $tx['type'] == 'topup' ? '+' : '-' ?> $<?= number_format($tx['amount'], 2) ?>
+                        </td>
+                        <td class="transaction-description"><?= htmlspecialchars($tx['description'] ?? '—') ?></td>
+                    </tr>
+                    <?php endwhile; ?>
+                </tbody>
+            </table>
         </div>
     </div>
+    <?php endif; ?>
+
+    <div style="margin-top: 2rem; text-align: center;">
+        <a href="<?= kiosk_url('menu.php') ?>" class="btn btn-accent">Continue Shopping</a>
+    </div>
 </div>
+
+<style>
+.transactions-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.transactions-table th {
+    background: var(--neutral-100);
+    padding: 1rem;
+    text-align: left;
+    font-weight: 700;
+    color: var(--neutral-700);
+    border-bottom: 2px solid var(--neutral-200);
+}
+
+.transactions-table td {
+    padding: 1rem;
+    border-bottom: 1px solid var(--neutral-200);
+    vertical-align: middle;
+}
+
+.transactions-table tr:hover td {
+    background: var(--neutral-50);
+}
+
+.transaction-date {
+    color: var(--neutral-600);
+    font-size: 0.9rem;
+    white-space: nowrap;
+}
+
+.transaction-type {
+    display: inline-block;
+    padding: 0.25rem 0.75rem;
+    border-radius: 20px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.transaction-type-topup {
+    background: #dcfce7;
+    color: #15803d;
+}
+
+.transaction-type-payment {
+    background: #fee2e2;
+    color: #b91c1c;
+}
+
+.transaction-type-refund {
+    background: #fff3e0;
+    color: #c2410c;
+}
+
+.transaction-amount {
+    font-weight: 700;
+    font-size: 1rem;
+    white-space: nowrap;
+}
+
+.amount-positive {
+    color: #15803d;
+}
+
+.amount-negative {
+    color: #b91c1c;
+}
+
+.transaction-description {
+    color: var(--neutral-600);
+}
+
+@media (max-width: 768px) {
+    .transactions-table th,
+    .transactions-table td {
+        padding: 0.75rem 0.5rem;
+        font-size: 0.85rem;
+    }
+    
+    .transaction-date {
+        font-size: 0.75rem;
+    }
+    
+    .transaction-type {
+        font-size: 0.7rem;
+        padding: 0.2rem 0.5rem;
+    }
+}
+</style>
 
 <?php include 'includes/footer.php'; ?>
