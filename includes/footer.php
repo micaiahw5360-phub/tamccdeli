@@ -72,9 +72,14 @@ if (!$hide_footer):
 </footer>
 <?php endif; ?>
 
-<!-- Always include toast container and scripts -->
+<!-- Always include toast container -->
 <div id="toast-container"></div>
-<script src="/assets/js/script.js"></script>
+
+<?php if ($kiosk_mode): ?>
+    <script src="/assets/js/kiosk.js"></script>
+<?php else: ?>
+    <script src="/assets/js/script.js"></script>
+<?php endif; ?>
 
 <?php if (!$hide_footer): ?>
     <!-- JavaScript fallback to ensure every internal link has a query string (only needed in normal mode) -->
@@ -95,4 +100,4 @@ if (!$hide_footer):
     </script>
 <?php endif; ?>
 </body>
-</html>
+</html>-

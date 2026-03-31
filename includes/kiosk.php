@@ -6,8 +6,8 @@ if (!function_exists('kiosk_url')) {
 if (isset($_GET['kiosk'])) {
     $_SESSION['kiosk_mode'] = ($_GET['kiosk'] == '1');
 } else {
-    // No kiosk parameter: force normal mode
     unset($_SESSION['kiosk_mode']);
+    unset($_SESSION['kiosk_user_id']);
 }
 
 $kiosk_user_agents = ['KioskBrowser/1.0', 'YourKioskApp'];
@@ -22,9 +22,14 @@ if (!isset($_SESSION['kiosk_mode']) && isset($_SERVER['HTTP_USER_AGENT'])) {
 
 $kiosk_mode = $_SESSION['kiosk_mode'] ?? false;
 
+// Redirect to kiosk login if in kiosk mode and not logged in
+if ($kiosk_mode && !isset($_SESSION['user_id'])) {
+    header('Location: ' . kiosk_url('/kiosk/login.php'));
+    exit;
+}
+
 /**
  * Generate a URL that stays inside kiosk mode.
- * Always appends a query string (empty if not in kiosk mode).
  */
 function kiosk_url($url) {
     global $kiosk_mode;
@@ -32,14 +37,12 @@ function kiosk_url($url) {
     if ($kiosk_mode) {
         return $url . $separator . 'kiosk=1';
     } else {
-        // In normal mode, still add an empty query string
         return $url . $separator;
     }
 }
 
 /**
  * Generate a URL that exits kiosk mode (or stays in normal mode).
- * Always appends a query string (empty if not in kiosk mode).
  */
 function normal_url($url) {
     global $kiosk_mode;
@@ -47,7 +50,6 @@ function normal_url($url) {
     if ($kiosk_mode) {
         return $url . $separator . 'kiosk=0';
     } else {
-        // In normal mode, just an empty query string
         return $url . $separator;
     }
 }
@@ -70,7 +72,6 @@ function kiosk_absolute_url($path) {
 
 /**
  * Force kiosk mode on (or off) for the current session.
- * @param bool $enable
  */
 function set_kiosk_mode($enable = true) {
     $_SESSION['kiosk_mode'] = $enable;
@@ -78,7 +79,6 @@ function set_kiosk_mode($enable = true) {
 
 /**
  * Check if the current session is in kiosk mode.
- * @return bool
  */
 function is_kiosk_mode() {
     global $kiosk_mode;
