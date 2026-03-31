@@ -158,12 +158,13 @@ include __DIR__ . '/../../includes/header.php';
     <div class="sidebar">
         <h2>⚙️ Admin Panel</h2>
         <ul>
-            <li><a href="<?= normal_url('admin/index.php') ?>">Dashboard</a></li>
-            <li><a href="<?= normal_url('admin/menu/index.php') ?>" class="active">Manage Menu</a></li>
-            <li><a href="<?= normal_url('admin/index.php?action=orders') ?>">Manage Orders</a></li>
-            <li><a href="<?= normal_url('admin/index.php?action=users') ?>">Manage Users</a></li>
-            <li><a href="<?= kiosk_url('../../menu.php') ?>">View Site</a></li>
-            <li><a href="<?= normal_url('../../auth/logout.php') ?>">Logout</a></li>
+            <!-- Use absolute paths for cross-directory links -->
+            <li><a href="<?= normal_url('/admin/index.php') ?>">Dashboard</a></li>
+            <li><a href="<?= normal_url('/admin/menu/index.php') ?>" class="active">Manage Menu</a></li>
+            <li><a href="<?= normal_url('/admin/index.php?action=orders') ?>">Manage Orders</a></li>
+            <li><a href="<?= normal_url('/admin/index.php?action=users') ?>">Manage Users</a></li>
+            <li><a href="<?= kiosk_url('/menu.php') ?>">View Site</a></li>
+            <li><a href="<?= normal_url('/auth/logout.php') ?>">Logout</a></li>
         </ul>
     </div>
     <div class="main-content">
@@ -186,10 +187,11 @@ include __DIR__ . '/../../includes/header.php';
                 <div class="table-wrapper">
                     <table class="admin-table">
                         <thead>
-                            <tr><th>ID</th><th>Image</th><th>Name</th><th>Category</th><th>Price</th><th>Sort</th><th>Actions</th> </thead>
+                             <tr><th>ID</th><th>Image</th><th>Name</th><th>Category</th><th>Price</th><th>Sort</th><th>Actions</th> </tr>
+                        </thead>
                         <tbody>
                             <?php foreach ($items as $item): ?>
-                             <tr>
+                              <tr>
                                 <td><?= $item['id'] ?></td>
                                 <td>
                                     <?php if (!empty($item['image'])): ?>
@@ -209,7 +211,7 @@ include __DIR__ . '/../../includes/header.php';
                                         <button type="submit" name="action" value="delete" class="btn-small btn-danger">Delete</button>
                                     </form>
                                 </td>
-                             </tr>
+                              </tr>
                             <?php endforeach; ?>
                         </tbody>
                     </table>

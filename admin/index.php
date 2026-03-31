@@ -101,9 +101,10 @@ include __DIR__ . '/../includes/header.php';
             <li><a href="?action=dashboard" class="<?= $action === 'dashboard' ? 'active' : '' ?>">Dashboard</a></li>
             <li><a href="?action=orders" class="<?= $action === 'orders' ? 'active' : '' ?>">Manage Orders</a></li>
             <li><a href="?action=users" class="<?= $action === 'users' ? 'active' : '' ?>">Manage Users</a></li>
-            <li><a href="<?= normal_url('admin/menu/index.php') ?>">Manage Menu</a></li>
-            <li><a href="<?= kiosk_url('../menu.php') ?>">View Site</a></li>
-            <li><a href="<?= normal_url('../auth/logout.php') ?>">Logout</a></li>
+            <!-- Use absolute paths for cross-directory links -->
+            <li><a href="<?= normal_url('/admin/menu/index.php') ?>">Manage Menu</a></li>
+            <li><a href="<?= kiosk_url('/menu.php') ?>">View Site</a></li>
+            <li><a href="<?= normal_url('/auth/logout.php') ?>">Logout</a></li>
         </ul>
     </div>
     <div class="main-content">
@@ -131,7 +132,7 @@ include __DIR__ . '/../includes/header.php';
                 <div class="card"><div class="card-header"><h3>Popular Items</h3></div><div class="card-content"><canvas id="popularChart" height="200"></canvas></div></div>
             </div>
 
-            <div class="card mb-8"><div class="card-header"><h3>Quick Actions</h3></div><div class="card-content grid grid-cols-1 sm:grid-cols-3 gap-4"><a href="<?= normal_url('admin/menu/index.php?action=add') ?>" class="btn btn-outline w-full">Add Menu Item</a><a href="?action=orders&status=pending" class="btn btn-outline w-full">View Pending Orders</a><a href="?action=users" class="btn btn-outline w-full">Manage Users</a></div></div>
+            <div class="card mb-8"><div class="card-header"><h3>Quick Actions</h3></div><div class="card-content grid grid-cols-1 sm:grid-cols-3 gap-4"><a href="<?= normal_url('/admin/menu/index.php?action=add') ?>" class="btn btn-outline w-full">Add Menu Item</a><a href="?action=orders&status=pending" class="btn btn-outline w-full">View Pending Orders</a><a href="?action=users" class="btn btn-outline w-full">Manage Users</a></div></div>
 
             <div class="card"><div class="card-header"><h3>Recent Orders</h3></div><div class="card-content">
                 <?php
@@ -143,7 +144,7 @@ include __DIR__ . '/../includes/header.php';
                 <?php else: ?>
                     <div class="table-wrapper"><table class="table"><thead><tr><th>Order #</th><th>Customer</th><th>Date</th><th>Total</th><th>Status</th><th></th></tr></thead><tbody>
                     <?php while ($order = $recent->fetch_assoc()): ?>
-                        <tr><td><?= $order['id'] ?></td><td><?= htmlspecialchars($order['username']) ?></td><td><?= date('M j, Y g:i a', strtotime($order['order_date'])) ?></td><td>$<?= number_format($order['total'], 2) ?></td><td><span class="status status-<?= $order['status'] ?>"><?= ucfirst($order['status']) ?></span></td><td><a href="<?= normal_url('../staff/order-details.php?id=' . $order['id']) ?>" class="btn btn-sm btn-outline">View</a></td></tr>
+                        <tr><td><?= $order['id'] ?></td><td><?= htmlspecialchars($order['username']) ?></td><td><?= date('M j, Y g:i a', strtotime($order['order_date'])) ?></td><td>$<?= number_format($order['total'], 2) ?></td><td><span class="status status-<?= $order['status'] ?>"><?= ucfirst($order['status']) ?></span></td><td><a href="<?= normal_url('/staff/order-details.php?id=' . $order['id']) ?>" class="btn btn-sm btn-outline">View</a></td></tr>
                     <?php endwhile; ?>
                     </tbody></table></div>
                 <?php endif; ?>
@@ -220,7 +221,7 @@ include __DIR__ . '/../includes/header.php';
                                         <?php endif; ?>
                                     </td>
                                     <td>
-                                        <a href="<?= normal_url('../staff/order-details.php?id=' . $order['id']) ?>" class="btn-small">View</a>
+                                        <a href="<?= normal_url('/staff/order-details.php?id=' . $order['id']) ?>" class="btn-small">View</a>
                                         <?php if ($order['status'] === 'processing'): ?>
                                             <form method="post" class="inline-form">
                                                 <input type="hidden" name="csrf_token" value="<?= generateToken() ?>">
