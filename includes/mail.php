@@ -1,8 +1,16 @@
 <?php
-use Resend\Resend;
+// Force autoloader inclusion
+if (!class_exists('Resend\Resend')) {
+    $autoloadPath = __DIR__ . '/../vendor/autoload.php';
+    if (file_exists($autoloadPath)) {
+        require_once $autoloadPath;
+    } else {
+        error_log("Composer autoloader not found at: $autoloadPath");
+        die("System error: missing dependencies. Please run 'composer install'.");
+    }
+}
 
-// Remove the following line:
-// require_once __DIR__ . '/../vendor/autoload.php';
+use Resend\Resend;
 
 function sendEmail($to, $subject, $body, $altBody = '') {
     global $conn;
@@ -13,8 +21,9 @@ function sendEmail($to, $subject, $body, $altBody = '') {
         return false;
     }
 
-    $fromEmail = 'onboarding@resend.dev';
-    $fromName = 'TAMCC Deli';
+    // Use the sandbox sender if you haven't set up your own domain yet
+    $fromEmail = getenv('RESEND_FROM_EMAIL') ?: 'onboarding@resend.dev';
+    $fromName = getenv('RESEND_FROM_NAME') ?: 'TAMCC Deli';
 
     $resend = new Resend($apiKey);
 
