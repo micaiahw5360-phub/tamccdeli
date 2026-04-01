@@ -1,4 +1,20 @@
 <?php
+// Load Composer autoloader only if Resend class is not already defined
+if (!class_exists('Resend\Resend')) {
+    $autoloadPath = __DIR__ . '/../vendor/autoload.php';
+    if (file_exists($autoloadPath)) {
+        require_once $autoloadPath;
+    } else {
+        error_log("Resend autoloader missing at $autoloadPath");
+        // Fallback function that logs error and returns false
+        function sendEmail($to, $subject, $body, $altBody = '') {
+            error_log("Email not sent: Resend library missing");
+            return false;
+        }
+        return; // Stop here – do not define the real function
+    }
+}
+
 use Resend\Resend;
 
 function sendEmail($to, $subject, $body, $altBody = '') {
@@ -10,7 +26,6 @@ function sendEmail($to, $subject, $body, $altBody = '') {
         return false;
     }
 
-    // Use the sandbox sender if you haven't set up your own domain yet
     $fromEmail = getenv('RESEND_FROM_EMAIL') ?: 'onboarding@resend.dev';
     $fromName = getenv('RESEND_FROM_NAME') ?: 'TAMCC Deli';
 
@@ -25,6 +40,7 @@ function sendEmail($to, $subject, $body, $altBody = '') {
             'text'    => $altBody ?: strip_tags($body),
         ]);
 
+        // Log success
         if ($conn) {
             $stmt = $conn->prepare("INSERT INTO email_logs (recipient, subject, status) VALUES (?, ?, 'sent')");
             $stmt->bind_param("ss", $to, $subject);
