@@ -1,7 +1,8 @@
 <?php
 use Resend\Resend;
 
-require_once __DIR__ . '/../vendor/autoload.php';
+// Remove the following line:
+// require_once __DIR__ . '/../vendor/autoload.php';
 
 function sendEmail($to, $subject, $body, $altBody = '') {
     global $conn;
@@ -12,7 +13,6 @@ function sendEmail($to, $subject, $body, $altBody = '') {
         return false;
     }
 
-    // Use the Resend sandbox sender – no domain verification required
     $fromEmail = 'onboarding@resend.dev';
     $fromName = 'TAMCC Deli';
 
@@ -27,7 +27,6 @@ function sendEmail($to, $subject, $body, $altBody = '') {
             'text'    => $altBody ?: strip_tags($body),
         ]);
 
-        // Log success
         if ($conn) {
             $stmt = $conn->prepare("INSERT INTO email_logs (recipient, subject, status) VALUES (?, ?, 'sent')");
             $stmt->bind_param("ss", $to, $subject);
@@ -36,8 +35,6 @@ function sendEmail($to, $subject, $body, $altBody = '') {
         return true;
     } catch (Exception $e) {
         error_log("Resend error: " . $e->getMessage());
-
-        // Log failure
         if ($conn) {
             $error_msg = substr($e->getMessage(), 0, 1000);
             $stmt = $conn->prepare("INSERT INTO email_logs (recipient, subject, status, error) VALUES (?, ?, 'failed', ?)");
