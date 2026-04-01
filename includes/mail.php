@@ -1,15 +1,4 @@
 <?php
-// Force autoloader inclusion
-if (!class_exists('Resend\Resend')) {
-    $autoloadPath = __DIR__ . '/../vendor/autoload.php';
-    if (file_exists($autoloadPath)) {
-        require_once $autoloadPath;
-    } else {
-        error_log("Composer autoloader not found at: $autoloadPath");
-        die("System error: missing dependencies. Please run 'composer install'.");
-    }
-}
-
 use Resend\Resend;
 
 function sendEmail($to, $subject, $body, $altBody = '') {
