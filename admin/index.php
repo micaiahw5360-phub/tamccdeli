@@ -26,6 +26,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $stmt->bind_param("si", $new_status, $order_id);
         }
         $stmt->execute();
+
+        // Log admin action
+        log_admin_action('order_status_update', 'order', $order_id, "Status changed to $new_status");
+
         $_SESSION['flash_message'] = "Order #$order_id status updated to " . ucfirst($new_status);
         $_SESSION['flash_type'] = 'success';
         header("Location: ?action=orders" . (isset($_SESSION['kiosk_mode']) && $_SESSION['kiosk_mode'] ? '&kiosk=1' : ''));
@@ -141,7 +145,7 @@ include __DIR__ . '/../includes/header.php';
                 if ($recent->num_rows === 0): ?>
                     <p>No orders yet.</p>
                 <?php else: ?>
-                    <div class="table-wrapper"><table class="table"><thead><tr><th>Order #</th><th>Customer</th><th>Date</th><th>Total</th><th>Status</th><th></th> </thead><tbody>
+                    <div class="table-wrapper"><table class="table"><thead><tr><th>Order #</th><th>Customer</th><th>Date</th><th>Total</th><th>Status</th><th></th></tr></thead><tbody>
                     <?php while ($order = $recent->fetch_assoc()): ?>
                          <tr><td><?= $order['id'] ?></td><td><?= htmlspecialchars($order['username']) ?></td><td><?= date('M j, Y g:i a', strtotime($order['order_date'])) ?></td><td>$<?= number_format($order['total'], 2) ?></td><td><span class="status status-<?= $order['status'] ?>"><?= ucfirst($order['status']) ?></span></td><td><a href="<?= normal_url('/staff/order-details.php?id=' . $order['id']) ?>" class="btn btn-sm btn-outline">View</a></td></tr>
                     <?php endwhile; ?>
@@ -191,7 +195,9 @@ include __DIR__ . '/../includes/header.php';
                 <div class="card">
                     <div class="table-wrapper">
                         <table class="admin-table">
-                            <thead> <tr><th>Order #</th><th>Customer</th><th>Date</th><th>Total</th><th>Payment</th><th>Status</th><th>Assigned Staff</th><th>Actions</th></tr> </thead>
+                            <thead>
+                                <tr><th>Order #</th><th>Customer</th><th>Date</th><th>Total</th><th>Payment</th><th>Status</th><th>Assigned Staff</th><th>Actions</th></tr>
+                            </thead>
                             <tbody>
                                 <?php foreach ($orders as $order): ?>
                                 <tr>
@@ -275,7 +281,9 @@ include __DIR__ . '/../includes/header.php';
             <div class="card">
                 <div class="table-wrapper">
                     <table class="admin-table">
-                        <thead> <tr><th>ID</th><th>Username</th><th>Email</th><th>Role</th><th>Active</th><th>Registered</th><th>Actions</th></tr> </thead>
+                        <thead>
+                            <tr><th>ID</th><th>Username</th><th>Email</th><th>Role</th><th>Active</th><th>Registered</th><th>Actions</th></tr>
+                        </thead>
                         <tbody>
                             <?php foreach ($users as $user): ?>
                             <tr>

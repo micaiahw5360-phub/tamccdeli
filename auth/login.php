@@ -26,6 +26,13 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
         $_SESSION['user_id'] = $user['id'];
         $_SESSION['role'] = $user['role'];
 
+        // Set kiosk mode based on role
+        if ($user['role'] === 'kiosk') {
+            $_SESSION['kiosk_mode'] = true;
+        } else {
+            unset($_SESSION['kiosk_mode']);
+        }
+
         if ($remember) {
             $token = bin2hex(random_bytes(32));
             $expires = date('Y-m-d H:i:s', strtotime('+30 days'));
@@ -34,9 +41,6 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
             $stmt->execute();
             setcookie('remember_token', $token, time() + 86400 * 30, '/', '', false, true);
         }
-
-        // Clear any kiosk mode
-        unset($_SESSION['kiosk_mode']);
 
         // Redirect to originally requested page if available
         $redirect = $_SESSION['redirect_after_login'] ?? '../index.php';
@@ -224,7 +228,6 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
                     </svg>
                     Continue with Google
                 </a>
-                <!-- Apple login is a placeholder; you can remove or implement later -->
             </div>
 
             <div class="auth-footer">

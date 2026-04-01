@@ -1,6 +1,7 @@
 <?php
 require_once __DIR__ . '/session.php'; // Starts session with secure cookies
 require_once __DIR__ . '/kiosk.php';   // Load kiosk functions and $kiosk_mode
+require_once __DIR__ . '/logging.php';
 
 // Determine if this page is an admin, staff, or dashboard panel
 $is_admin_panel = strpos($_SERVER['SCRIPT_NAME'], '/admin/') !== false;

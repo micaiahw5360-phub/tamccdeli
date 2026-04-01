@@ -1,58 +1,49 @@
 <?php
-use PHPMailer\PHPMailer\PHPMailer;
-use PHPMailer\PHPMailer\Exception;
+use Resend\Resend;
 
 require_once __DIR__ . '/../vendor/autoload.php';
 
 function sendEmail($to, $subject, $body, $altBody = '') {
-    global $conn; // Use the global database connection
+    global $conn;
 
-    $mail = new PHPMailer(true);
+    $apiKey = getenv('RESEND_API_KEY');
+    if (!$apiKey) {
+        error_log("Resend API key missing");
+        return false;
+    }
+
+    // Use the Resend sandbox sender – no domain verification required
+    $fromEmail = 'onboarding@resend.dev';
+    $fromName = 'TAMCC Deli';
+
+    $resend = new Resend($apiKey);
+
     try {
-        $mail->isSMTP();
-        $mail->Host       = getenv('SMTP_HOST');
-        $mail->SMTPAuth   = true;
-        $mail->Username   = getenv('SMTP_USER');
-        $mail->Password   = getenv('SMTP_PASS');
-        $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
-        $mail->Port       = getenv('SMTP_PORT') ?: 587;
-        $mail->Timeout    = 10; // 10 seconds timeout
+        $resend->emails->send([
+            'from'    => "{$fromName} <{$fromEmail}>",
+            'to'      => [$to],
+            'subject' => $subject,
+            'html'    => $body,
+            'text'    => $altBody ?: strip_tags($body),
+        ]);
 
-        $mail->setFrom(getenv('SMTP_FROM'), getenv('SMTP_FROM_NAME'));
-        $mail->addAddress($to);
-
-        $mail->isHTML(true);
-        $mail->Subject = $subject;
-        $mail->Body    = $body;
-        $mail->AltBody = $altBody ?: strip_tags($body);
-
-        $mail->send();
-
-        // Log success (if database connection exists and table is present)
+        // Log success
         if ($conn) {
             $stmt = $conn->prepare("INSERT INTO email_logs (recipient, subject, status) VALUES (?, ?, 'sent')");
-            if ($stmt) {
-                $stmt->bind_param("ss", $to, $subject);
-                $stmt->execute();
-                $stmt->close();
-            }
+            $stmt->bind_param("ss", $to, $subject);
+            $stmt->execute();
         }
-
         return true;
     } catch (Exception $e) {
-        error_log("Mailer Error: " . $mail->ErrorInfo);
+        error_log("Resend error: " . $e->getMessage());
 
         // Log failure
         if ($conn) {
+            $error_msg = substr($e->getMessage(), 0, 1000);
             $stmt = $conn->prepare("INSERT INTO email_logs (recipient, subject, status, error) VALUES (?, ?, 'failed', ?)");
-            if ($stmt) {
-                $error_msg = substr($mail->ErrorInfo, 0, 1000);
-                $stmt->bind_param("sss", $to, $subject, $error_msg);
-                $stmt->execute();
-                $stmt->close();
-            }
+            $stmt->bind_param("sss", $to, $subject, $error_msg);
+            $stmt->execute();
         }
-
         return false;
     }
 }

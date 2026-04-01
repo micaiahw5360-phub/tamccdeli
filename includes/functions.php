@@ -4,12 +4,6 @@
  */
 
 if (!function_exists('getItemOptions')) {
-    /**
-     * Fetch options (size, flavour, etc.) for a menu item
-     * @param mysqli $conn Database connection
-     * @param int $item_id Menu item ID
-     * @return array Options with their values
-     */
     function getItemOptions($conn, $item_id) {
         $options = [];
         $stmt = $conn->prepare("SELECT * FROM menu_item_options WHERE menu_item_id = ? ORDER BY sort_order");
@@ -28,22 +22,11 @@ if (!function_exists('getItemOptions')) {
 }
 
 if (!function_exists('getOptionDetails')) {
-    /**
-     * Get option details for given option value IDs (cached)
-     * @param mysqli $conn Database connection
-     * @param array $optionValues Array of option value IDs
-     * @return array
-     */
     function getOptionDetails($conn, $optionValues) {
         if (empty($optionValues)) return [];
-        
         static $cache = [];
         $cache_key = implode(',', array_values($optionValues));
-        
-        if (isset($cache[$cache_key])) {
-            return $cache[$cache_key];
-        }
-        
+        if (isset($cache[$cache_key])) return $cache[$cache_key];
         $ids = array_values($optionValues);
         $placeholders = implode(',', array_fill(0, count($ids), '?'));
         $stmt = $conn->prepare("SELECT v.*, o.option_name FROM menu_item_option_values v 
@@ -52,34 +35,17 @@ if (!function_exists('getOptionDetails')) {
         $stmt->bind_param(str_repeat('i', count($ids)), ...$ids);
         $stmt->execute();
         $result = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
-        
         $cache[$cache_key] = $result;
         return $result;
     }
 }
 
 if (!function_exists('buildOrderEmail')) {
-    /**
-     * Build email subject and body for order confirmation
-     * @param int $order_id
-     * @param float $total Original total
-     * @param float $net_total Total after discount
-     * @param float $discount Discount amount
-     * @param int $points_used Points used
-     * @param string $payment_method
-     * @param string|null $pickup_time
-     * @param string $instructions
-     * @return array ['subject' => string, 'body' => string]
-     */
-    function buildOrderEmail($order_id, $total, $net_total, $discount, $points_used, $payment_method, $pickup_time, $instructions) {
+    function buildOrderEmail($order_id, $total, $net_total, $payment_method, $pickup_time, $instructions) {
         $subject = "Order Confirmation #$order_id";
         $body = "<h2>Thank you for your order!</h2>
                  <p>Your order #$order_id has been placed successfully.</p>
-                 <p><strong>Original Total:</strong> $" . number_format($total, 2) . "</p>";
-        if ($points_used > 0) {
-            $body .= "<p><strong>Points Used:</strong> $points_used points (discount: $" . number_format($discount, 2) . ")</p>";
-        }
-        $body .= "<p><strong>Total Paid:</strong> $" . number_format($net_total, 2) . "</p>
+                 <p><strong>Total Paid:</strong> $" . number_format($net_total, 2) . "</p>
                  <p><strong>Payment Method:</strong> " . ucfirst($payment_method) . "</p>
                  <p><strong>Pickup Time:</strong> " . ($pickup_time ? date('M j, Y g:i a', strtotime($pickup_time)) : 'As soon as possible') . "</p>
                  <p><strong>Special Instructions:</strong> " . nl2br(htmlspecialchars($instructions)) . "</p>
@@ -88,10 +54,6 @@ if (!function_exists('buildOrderEmail')) {
     }
 }
 
-/**
- * Get total number of items in the cart
- * @return int
- */
 function getCartCount() {
     $count = 0;
     if (isset($_SESSION['cart']) && is_array($_SESSION['cart'])) {
@@ -102,12 +64,6 @@ function getCartCount() {
     return $count;
 }
 
-/**
- * Get user balance (cached)
- * @param mysqli $conn Database connection
- * @param int $user_id
- * @return float
- */
 function getUserBalance($conn, $user_id) {
     static $balances = [];
     if (!isset($balances[$user_id])) {
@@ -122,38 +78,26 @@ function getUserBalance($conn, $user_id) {
 
 require_once __DIR__ . '/cache.php';
 
-/**
- * Get menu items with their options (cached)
- */
 function getMenuItemsWithOptions($conn, $category = null) {
     $cache_key = 'menu_items_' . ($category ? str_replace(' ', '_', $category) : 'all');
     $items = Cache::get($cache_key);
     if ($items === null) {
         $sql = "SELECT * FROM menu_items";
-        if ($category) {
-            $sql .= " WHERE category = ?";
-        }
+        if ($category) $sql .= " WHERE category = ?";
         $sql .= " ORDER BY FIELD(category, 'Breakfast', 'A La Carte', 'Combo', 'Beverage', 'Dessert'), sort_order, name";
         $stmt = $conn->prepare($sql);
-        if ($category) {
-            $stmt->bind_param("s", $category);
-        }
+        if ($category) $stmt->bind_param("s", $category);
         $stmt->execute();
         $result = $stmt->get_result();
         $items = $result->fetch_all(MYSQLI_ASSOC);
-        
-        // Attach options to each item
         foreach ($items as &$item) {
             $item['options'] = getItemOptions($conn, $item['id']);
         }
-        Cache::set($cache_key, $items, 3600); // cache for 1 hour
+        Cache::set($cache_key, $items, 3600);
     }
     return $items;
 }
 
-/**
- * Get popular items for homepage (cached)
- */
 function getPopularItems($conn, $limit = 6) {
     $cache_key = 'popular_items';
     $items = Cache::get($cache_key);
@@ -169,14 +113,11 @@ function getPopularItems($conn, $limit = 6) {
         $stmt->bind_param("i", $limit);
         $stmt->execute();
         $items = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
-        Cache::set($cache_key, $items, 7200); // 2 hours
+        Cache::set($cache_key, $items, 7200);
     }
     return $items;
 }
 
-/**
- * Clear menu cache (call after adding/editing/deleting menu items or options)
- */
 function clearMenuCache() {
     $cache_keys = [
         'menu_items_all',
@@ -189,8 +130,5 @@ function clearMenuCache() {
     foreach ($cache_keys as $key) {
         Cache::delete($key);
     }
-    // Also clear popular items cache (since it depends on menu)
     Cache::delete('popular_items');
 }
-// Add other shared functions here if needed
-?>

@@ -30,13 +30,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if ($id) {
                 $stmt = $conn->prepare("UPDATE menu_items SET name=?, category=?, price=?, image=?, sort_order=? WHERE id=?");
                 $stmt->bind_param("ssdsii", $name, $category, $price, $image, $sort_order, $id);
-                if ($stmt->execute()) clearMenuCache();
-                else $error = 'Database error: ' . $conn->error;
+                if ($stmt->execute()) {
+                    clearMenuCache();
+                    log_admin_action('menu_item_edit', 'menu_item', $id, "Edited item: $name");
+                } else $error = 'Database error: ' . $conn->error;
             } else {
                 $stmt = $conn->prepare("INSERT INTO menu_items (name, category, price, image, sort_order) VALUES (?, ?, ?, ?, ?)");
                 $stmt->bind_param("ssdsi", $name, $category, $price, $image, $sort_order);
-                if ($stmt->execute()) clearMenuCache();
-                else $error = 'Database error: ' . $conn->error;
+                if ($stmt->execute()) {
+                    $new_id = $conn->insert_id;
+                    clearMenuCache();
+                    log_admin_action('menu_item_add', 'menu_item', $new_id, "Added item: $name");
+                } else $error = 'Database error: ' . $conn->error;
             }
         }
         if (!$error) {
@@ -48,10 +53,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // ---- Delete Menu Item ----
     if ($action === 'delete' && isset($_POST['id'])) {
         $id = intval($_POST['id']);
+        // Fetch name for logging
+        $stmt = $conn->prepare("SELECT name FROM menu_items WHERE id = ?");
+        $stmt->bind_param("i", $id);
+        $stmt->execute();
+        $item = $stmt->get_result()->fetch_assoc();
+        $item_name = $item['name'] ?? 'Unknown';
+
         $stmt = $conn->prepare("DELETE FROM menu_items WHERE id = ?");
         $stmt->bind_param("i", $id);
         $stmt->execute();
         clearMenuCache();
+        log_admin_action('menu_item_delete', 'menu_item', $id, "Deleted item: $item_name");
         header('Location: ?action=list' . (isset($_SESSION['kiosk_mode']) && $_SESSION['kiosk_mode'] ? '&kiosk=1' : ''));
         exit;
     }
@@ -71,12 +84,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if ($option_id) {
                 $stmt = $conn->prepare("UPDATE menu_item_options SET option_name=?, option_type=?, required=?, sort_order=? WHERE id=?");
                 $stmt->bind_param("ssiii", $option_name, $option_type, $required, $sort_order, $option_id);
+                if ($stmt->execute()) {
+                    clearMenuCache();
+                    log_admin_action('menu_option_edit', 'menu_option', $option_id, "Edited option: $option_name");
+                } else $error = 'Database error: ' . $conn->error;
             } else {
                 $stmt = $conn->prepare("INSERT INTO menu_item_options (menu_item_id, option_name, option_type, required, sort_order) VALUES (?, ?, ?, ?, ?)");
                 $stmt->bind_param("issii", $menu_item_id, $option_name, $option_type, $required, $sort_order);
+                if ($stmt->execute()) {
+                    clearMenuCache();
+                    log_admin_action('menu_option_add', 'menu_option', $conn->insert_id, "Added option: $option_name to item ID $menu_item_id");
+                } else $error = 'Database error: ' . $conn->error;
             }
-            if ($stmt->execute()) clearMenuCache();
-            else $error = 'Database error: ' . $conn->error;
         }
         if (!$error) {
             header("Location: ?action=options&item_id=$menu_item_id" . (isset($_SESSION['kiosk_mode']) && $_SESSION['kiosk_mode'] ? '&kiosk=1' : ''));
@@ -87,15 +106,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // ---- Delete Option ----
     if ($action === 'option_delete' && isset($_POST['id'])) {
         $id = intval($_POST['id']);
-        $stmt = $conn->prepare("SELECT menu_item_id FROM menu_item_options WHERE id = ?");
+        // Get menu_item_id and option name for logging
+        $stmt = $conn->prepare("SELECT menu_item_id, option_name FROM menu_item_options WHERE id = ?");
         $stmt->bind_param("i", $id);
         $stmt->execute();
         $opt = $stmt->get_result()->fetch_assoc();
         $menu_item_id = $opt['menu_item_id'] ?? 0;
+        $option_name = $opt['option_name'] ?? 'Unknown';
         $stmt = $conn->prepare("DELETE FROM menu_item_options WHERE id = ?");
         $stmt->bind_param("i", $id);
         $stmt->execute();
         clearMenuCache();
+        log_admin_action('menu_option_delete', 'menu_option', $id, "Deleted option: $option_name from item ID $menu_item_id");
         header("Location: ?action=options&item_id=$menu_item_id" . (isset($_SESSION['kiosk_mode']) && $_SESSION['kiosk_mode'] ? '&kiosk=1' : ''));
         exit;
     }
@@ -114,12 +136,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if ($value_id) {
                 $stmt = $conn->prepare("UPDATE menu_item_option_values SET value_name=?, price_modifier=?, sort_order=? WHERE id=?");
                 $stmt->bind_param("sdii", $value_name, $price_modifier, $sort_order, $value_id);
+                if ($stmt->execute()) {
+                    clearMenuCache();
+                    log_admin_action('menu_value_edit', 'menu_value', $value_id, "Edited value: $value_name for option ID $option_id");
+                } else $error = 'Database error: ' . $conn->error;
             } else {
                 $stmt = $conn->prepare("INSERT INTO menu_item_option_values (option_id, value_name, price_modifier, sort_order) VALUES (?, ?, ?, ?)");
                 $stmt->bind_param("isdi", $option_id, $value_name, $price_modifier, $sort_order);
+                if ($stmt->execute()) {
+                    clearMenuCache();
+                    log_admin_action('menu_value_add', 'menu_value', $conn->insert_id, "Added value: $value_name to option ID $option_id");
+                } else $error = 'Database error: ' . $conn->error;
             }
-            if ($stmt->execute()) clearMenuCache();
-            else $error = 'Database error: ' . $conn->error;
         }
         if (!$error) {
             $opt_stmt = $conn->prepare("SELECT menu_item_id FROM menu_item_options WHERE id = ?");
@@ -135,15 +163,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // ---- Delete Option Value ----
     if ($action === 'value_delete' && isset($_POST['id'])) {
         $id = intval($_POST['id']);
-        $stmt = $conn->prepare("SELECT o.menu_item_id FROM menu_item_option_values v JOIN menu_item_options o ON v.option_id = o.id WHERE v.id = ?");
+        // Get menu_item_id before deleting
+        $stmt = $conn->prepare("SELECT o.menu_item_id, v.value_name FROM menu_item_option_values v JOIN menu_item_options o ON v.option_id = o.id WHERE v.id = ?");
         $stmt->bind_param("i", $id);
         $stmt->execute();
         $val = $stmt->get_result()->fetch_assoc();
         $menu_item_id = $val['menu_item_id'] ?? 0;
+        $value_name = $val['value_name'] ?? 'Unknown';
         $stmt = $conn->prepare("DELETE FROM menu_item_option_values WHERE id = ?");
         $stmt->bind_param("i", $id);
         $stmt->execute();
         clearMenuCache();
+        log_admin_action('menu_value_delete', 'menu_value', $id, "Deleted value: $value_name");
         header("Location: ?action=options&item_id=$menu_item_id" . (isset($_SESSION['kiosk_mode']) && $_SESSION['kiosk_mode'] ? '&kiosk=1' : ''));
         exit;
     }
@@ -158,13 +189,12 @@ include __DIR__ . '/../../includes/header.php';
     <div class="sidebar">
         <h2>⚙️ Admin Panel</h2>
         <ul>
-            <!-- Use absolute paths for cross-directory links -->
             <li><a href="<?= normal_url('/admin/index.php') ?>">Dashboard</a></li>
             <li><a href="<?= normal_url('/admin/menu/index.php') ?>" class="active">Manage Menu</a></li>
             <li><a href="<?= normal_url('/admin/index.php?action=orders') ?>">Manage Orders</a></li>
             <li><a href="<?= normal_url('/admin/index.php?action=users') ?>">Manage Users</a></li>
-            <li><a href="<?= kiosk_url('/menu.php') ?>">View Site</a></li>
-            <li><a href="<?= normal_url('/auth/logout.php') ?>">Logout</a></li>
+            <li><a href="<?= kiosk_url('../../menu.php') ?>">View Site</a></li>
+            <li><a href="<?= normal_url('../../auth/logout.php') ?>">Logout</a></li>
         </ul>
     </div>
     <div class="main-content">
@@ -187,11 +217,11 @@ include __DIR__ . '/../../includes/header.php';
                 <div class="table-wrapper">
                     <table class="admin-table">
                         <thead>
-                             <tr><th>ID</th><th>Image</th><th>Name</th><th>Category</th><th>Price</th><th>Sort</th><th>Actions</th> </tr>
+                            <tr><th>ID</th><th>Image</th><th>Name</th><th>Category</th><th>Price</th><th>Sort</th><th>Actions</th></tr>
                         </thead>
                         <tbody>
                             <?php foreach ($items as $item): ?>
-                              <tr>
+                            <tr>
                                 <td><?= $item['id'] ?></td>
                                 <td>
                                     <?php if (!empty($item['image'])): ?>
@@ -211,7 +241,7 @@ include __DIR__ . '/../../includes/header.php';
                                         <button type="submit" name="action" value="delete" class="btn-small btn-danger">Delete</button>
                                     </form>
                                 </td>
-                              </tr>
+                            </tr>
                             <?php endforeach; ?>
                         </tbody>
                     </table>

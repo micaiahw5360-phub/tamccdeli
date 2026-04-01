@@ -86,7 +86,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['payment_type'])) {
                 $stmt->execute();
 
                 // Create order
-                $stmt = $conn->prepare("INSERT INTO orders (user_id, total, payment_method, payment_status) VALUES (?, ?, 'wallet', 'paid')");
+                $stmt = $conn->prepare("INSERT INTO orders (user_id, total, payment_method, payment_status, source) VALUES (?, ?, 'wallet', 'paid', 'kiosk')");
                 $stmt->bind_param("id", $customer_id, $total);
                 $stmt->execute();
                 $order_id = $conn->insert_id;

@@ -9,7 +9,6 @@ if (!$order_id || !isset($_SESSION['user_id'])) {
     exit;
 }
 
-// Fetch order details
 $stmt = $conn->prepare("SELECT * FROM orders WHERE id = ? AND user_id = ?");
 $stmt->bind_param("ii", $order_id, $_SESSION['user_id']);
 $stmt->execute();
@@ -40,7 +39,6 @@ $payment_method_display = $payment_display[$order['payment_method']] ?? ucfirst(
     <p><strong>Payment Method:</strong> <?= $payment_method_display ?></p>
 
     <div style="margin-top: 2rem; display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap;">
-        <!-- Show receipt only for paid orders -->
         <?php if ($order['payment_status'] === 'paid'): ?>
             <a href="<?= kiosk_url('receipt.php?id=' . $order_id) ?>" class="btn btn-primary">View Receipt</a>
         <?php endif; ?>
@@ -48,3 +46,5 @@ $payment_method_display = $payment_display[$order['payment_method']] ?? ucfirst(
         <a href="<?= normal_url('dashboard/orders.php') ?>" class="btn">My Orders</a>
     </div>
 </div>
+
+<?php include 'includes/footer.php'; ?>

@@ -81,46 +81,33 @@ foreach ($items as &$item) {
         <div class="card">
             <h3>Items</h3>
             <div class="table-responsive">
-                <table>
+                <table class="table">
                     <thead>
-                        <tr>
-                            <th>Item</th>
-                            <th>Options</th>
-                            <th>Quantity</th>
-                            <th>Price</th>
-                            <th>Subtotal</th>
-                        </thead>
-                        <tbody>
+                        60%<th>Item</th><th>Options</th><th>Quantity</th><th>Price</th><th>Subtotal</th> </thead>
+                    <tbody>
                         <?php foreach ($items as $item): ?>
-                            <tr>
-                                <td><?= htmlspecialchars($item['name']) ?></td>
-                                <td>
-                                    <?php if (!empty($item['options'])): ?>
-                                        <ul class="option-list">
-                                            <?php foreach ($item['options'] as $opt): ?>
-                                                <li><?= htmlspecialchars($opt['option_name'] ?? '') ?>: <?= htmlspecialchars($opt['value_name'] ?? '') ?></li>
-                                            <?php endforeach; ?>
-                                        </ul>
-                                    <?php else: ?>
-                                        —
-                                    <?php endif; ?>
-                                </td>
-                                <td><?= $item['quantity'] ?></td>
-                                <td>$<?= number_format($item['price'], 2) ?></td>
-                                <td>$<?= number_format($item['quantity'] * $item['price'], 2) ?></td>
-                            </tr>
+                         <tr>
+                              <td><?= htmlspecialchars($item['name']) ?></td>
+                              <td>
+                                  <?php if (!empty($item['options'])): ?>
+                                      <ul class="option-list">
+                                          <?php foreach ($item['options'] as $opt): ?>
+                                              <li><?= htmlspecialchars($opt['option_name'] ?? '') ?>: <?= htmlspecialchars($opt['value_name'] ?? '') ?></li>
+                                          <?php endforeach; ?>
+                                      </ul>
+                                  <?php else: ?>
+                                      —
+                                  <?php endif; ?>
+                              </td>
+                              <td><?= $item['quantity'] ?></td>
+                              <td>$<?= number_format($item['price'], 2) ?></td>
+                              <td>$<?= number_format($item['quantity'] * $item['price'], 2) ?></td>
+                          </tr>
                         <?php endforeach; ?>
-                        </tbody>
+                    </tbody>
                 </table>
             </div>
             <div class="points-summary">
-                <span><strong>Subtotal:</strong> $<?= number_format($order['total'] + ($order['points_used'] / 100), 2) ?></span>
-                <?php if ($order['points_used'] > 0): ?>
-                    <span><strong>Points Used:</strong> <?= $order['points_used'] ?> points ( -$<?= number_format($order['points_used'] / 100, 2) ?> )</span>
-                <?php endif; ?>
-                <?php if ($order['points_earned'] > 0): ?>
-                    <span><strong>Points Earned:</strong> <?= $order['points_earned'] ?> points</span>
-                <?php endif; ?>
                 <span><strong>Total:</strong> $<?= number_format($order['total'], 2) ?></span>
             </div>
         </div>

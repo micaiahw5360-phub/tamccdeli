@@ -22,9 +22,15 @@ if (!isset($_SESSION['kiosk_mode']) && isset($_SERVER['HTTP_USER_AGENT'])) {
 
 $kiosk_mode = $_SESSION['kiosk_mode'] ?? false;
 
-// Redirect to kiosk login if in kiosk mode and not logged in
+// If the logged-in user has role 'kiosk', force kiosk mode
+if (isset($_SESSION['role']) && $_SESSION['role'] === 'kiosk') {
+    $kiosk_mode = true;
+    $_SESSION['kiosk_mode'] = true;
+}
+
+// If we are in kiosk mode but not logged in, redirect to normal login
 if ($kiosk_mode && !isset($_SESSION['user_id'])) {
-    header('Location: ' . kiosk_url('/kiosk/login.php'));
+    header('Location: ' . normal_url('/auth/login.php'));
     exit;
 }
 

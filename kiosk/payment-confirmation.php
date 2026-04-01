@@ -33,7 +33,7 @@ if (empty($cart_items)) {
 }
 
 // Create order as guest
-$stmt = $conn->prepare("INSERT INTO orders (guest_email, total, payment_method, payment_status) VALUES (?, ?, 'online', 'paid')");
+$stmt = $conn->prepare("INSERT INTO orders (guest_email, total, payment_method, payment_status, source) VALUES (?, ?, 'online', 'paid', 'kiosk')");
 $stmt->bind_param("sd", $customer_email, $total);
 $stmt->execute();
 $order_id = $conn->insert_id;
