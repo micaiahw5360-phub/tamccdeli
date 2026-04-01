@@ -46,9 +46,9 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
         $redirect = $_SESSION['redirect_after_login'] ?? '../index.php';
         unset($_SESSION['redirect_after_login']);
 
-        // If user is kiosk, send to kiosk menu instead
+        // If user is kiosk, send to kiosk home page instead
         if ($user['role'] === 'kiosk') {
-            $redirect = kiosk_url('/menu.php');
+            $redirect = kiosk_url('/kiosk/home.php');
         }
 
         header("Location: $redirect");

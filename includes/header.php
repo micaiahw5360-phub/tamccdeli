@@ -58,11 +58,12 @@ echo '<script>var kioskMode = ' . ($kiosk_mode ? 'true' : 'false') . ';</script>
                 <?php endif; ?>
             <?php endif; ?>
 
-            <?php if (isset($_SESSION['user_id'])): ?>
+            <!-- Kiosk toggle – visible only for kiosk users -->
+            <?php if (isset($_SESSION['user_id']) && $_SESSION['role'] === 'kiosk'): ?>
                 <?php if ($kiosk_mode): ?>
-                    <a href="<?= normal_url($_SERVER['REQUEST_URI']) ?>" class="btn-small" style="background: var(--warning);">Exit Kiosk Mode</a>
+                    <a href="<?= normal_url('/index.php') ?>" class="btn-small" style="background: var(--warning);">Exit Kiosk Mode</a>
                 <?php else: ?>
-                    <a href="<?= kiosk_url($_SERVER['REQUEST_URI']) ?>" class="btn-small" style="background: var(--accent-500);">Enter Kiosk Mode</a>
+                    <a href="<?= kiosk_url('/kiosk/categories.php') ?>" class="btn-small" style="background: var(--accent-500);">Enter Kiosk Mode</a>
                 <?php endif; ?>
             <?php endif; ?>
 
