@@ -3,10 +3,7 @@ require __DIR__ . '/../includes/session.php';
 require __DIR__ . '/../config/database.php';
 require __DIR__ . '/../includes/csrf.php';
 require_once __DIR__ . '/../includes/kiosk.php';
-require __DIR__ . '/../vendor/autoload.php';
-
-use PHPMailer\PHPMailer\PHPMailer;
-use PHPMailer\PHPMailer\Exception;
+require_once __DIR__ . '/../includes/mail.php';   // <-- use our Resend‑based sendEmail()
 
 $error = '';
 $success = '';
@@ -41,39 +38,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $stmt->bind_param("iss", $user['id'], $token, $expires);
             $stmt->execute();
 
-            // Send email
+            // Build reset link
             $reset_link = kiosk_url('/auth/reset-password.php?token=' . $token);
-            $mail = new PHPMailer(true);
-            try {
-                // Server settings
-                $mail->isSMTP();
-                $mail->Host       = getenv('SMTP_HOST');
-                $mail->SMTPAuth   = true;
-                $mail->Username   = getenv('SMTP_USER');
-                $mail->Password   = getenv('SMTP_PASS');
-                $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
-                $mail->Port       = getenv('SMTP_PORT') ?: 587;
 
-                // Recipients
-                $mail->setFrom('noreply@tamccdeli.com', 'TAMCC Deli');
-                $mail->addAddress($email);
+            // Email content
+            $subject = 'Password Reset Request';
+            $body = "
+                <h2>Reset Your Password</h2>
+                <p>You requested a password reset. Click the link below to set a new password:</p>
+                <p><a href='$reset_link'>$reset_link</a></p>
+                <p>This link expires in 1 hour.</p>
+                <p>If you did not request this, ignore this email.</p>
+            ";
+            $altBody = "Reset your password: $reset_link";
 
-                // Content
-                $mail->isHTML(true);
-                $mail->Subject = 'Password Reset Request';
-                $mail->Body    = "
-                    <h2>Reset Your Password</h2>
-                    <p>You requested a password reset. Click the link below to set a new password:</p>
-                    <p><a href='$reset_link'>$reset_link</a></p>
-                    <p>This link expires in 1 hour.</p>
-                    <p>If you did not request this, ignore this email.</p>
-                ";
-                $mail->AltBody = "Reset your password: $reset_link";
-
-                $mail->send();
+            // Send email using our shared Resend function
+            if (sendEmail($email, $subject, $body, $altBody)) {
                 $success = 'Reset link sent to your email. Check your inbox.';
-            } catch (Exception $e) {
-                error_log("Mailer Error: " . $mail->ErrorInfo);
+            } else {
                 $error = 'Could not send email. Please try again later.';
             }
         } else {
