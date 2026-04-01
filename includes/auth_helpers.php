@@ -15,6 +15,12 @@ function redirect_to_login() {
 
     // Store intended URL for post-login redirect
     $_SESSION['redirect_after_login'] = $_SERVER['REQUEST_URI'];
-    header('Location: ' . normal_url('/auth/login.php'));
+
+    // Redirect to appropriate login page
+    if ($kiosk_mode) {
+        header('Location: ' . kiosk_url('/kiosk/login.php'));
+    } else {
+        header('Location: ' . normal_url('/auth/login.php'));
+    }
     exit;
 }

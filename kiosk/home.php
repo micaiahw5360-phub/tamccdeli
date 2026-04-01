@@ -2,6 +2,7 @@
 require __DIR__ . '/../includes/session.php';
 require __DIR__ . '/../includes/kiosk.php';
 
+// No redirect_to_login needed; the kiosk.php file already handles it.
 $greeting = '';
 $hour = date('H');
 if ($hour < 12) $greeting = "Good Morning";

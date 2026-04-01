@@ -3,9 +3,6 @@ require __DIR__ . '/../includes/session.php';
 require __DIR__ . '/../config/database.php';
 require __DIR__ . '/../includes/kiosk.php';
 require __DIR__ . '/../includes/functions.php';
-require __DIR__ . '/../includes/auth_helpers.php';
-
-if (!isset($_SESSION['user_id'])) redirect_to_login();
 
 $cart = $_SESSION['cart'] ?? [];
 $cart_items = [];
@@ -69,12 +66,8 @@ $page_title = "Your Cart | TAMCC Deli Kiosk";
                 <?php else: ?>
                     <table class="cart-table">
                         <thead>
-                            <tr>
-                                <th>Item</th>
-                                <th>Quantity</th>
-                                <th>Unit Price</th>
-                                <th>Subtotal</th>
-                            </thead>
+                             <tr><th>Item</th><th>Quantity</th><th>Unit Price</th><th>Subtotal</th></tr>
+                        </thead>
                         <tbody class="cart-items">
                             <?php foreach ($cart_items as $item): ?>
                              <tr data-key="<?= $item['key'] ?>">

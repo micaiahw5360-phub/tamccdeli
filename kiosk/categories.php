@@ -1,9 +1,6 @@
 <?php
 require __DIR__ . '/../includes/session.php';
 require __DIR__ . '/../includes/kiosk.php';
-require __DIR__ . '/../includes/auth_helpers.php';
-
-if (!isset($_SESSION['user_id'])) redirect_to_login();
 
 $categories = [
     'Combo' => '🍔',

@@ -127,14 +127,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['payment_type']) && $_
     $email = trim($_POST['customer_email']);
     $customer_name = trim($_POST['customer_name'] ?? '');
 
-    // Validate email and name
     if (empty($email) || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
         $error = 'Please enter a valid email address.';
     } elseif (empty($customer_name)) {
         $error = 'Please enter your name.';
     } else {
-        // Check if user exists; if not, create a temporary account? We'll just store email/name in order.
-        // For simplicity, we'll create an order with guest_email.
         Stripe::setApiKey(getenv('STRIPE_SECRET_KEY'));
         $intent = PaymentIntent::create([
             'amount'   => round($total * 100),
@@ -146,7 +143,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['payment_type']) && $_
             ]
         ]);
 
-        // Store order data temporarily in session
         $_SESSION['stripe_intent_id'] = $intent->id;
         $_SESSION['stripe_client_secret'] = $intent->client_secret;
         $_SESSION['stripe_total'] = $total;
@@ -240,7 +236,6 @@ $page_title = "Payment | TAMCC Deli Kiosk";
                                 balanceInput.value = '$' + data.balance.toFixed(2);
                                 if (data.balance >= <?= $total ?>) {
                                     payWalletBtn.style.display = 'inline-block';
-                                    // Hide card button
                                     document.querySelector('button[value="card"]').style.display = 'none';
                                 } else {
                                     payWalletBtn.style.display = 'none';
@@ -249,7 +244,6 @@ $page_title = "Payment | TAMCC Deli Kiosk";
                             } else {
                                 walletInfo.style.display = 'none';
                                 cardInfo.style.display = 'block';
-                                // Prefill name if available
                                 if (data.name) cardNameInput.value = data.name;
                                 document.querySelector('button[value="card"]').style.display = 'inline-block';
                             }
