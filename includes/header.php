@@ -3,7 +3,6 @@ require_once __DIR__ . '/session.php'; // Starts session with secure cookies
 require_once __DIR__ . '/kiosk.php';   // Load kiosk functions and $kiosk_mode
 require_once __DIR__ . '/logging.php';
 
-
 // Determine if this page is an admin, staff, or dashboard panel
 $is_admin_panel = strpos($_SERVER['SCRIPT_NAME'], '/admin/') !== false;
 $is_staff_panel = strpos($_SERVER['SCRIPT_NAME'], '/staff/') !== false;
@@ -56,6 +55,14 @@ echo '<script>var kioskMode = ' . ($kiosk_mode ? 'true' : 'false') . ';</script>
                 <?php endif; ?>
                 <?php if ($_SESSION['role'] === 'admin'): ?>
                     <a href="<?= normal_url('/admin/index.php') ?>"><span class="dashicons dashicons-admin-tools"></span> Admin Panel</a>
+                <?php endif; ?>
+            <?php endif; ?>
+
+            <?php if (isset($_SESSION['user_id'])): ?>
+                <?php if ($kiosk_mode): ?>
+                    <a href="<?= normal_url($_SERVER['REQUEST_URI']) ?>" class="btn-small" style="background: var(--warning);">Exit Kiosk Mode</a>
+                <?php else: ?>
+                    <a href="<?= kiosk_url($_SERVER['REQUEST_URI']) ?>" class="btn-small" style="background: var(--accent-500);">Enter Kiosk Mode</a>
                 <?php endif; ?>
             <?php endif; ?>
 
