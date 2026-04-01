@@ -26,6 +26,7 @@ $page_title = "$category | TAMCC Deli Kiosk";
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <title><?= $page_title ?></title>
+    <link rel="stylesheet" href="/assets/css/global.css">
     <link rel="stylesheet" href="/assets/css/kiosk.css">
 </head>
 <body>
@@ -88,8 +89,6 @@ $page_title = "$category | TAMCC Deli Kiosk";
             btn.addEventListener('click', (e) => {
                 const card = btn.closest('.item-card');
                 const itemId = parseInt(card.dataset.id);
-                const itemName = card.dataset.name;
-                const basePrice = parseFloat(card.dataset.price);
                 const quantity = parseInt(card.querySelector('.qty-value').textContent);
                 const options = {};
                 let valid = true;
@@ -106,6 +105,7 @@ $page_title = "$category | TAMCC Deli Kiosk";
                     }
                 });
                 if (!valid) return;
+
                 fetch('<?= kiosk_url('/cart.php?action=add') ?>', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'X-Requested-With': 'XMLHttpRequest' },
@@ -128,6 +128,7 @@ $page_title = "$category | TAMCC Deli Kiosk";
                 .catch(err => showToast('Network error'));
             });
         });
+
         // Update price when options change
         document.querySelectorAll('.radio-option input').forEach(radio => {
             radio.addEventListener('change', function() {
@@ -141,6 +142,8 @@ $page_title = "$category | TAMCC Deli Kiosk";
                 card.querySelector('.item-price').textContent = `$${total.toFixed(2)}`;
             });
         });
+
+        updateCartDisplay();
     </script>
 </body>
 </html>

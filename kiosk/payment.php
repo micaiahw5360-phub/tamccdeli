@@ -164,6 +164,7 @@ $page_title = "Payment | TAMCC Deli Kiosk";
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <title><?= $page_title ?></title>
     <link rel="stylesheet" href="/assets/css/kiosk.css">
+    <link rel="stylesheet" href="/assets/css/global.css">
 </head>
 <body>
     <div class="kiosk">

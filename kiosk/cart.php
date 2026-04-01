@@ -53,6 +53,7 @@ $page_title = "Your Cart | TAMCC Deli Kiosk";
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <title><?= $page_title ?></title>
+    <link rel="stylesheet" href="/assets/css/global.css">
     <link rel="stylesheet" href="/assets/css/kiosk.css">
 </head>
 <body>
@@ -70,27 +71,27 @@ $page_title = "Your Cart | TAMCC Deli Kiosk";
                         </thead>
                         <tbody class="cart-items">
                             <?php foreach ($cart_items as $item): ?>
-                            <tr data-key="<?= $item['key'] ?>">
-                                <td><?= htmlspecialchars($item['item']['name']) ?>
-                                    <?php if (!empty($item['options'])): ?>
-                                        <div class="option-list">
-                                            <?php foreach ($item['options'] as $opt): ?>
-                                                <small><?= htmlspecialchars($opt['option_name']) ?>: <?= htmlspecialchars($opt['value_name']) ?></small><br>
-                                            <?php endforeach; ?>
-                                        </div>
-                                    <?php endif; ?>
-                                </td>
-                                <td>
-                                    <div class="cart-actions">
-                                        <button class="qty-btn dec" data-key="<?= $item['key'] ?>">-</button>
-                                        <span class="qty-value"><?= $item['quantity'] ?></span>
-                                        <button class="qty-btn inc" data-key="<?= $item['key'] ?>">+</button>
-                                        <button class="btn-small remove" data-key="<?= $item['key'] ?>">Remove</button>
-                                    </div>
-                                </td>
-                                <td>$<?= number_format($item['unit_price'], 2) ?></td>
-                                <td class="subtotal">$<?= number_format($item['subtotal'], 2) ?></td>
-                            </tr>
+                             <tr data-key="<?= $item['key'] ?>">
+                                 <td><?= htmlspecialchars($item['item']['name']) ?>
+                                     <?php if (!empty($item['options'])): ?>
+                                         <div class="option-list">
+                                             <?php foreach ($item['options'] as $opt): ?>
+                                                 <small><?= htmlspecialchars($opt['option_name']) ?>: <?= htmlspecialchars($opt['value_name']) ?></small><br>
+                                             <?php endforeach; ?>
+                                         </div>
+                                     <?php endif; ?>
+                                 </td>
+                                 <td>
+                                     <div class="cart-actions">
+                                         <button class="qty-btn dec" data-key="<?= $item['key'] ?>">-</button>
+                                         <span class="qty-value"><?= $item['quantity'] ?></span>
+                                         <button class="qty-btn inc" data-key="<?= $item['key'] ?>">+</button>
+                                         <button class="btn-small remove" data-key="<?= $item['key'] ?>">Remove</button>
+                                     </div>
+                                 </td>
+                                 <td>$<?= number_format($item['unit_price'], 2) ?></td>
+                                 <td class="subtotal">$<?= number_format($item['subtotal'], 2) ?></td>
+                             </tr>
                             <?php endforeach; ?>
                         </tbody>
                     </table>
@@ -124,6 +125,7 @@ $page_title = "Your Cart | TAMCC Deli Kiosk";
                 else showToast('Error updating cart');
             });
         });
+        updateCartDisplay();
     </script>
 </body>
 </html>

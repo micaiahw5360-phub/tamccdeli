@@ -18,6 +18,7 @@ $page_title = "Select Category | TAMCC Deli Kiosk";
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <title><?= $page_title ?></title>
+    <link rel="stylesheet" href="/assets/css/global.css">
     <link rel="stylesheet" href="/assets/css/kiosk.css">
 </head>
 <body>
@@ -35,6 +36,13 @@ $page_title = "Select Category | TAMCC Deli Kiosk";
             </div>
         </div>
     </div>
+    <div class="cart-floating" onclick="window.location.href='<?= kiosk_url('/kiosk/cart.php') ?>'">
+        <span>🛒 Cart</span>
+        <span class="cart-count">0</span>
+    </div>
     <script src="/assets/js/kiosk.js"></script>
+    <script>
+        updateCartDisplay(); // defined in kiosk.js
+    </script>
 </body>
 </html>
