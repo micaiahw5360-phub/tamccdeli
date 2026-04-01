@@ -9,6 +9,7 @@ require_once __DIR__ . '/../vendor/autoload.php';
 use Stripe\Stripe;
 use Stripe\PaymentIntent;
 
+$kiosk_mode = true; // force kiosk mode for this page
 $cart = $_SESSION['cart'] ?? [];
 if (empty($cart)) {
     header('Location: ' . kiosk_url('/kiosk/categories.php'));
@@ -163,8 +164,224 @@ $page_title = "Payment | TAMCC Deli Kiosk";
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <title><?= $page_title ?></title>
-    <link rel="stylesheet" href="/assets/css/kiosk.css">
-    <link rel="stylesheet" href="/assets/css/global.css">
+    <style>
+        /* ==================== DESIGN SYSTEM (from global.css) ==================== */
+        :root {
+            --primary-600: #074af2;
+            --primary-700: #0538c2;
+            --neutral-900: #2b2e37;
+            --neutral-800: #3a3e4a;
+            --neutral-700: #4a4f5d;
+            --neutral-600: #5b6170;
+            --neutral-500: #6c7384;
+            --neutral-400: #8e94a3;
+            --neutral-300: #b0b5c2;
+            --neutral-200: #d1d6e0;
+            --neutral-100: #e9ebf0;
+            --neutral-50: #f4f5f8;
+            --white: #ffffff;
+            --success: #22c55e;
+            --warning: #eab308;
+            --danger: #ef4444;
+            --accent-500: #f97316;
+            --accent-600: #ea580c;
+
+            --space-0: 0;
+            --space-1: 0.25rem;
+            --space-2: 0.5rem;
+            --space-3: 0.75rem;
+            --space-4: 1rem;
+            --space-5: 1.25rem;
+            --space-6: 1.5rem;
+            --space-8: 2rem;
+            --space-10: 2.5rem;
+            --space-12: 3rem;
+            --space-16: 4rem;
+            --space-20: 5rem;
+            --space-24: 6rem;
+
+            --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            --text-xs: clamp(0.75rem, 2vw, 0.875rem);
+            --text-sm: clamp(0.875rem, 2.5vw, 1rem);
+            --text-base: clamp(1rem, 3vw, 1.125rem);
+            --text-lg: clamp(1.125rem, 3.5vw, 1.25rem);
+            --text-xl: clamp(1.25rem, 4vw, 1.5rem);
+            --text-2xl: clamp(1.5rem, 5vw, 1.875rem);
+            --text-3xl: clamp(1.875rem, 6vw, 2.25rem);
+            --text-4xl: clamp(2.25rem, 7vw, 3rem);
+            --text-5xl: clamp(3rem, 8vw, 4rem);
+
+            --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+            --shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
+            --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+            --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+            --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
+
+            --radius-sm: 0.25rem;
+            --radius: 0.375rem;
+            --radius-md: 0.5rem;
+            --radius-lg: 0.75rem;
+            --radius-xl: 1rem;
+            --radius-full: 9999px;
+
+            --transition: all 0.2s ease;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: var(--font-sans);
+            background: #f8f9fa;
+            color: var(--neutral-800);
+            line-height: 1.5;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: var(--space-4);
+        }
+
+        .kiosk {
+            max-width: 1400px;
+            width: 100%;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: var(--radius-xl);
+            box-shadow: var(--shadow-xl);
+            backdrop-filter: blur(8px);
+            overflow: hidden;
+            min-height: 80vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .screen {
+            padding: var(--space-8);
+            flex: 1;
+        }
+
+        .time {
+            text-align: right;
+            font-size: var(--text-lg);
+            color: var(--neutral-500);
+            margin-bottom: var(--space-6);
+        }
+
+        h1 {
+            font-size: var(--text-4xl);
+            font-weight: 700;
+            margin-bottom: var(--space-4);
+            color: var(--primary-700);
+        }
+
+        .form-group {
+            margin-bottom: var(--space-6);
+        }
+
+        .form-label {
+            display: block;
+            font-size: var(--text-lg);
+            font-weight: 600;
+            margin-bottom: var(--space-2);
+            color: var(--neutral-700);
+        }
+
+        .form-input {
+            width: 100%;
+            padding: var(--space-4);
+            font-size: var(--text-lg);
+            border: 2px solid var(--neutral-300);
+            border-radius: var(--radius-lg);
+            background: white;
+            transition: var(--transition);
+        }
+
+        .form-input:focus {
+            border-color: var(--primary-600);
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(7, 74, 242, 0.2);
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: var(--space-2);
+            padding: var(--space-4) var(--space-8);
+            font-size: var(--text-xl);
+            font-weight: 600;
+            line-height: 1.2;
+            text-decoration: none;
+            border-radius: var(--radius-full);
+            transition: var(--transition);
+            cursor: pointer;
+            border: none;
+            background: var(--primary-600);
+            color: white;
+            box-shadow: var(--shadow);
+            min-height: 64px;
+            min-width: 120px;
+        }
+
+        .btn:active {
+            transform: scale(0.98);
+        }
+
+        .btn-primary {
+            background: var(--primary-600);
+        }
+
+        .btn-primary:hover {
+            background: var(--primary-700);
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-lg);
+        }
+
+        .btn-accent {
+            background: var(--accent-500);
+        }
+
+        .btn-accent:hover {
+            background: var(--accent-600);
+            transform: translateY(-2px);
+        }
+
+        .btn-outline {
+            background: transparent;
+            border: 2px solid var(--primary-600);
+            color: var(--primary-600);
+        }
+
+        .btn-outline:hover {
+            background: var(--primary-50);
+            transform: translateY(-2px);
+        }
+
+        .error-message {
+            background: #fee2e2;
+            color: #dc2626;
+            padding: var(--space-3);
+            border-radius: var(--radius);
+            margin-bottom: var(--space-4);
+            text-align: center;
+            border-left: 3px solid #dc2626;
+        }
+
+        @media (max-width: 768px) {
+            .screen {
+                padding: var(--space-4);
+            }
+            .btn {
+                padding: var(--space-3) var(--space-6);
+                font-size: var(--text-lg);
+                min-height: 56px;
+            }
+        }
+    </style>
 </head>
 <body>
     <div class="kiosk">
@@ -211,8 +428,17 @@ $page_title = "Payment | TAMCC Deli Kiosk";
         </div>
     </div>
 
-    <script src="/assets/js/kiosk.js"></script>
     <script>
+        function updateCartDisplay() {
+            fetch('<?= kiosk_url('/get-cart-count.php') ?>')
+                .then(r => r.json())
+                .then(data => {
+                    document.querySelectorAll('.cart-count').forEach(el => el.textContent = data.count);
+                })
+                .catch(console.error);
+        }
+        updateCartDisplay();
+
         const emailInput = document.getElementById('customer-email');
         const walletInfo = document.getElementById('wallet-info');
         const cardInfo = document.getElementById('card-info');

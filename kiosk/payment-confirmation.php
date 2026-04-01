@@ -3,6 +3,7 @@ require __DIR__ . '/../includes/session.php';
 require __DIR__ . '/../config/database.php';
 require __DIR__ . '/../includes/kiosk.php';
 
+$kiosk_mode = true;
 $payment_intent = $_GET['payment_intent'] ?? null;
 $redirect_status = $_GET['redirect_status'] ?? null;
 
