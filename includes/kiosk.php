@@ -2,38 +2,7 @@
 // Ensure functions are not redeclared
 if (!function_exists('kiosk_url')) {
 
-// --- KIOSK MODE DETECTION ---
-if (isset($_GET['kiosk'])) {
-    $_SESSION['kiosk_mode'] = ($_GET['kiosk'] == '1');
-} else {
-    unset($_SESSION['kiosk_mode']);
-    unset($_SESSION['kiosk_user_id']);
-}
-
-$kiosk_user_agents = ['KioskBrowser/1.0', 'YourKioskApp'];
-if (!isset($_SESSION['kiosk_mode']) && isset($_SERVER['HTTP_USER_AGENT'])) {
-    foreach ($kiosk_user_agents as $ua) {
-        if (stripos($_SERVER['HTTP_USER_AGENT'], $ua) !== false) {
-            $_SESSION['kiosk_mode'] = true;
-            break;
-        }
-    }
-}
-
-$kiosk_mode = $_SESSION['kiosk_mode'] ?? false;
-
-// If the logged-in user has role 'kiosk', force kiosk mode
-if (isset($_SESSION['role']) && $_SESSION['role'] === 'kiosk') {
-    $kiosk_mode = true;
-    $_SESSION['kiosk_mode'] = true;
-}
-
-// If we are in kiosk mode but not logged in, redirect to normal login
-if ($kiosk_mode && !isset($_SESSION['user_id'])) {
-    header('Location: ' . normal_url('/auth/login.php'));
-    exit;
-}
-
+// ==================== FUNCTION DEFINITIONS FIRST ====================
 /**
  * Generate a URL that stays inside kiosk mode.
  */
@@ -89,6 +58,38 @@ function set_kiosk_mode($enable = true) {
 function is_kiosk_mode() {
     global $kiosk_mode;
     return $kiosk_mode;
+}
+
+// ==================== KIOSK MODE DETECTION ====================
+if (isset($_GET['kiosk'])) {
+    $_SESSION['kiosk_mode'] = ($_GET['kiosk'] == '1');
+} else {
+    unset($_SESSION['kiosk_mode']);
+    unset($_SESSION['kiosk_user_id']);
+}
+
+$kiosk_user_agents = ['KioskBrowser/1.0', 'YourKioskApp'];
+if (!isset($_SESSION['kiosk_mode']) && isset($_SERVER['HTTP_USER_AGENT'])) {
+    foreach ($kiosk_user_agents as $ua) {
+        if (stripos($_SERVER['HTTP_USER_AGENT'], $ua) !== false) {
+            $_SESSION['kiosk_mode'] = true;
+            break;
+        }
+    }
+}
+
+$kiosk_mode = $_SESSION['kiosk_mode'] ?? false;
+
+// If the logged-in user has role 'kiosk', force kiosk mode
+if (isset($_SESSION['role']) && $_SESSION['role'] === 'kiosk') {
+    $kiosk_mode = true;
+    $_SESSION['kiosk_mode'] = true;
+}
+
+// If we are in kiosk mode but not logged in, redirect to normal login
+if ($kiosk_mode && !isset($_SESSION['user_id'])) {
+    header('Location: ' . normal_url('/auth/login.php'));
+    exit;
 }
 
 } // end if (!function_exists('kiosk_url'))
