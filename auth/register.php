@@ -186,12 +186,13 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 <script>
     // Replace with your Firebase config
     const firebaseConfig = {
-        apiKey: "YOUR_API_KEY",
-        authDomain: "YOUR_AUTH_DOMAIN",
-        projectId: "YOUR_PROJECT_ID",
-        storageBucket: "YOUR_STORAGE_BUCKET",
-        messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
-        appId: "YOUR_APP_ID"
+      apiKey: "AIzaSyBSOFZGNOq83FiBZHZgBjNFu1wcuBLtQUU",
+      authDomain: "tamccdeli-b01f0.firebaseapp.com",
+      projectId: "tamccdeli-b01f0",
+      storageBucket: "tamccdeli-b01f0.firebasestorage.app",
+      messagingSenderId: "187179883843",
+      appId: "1:187179883843:web:555216aa5ef51e1d65e3f6",
+      measurementId: "G-LW6LH9MQT8"
     };
     firebase.initializeApp(firebaseConfig);
     const auth = firebase.auth();
