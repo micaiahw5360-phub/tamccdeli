@@ -1,16 +1,13 @@
 const CACHE_NAME = 'tamcc-deli-v2';
 const urlsToCache = [
-  '/',
-  '/index.php',
-  '/menu.php',
-  '/cart.php',
+  '/offline.html',
   '/assets/css/global.css',
   '/assets/css/kiosk.css',
   '/assets/js/script.js',
+  '/assets/js/kiosk.js',
   'https://cdn.jsdelivr.net/gh/WordPress/WordPress@master/wp-includes/css/dashicons.min.css',
   '/assets/images/ta-logo-1536x512.png',
-  '/assets/images/About-Us.png',
-  '/offline.html' // we'll create this page
+  '/assets/images/About-Us.png'
 ];
 
 // Install event – cache static assets

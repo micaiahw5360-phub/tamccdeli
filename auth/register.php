@@ -3,10 +3,13 @@ require __DIR__ . '/../includes/session.php';
 require __DIR__ . '/../config/database.php';
 require __DIR__ . '/../includes/csrf.php';
 require_once __DIR__ . '/../includes/kiosk.php';
+require_once __DIR__ . '/../includes/mail.php';
+require_once __DIR__ . '/../includes/firebase.php';
 
 $error = "";
 $prefill_email = $_POST['email'] ?? $_GET['email'] ?? '';
 $prefill_username = $_POST['username'] ?? '';
+$prefill_phone = $_POST['phone'] ?? '';
 
 if ($_SERVER["REQUEST_METHOD"] === "POST") {
     if (!validateToken($_POST['csrf_token'])) {
@@ -15,39 +18,80 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 
     $username = trim($_POST['username']);
     $email = trim($_POST['email']);
+    $phone = preg_replace('/[^0-9+]/', '', trim($_POST['phone']));
     $password = $_POST['password'];
+    $firebase_id_token = $_POST['firebase_id_token'] ?? '';
+    $phone_verified_flag = $_POST['phone_verified'] ?? '0';
 
     // Validate input
     if (strlen($username) < 4) {
         $error = "Username must be at least 4 characters.";
     } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
         $error = "Invalid email address.";
+    } elseif (!preg_match('/^\+?[0-9]{7,15}$/', $phone)) {
+        $error = "Invalid phone number (use international format, e.g., +14735551234).";
     } elseif (strlen($password) < 12) {
         $error = "Password must be at least 12 characters.";
+    } elseif ($phone_verified_flag !== '1' || empty($firebase_id_token)) {
+        $error = "Please verify your phone number first.";
     } else {
-        // Check if email already exists
-        $stmt = $conn->prepare("SELECT id FROM users WHERE email = ?");
-        $stmt->bind_param("s", $email);
-        $stmt->execute();
-        if ($stmt->get_result()->num_rows > 0) {
-            $error = "An account with this email already exists. <a href='login.php'>Login</a> instead.";
+        // Verify Firebase token
+        $verification = FirebaseAuth::verifyIdToken($firebase_id_token);
+        if (!$verification['success'] || $verification['phone_number'] !== $phone) {
+            $error = "Phone verification failed. Please try again.";
         } else {
-            // Check if username already exists
-            $stmt = $conn->prepare("SELECT id FROM users WHERE username = ?");
-            $stmt->bind_param("s", $username);
+            // Check existing email
+            $stmt = $conn->prepare("SELECT id FROM users WHERE email = ?");
+            $stmt->bind_param("s", $email);
             $stmt->execute();
             if ($stmt->get_result()->num_rows > 0) {
-                $error = "Username already taken. Please choose another.";
+                $error = "An account with this email already exists. <a href='login.php'>Login</a> instead.";
             } else {
-                // All good – create user
-                $hash = password_hash($password, PASSWORD_DEFAULT);
-                $stmt = $conn->prepare("INSERT INTO users (username, email, password) VALUES (?, ?, ?)");
-                $stmt->bind_param("sss", $username, $email, $hash);
-                if ($stmt->execute()) {
-                    header("Location: login.php");
-                    exit;
+                // Check existing username
+                $stmt = $conn->prepare("SELECT id FROM users WHERE username = ?");
+                $stmt->bind_param("s", $username);
+                $stmt->execute();
+                if ($stmt->get_result()->num_rows > 0) {
+                    $error = "Username already taken. Please choose another.";
                 } else {
-                    $error = "Registration failed. Please try again.";
+                    // Check existing phone
+                    $stmt = $conn->prepare("SELECT id FROM users WHERE phone = ?");
+                    $stmt->bind_param("s", $phone);
+                    $stmt->execute();
+                    if ($stmt->get_result()->num_rows > 0) {
+                        $error = "Phone number already registered.";
+                    } else {
+                        // Create user (phone verified via Firebase)
+                        $hash = password_hash($password, PASSWORD_DEFAULT);
+                        $firebase_uid = $verification['uid'];
+                        $stmt = $conn->prepare("INSERT INTO users (username, email, phone, password, firebase_uid, phone_verified, email_verified) VALUES (?, ?, ?, ?, ?, 1, 0)");
+                        $stmt->bind_param("sssss", $username, $email, $phone, $hash, $firebase_uid);
+                        if ($stmt->execute()) {
+                            $user_id = $conn->insert_id;
+                            
+                            // Send email verification code
+                            $email_code = rand(100000, 999999);
+                            $expires = date('Y-m-d H:i:s', strtotime('+15 minutes'));
+                            $stmt = $conn->prepare("INSERT INTO email_verifications (email, code, expires_at) VALUES (?, ?, ?)");
+                            $stmt->bind_param("sss", $email, $email_code, $expires);
+                            $stmt->execute();
+                            
+                            $subject = "Verify Your Email - TAMCC Deli";
+                            $body = "<h2>Email Verification</h2>
+                                     <p>Your verification code is: <strong>$email_code</strong></p>
+                                     <p>Enter this code on the verification page to activate your account.</p>
+                                     <p>Code expires in 15 minutes.</p>";
+                            sendEmail($email, $subject, $body);
+                            
+                            $_SESSION['pending_verification_user_id'] = $user_id;
+                            $_SESSION['pending_verification_email'] = $email;
+                            
+                            header("Location: verify-account.php");
+                            exit;
+                        } else {
+                            $error = "Registration failed. Please try again.";
+                        }
+                    }
                 }
             }
         }
@@ -61,177 +105,153 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Register | TAMCC Deli</title>
     <link rel="stylesheet" href="../assets/css/global.css">
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
     <style>
-        /* Styles identical to login page – kept for consistency */
-        .auth-card {
-            width: 100%;
-            max-width: 400px;
-            background: white;
-            border-radius: var(--radius-lg);
-            padding: 2rem;
-            box-shadow: var(--shadow-lg);
-            border-top: 4px solid var(--primary-600);
-            transition: transform 0.2s;
-        }
-        .auth-card:hover {
-            transform: translateY(-2px);
-        }
-        .brand-icon {
-            text-align: center;
-            font-size: 3rem;
-            margin-bottom: 0.5rem;
-        }
-        .auth-card h2 {
-            text-align: center;
-            margin-bottom: 1rem;
-            font-size: 1.8rem;
-            font-weight: 700;
-            color: var(--neutral-800);
-        }
-        .sub-title {
-            text-align: center;
-            font-size: 0.85rem;
-            color: var(--neutral-600);
-            margin-bottom: 1.5rem;
-        }
-        .form-group {
-            margin-bottom: 1rem;
-        }
-        .form-group label {
-            display: block;
-            margin-bottom: 0.5rem;
-            font-weight: 600;
-            color: var(--neutral-700);
-        }
-        .form-group input {
-            width: 100%;
-            padding: 0.75rem;
-            border: 1.5px solid var(--neutral-300);
-            border-radius: var(--radius);
-            font-size: 1rem;
-            transition: var(--transition);
-        }
-        .form-group input:focus {
-            border-color: var(--primary-600);
-            outline: none;
-            box-shadow: 0 0 0 3px rgba(7,74,242,0.1);
-        }
-        .btn-block {
-            width: 100%;
-            padding: 0.75rem;
-            font-size: 1.1rem;
-            border-radius: 2rem;
-            font-weight: 600;
-            margin-top: 0.5rem;
-        }
-        .social-login {
-            margin-top: 1.5rem;
-            display: flex;
-            flex-direction: column;
-            gap: 1rem;
-        }
-        .btn-outline {
-            background: transparent;
-            border: 1px solid var(--neutral-300);
-            color: var(--neutral-700);
-            box-shadow: none;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 0.5rem;
-            width: 100%;
-            padding: 0.75rem;
-            border-radius: 2rem;
-            text-decoration: none;
-            transition: all 0.2s;
-        }
-        .btn-outline:hover {
-            background: var(--neutral-100);
-            border-color: var(--primary-600);
-            color: var(--primary-600);
-        }
-        .auth-footer {
-            text-align: center;
-            margin-top: 1.5rem;
-            font-size: 0.9rem;
-            color: var(--neutral-600);
-        }
-        .auth-footer a {
-            color: var(--primary-600);
-            text-decoration: none;
-            font-weight: 600;
-        }
-        .auth-footer a:hover {
-            text-decoration: underline;
-        }
-        hr {
-            margin: 1.5rem 0;
-            border: none;
-            border-top: 1px solid var(--neutral-200);
-        }
-        .error-message {
-            background: #fee2e2;
-            color: #dc2626;
-            padding: 0.75rem;
-            border-radius: var(--radius);
-            margin-bottom: 1rem;
-            text-align: center;
-            border-left: 3px solid #dc2626;
-        }
+        .auth-card { max-width: 450px; margin: 0 auto; background: white; border-radius: var(--radius-lg); padding: 2rem; box-shadow: var(--shadow-lg); border-top: 4px solid var(--primary-600); }
+        .brand-icon { text-align: center; font-size: 3rem; }
+        .auth-card h2 { text-align: center; margin-bottom: 1rem; }
+        .sub-title { text-align: center; font-size: 0.85rem; color: var(--neutral-600); margin-bottom: 1.5rem; }
+        .form-group { margin-bottom: 1rem; position: relative; }
+        .form-group label { display: block; margin-bottom: 0.5rem; font-weight: 600; }
+        .form-group input { width: 100%; padding: 0.75rem; border: 1.5px solid var(--neutral-300); border-radius: var(--radius); font-size: 1rem; }
+        .form-group input:focus { border-color: var(--primary-600); outline: none; box-shadow: 0 0 0 3px rgba(7,74,242,0.1); }
+        .password-toggle { position: absolute; right: 12px; top: 42px; cursor: pointer; color: var(--neutral-500); }
+        .btn-block { width: 100%; padding: 0.75rem; font-size: 1.1rem; border-radius: 2rem; margin-top: 0.5rem; }
+        .btn-secondary { background: var(--neutral-600); }
+        .phone-verification { background: var(--neutral-50); padding: 1rem; border-radius: var(--radius); margin-bottom: 1rem; }
+        .verification-status { margin-top: 0.5rem; font-size: 0.85rem; }
+        .verification-status.verified { color: var(--success); }
+        .verification-status.pending { color: var(--warning); }
+        .auth-footer { text-align: center; margin-top: 1.5rem; font-size: 0.9rem; }
+        .auth-footer a { color: var(--primary-600); text-decoration: none; font-weight: 600; }
+        .error-message { background: #fee2e2; color: #dc2626; padding: 0.75rem; border-radius: var(--radius); margin-bottom: 1rem; text-align: center; border-left: 3px solid #dc2626; }
+        hr { margin: 1.5rem 0; border: none; border-top: 1px solid var(--neutral-200); }
     </style>
 </head>
 <body>
-    <div class="auth-container">
-        <div class="auth-card">
-            <div class="brand-icon">🍽️</div>
-            <h2>Create an Account</h2>
-            <div class="sub-title">Join TAMCC Deli for fresh, affordable meals on campus</div>
+<div class="auth-container">
+    <div class="auth-card">
+        <div class="brand-icon">📝</div>
+        <h2>Create an Account</h2>
+        <div class="sub-title">Join TAMCC Deli – verify your email and phone</div>
 
-            <?php if ($error): ?>
-                <div class="error-message"><?= $error ?></div>
-            <?php endif; ?>
+        <?php if ($error): ?>
+            <div class="error-message"><?= $error ?></div>
+        <?php endif; ?>
 
-            <form method="POST">
-                <input type="hidden" name="csrf_token" value="<?= generateToken() ?>">
-                <div class="form-group">
-                    <label for="username">Username</label>
-                    <input type="text" id="username" name="username" value="<?= htmlspecialchars($prefill_username) ?>" placeholder="Choose a username" required>
-                </div>
-                <div class="form-group">
-                    <label for="email">Email</label>
-                    <input type="email" id="email" name="email" value="<?= htmlspecialchars($prefill_email) ?>" placeholder="Enter your email" required>
-                </div>
-                <div class="form-group">
-                    <label for="password">Password</label>
-                    <input type="password" id="password" name="password" placeholder="At least 12 characters" required>
-                </div>
-                <button type="submit" class="btn btn-primary btn-block">Create account</button>
-            </form>
-
-            <div class="auth-footer">
-                Already have an account? <a href="login.php">Log in</a>
+        <form method="POST" id="registerForm">
+            <input type="hidden" name="csrf_token" value="<?= generateToken() ?>">
+            <input type="hidden" name="firebase_id_token" id="firebase_id_token" value="">
+            <input type="hidden" name="phone_verified" id="phone_verified" value="0">
+            <div class="form-group">
+                <label for="username">Username</label>
+                <input type="text" id="username" name="username" value="<?= htmlspecialchars($prefill_username) ?>" required>
             </div>
-
-            <hr>
-
-            <div class="social-login">
-                <a href="google-login.php" class="btn-outline">
-                    <svg stroke="currentColor" fill="currentColor" stroke-width="0" version="1.1" viewBox="0 0 48 48" height="18" width="18" xmlns="http://www.w3.org/2000/svg">
-                        <path fill="#FFC107" d="M43.611,20.083H42V20H24v8h11.303c-1.649,4.657-6.08,8-11.303,8c-6.627,0-12-5.373-12-12c0-6.627,5.373-12,12-12c3.059,0,5.842,1.154,7.961,3.039l5.657-5.657C34.046,6.053,29.268,4,24,4C12.955,4,4,12.955,4,24c0,11.045,8.955,20,20,20c11.045,0,20-8.955,20-20C44,22.659,43.862,21.35,43.611,20.083z"></path>
-                        <path fill="#FF3D00" d="M6.306,14.691l6.571,4.819C14.655,15.108,18.961,12,24,12c3.059,0,5.842,1.154,7.961,3.039l5.657-5.657C34.046,6.053,29.268,4,24,4C16.318,4,9.656,8.337,6.306,14.691z"></path>
-                        <path fill="#4CAF50" d="M24,44c5.166,0,9.86-1.977,13.409-5.192l-6.19-5.238C29.211,35.091,26.715,36,24,36c-5.202,0-9.619-3.317-11.283-7.946l-6.522,5.025C9.505,39.556,16.227,44,24,44z"></path>
-                        <path fill="#1976D2" d="M43.611,20.083H42V20H24v8h11.303c-0.792,2.237-2.231,4.166-4.087,5.571c0.001-0.001,0.002-0.001,0.003-0.002l6.19,5.238C36.971,39.205,44,34,44,24C44,22.659,43.862,21.35,43.611,20.083z"></path>
-                    </svg>
-                    Continue with Google
-                </a>
-                <a href="apple-login.php" class="btn-outline">
-                    <svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 1024 1024" height="18" width="18" xmlns="http://www.w3.org/2000/svg">
-                        <path d="M747.4 535.7c-.4-68.2 30.5-119.6 92.9-157.5-34.9-50-87.7-77.5-157.3-82.8-65.9-5.2-138 38.4-164.4 38.4-27.9 0-91.7-36.6-141.9-36.6C273.1 298.8 163 379.8 163 544.6c0 48.7 8.9 99 26.7 150.8 23.8 68.2 109.6 235.3 199.1 232.6 46.8-1.1 79.9-33.2 140.8-33.2 59.1 0 89.7 33.2 141.9 33.2 90.3-1.3 167.9-153.2 190.5-221.6-121.1-57.1-114.6-167.2-114.6-170.7zm-105.1-305c50.7-60.2 46.1-115 44.6-134.7-44.8 2.6-96.6 30.5-126.1 64.8-32.5 36.8-51.6 82.3-47.5 133.6 48.4 3.7 92.6-21.2 129-63.7z"></path>
-                    </svg>
-                    Continue with Apple
-                </a>
+            <div class="form-group">
+                <label for="email">Email</label>
+                <input type="email" id="email" name="email" value="<?= htmlspecialchars($prefill_email) ?>" required>
             </div>
+            
+            <!-- Phone verification section -->
+            <div class="phone-verification">
+                <div class="form-group">
+                    <label for="phone">Phone Number (with country code)</label>
+                    <input type="tel" id="phone" name="phone" value="<?= htmlspecialchars($prefill_phone) ?>" placeholder="+14735551234" required>
+                </div>
+                <button type="button" id="sendSmsBtn" class="btn btn-secondary btn-block">Send Verification Code</button>
+                <div id="codeSection" style="display:none;">
+                    <div class="form-group" style="margin-top: 1rem;">
+                        <label for="smsCode">Verification Code</label>
+                        <input type="text" id="smsCode" placeholder="Enter 6-digit code">
+                    </div>
+                    <button type="button" id="verifyCodeBtn" class="btn btn-primary btn-block">Verify Code</button>
+                </div>
+                <div id="verification-status" class="verification-status" style="display:none;"></div>
+            </div>
+            
+            <div class="form-group">
+                <label for="password">Password</label>
+                <input type="password" id="password" name="password" required>
+                <span class="password-toggle" onclick="togglePassword('password')">👁️</span>
+            </div>
+            <button type="submit" class="btn btn-primary btn-block" id="submitBtn" disabled>Register & Verify</button>
+        </form>
+        <div class="auth-footer">
+            Already have an account? <a href="login.php">Log in</a>
         </div>
     </div>
+</div>
+
+<script>
+    // Replace with your Firebase config
+    const firebaseConfig = {
+        apiKey: "YOUR_API_KEY",
+        authDomain: "YOUR_AUTH_DOMAIN",
+        projectId: "YOUR_PROJECT_ID",
+        storageBucket: "YOUR_STORAGE_BUCKET",
+        messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
+        appId: "YOUR_APP_ID"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+    let confirmationResult = null;
+
+    function togglePassword(id) {
+        const field = document.getElementById(id);
+        field.type = field.type === 'password' ? 'text' : 'password';
+    }
+
+    document.getElementById('sendSmsBtn').addEventListener('click', async function() {
+        const phone = document.getElementById('phone').value.trim();
+        if (!phone) { alert('Please enter phone number'); return; }
+        if (!phone.match(/^\+?[0-9]{7,15}$/)) {
+            alert('Use international format, e.g., +14735551234');
+            return;
+        }
+        const btn = this;
+        btn.disabled = true;
+        btn.textContent = 'Sending...';
+        try {
+            const appVerifier = new firebase.auth.RecaptchaVerifier('sendSmsBtn', { size: 'invisible' });
+            confirmationResult = await auth.signInWithPhoneNumber(phone, appVerifier);
+            document.getElementById('codeSection').style.display = 'block';
+            document.getElementById('verification-status').style.display = 'block';
+            document.getElementById('verification-status').textContent = 'Code sent! Check your SMS.';
+            document.getElementById('verification-status').className = 'verification-status pending';
+        } catch (error) {
+            alert('Failed to send code: ' + error.message);
+        } finally {
+            btn.disabled = false;
+            btn.textContent = 'Send Verification Code';
+        }
+    });
+
+    document.getElementById('verifyCodeBtn').addEventListener('click', async function() {
+        const code = document.getElementById('smsCode').value.trim();
+        if (!code) { alert('Please enter verification code'); return; }
+        if (!confirmationResult) { alert('Request a code first'); return; }
+        const btn = this;
+        btn.disabled = true;
+        btn.textContent = 'Verifying...';
+        try {
+            const result = await confirmationResult.confirm(code);
+            const idToken = await result.user.getIdToken();
+            document.getElementById('firebase_id_token').value = idToken;
+            document.getElementById('phone_verified').value = '1';
+            document.getElementById('submitBtn').disabled = false;
+            document.getElementById('verification-status').textContent = '✓ Phone verified!';
+            document.getElementById('verification-status').className = 'verification-status verified';
+        } catch (error) {
+            alert('Invalid code: ' + error.message);
+            document.getElementById('phone_verified').value = '0';
+            document.getElementById('submitBtn').disabled = true;
+            document.getElementById('verification-status').textContent = 'Verification failed. Try again.';
+        } finally {
+            btn.disabled = false;
+            btn.textContent = 'Verify Code';
+        }
+    });
+</script>
 </body>
 </html>

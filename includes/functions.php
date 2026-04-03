@@ -40,20 +40,6 @@ if (!function_exists('getOptionDetails')) {
     }
 }
 
-if (!function_exists('buildOrderEmail')) {
-    function buildOrderEmail($order_id, $total, $net_total, $payment_method, $pickup_time, $instructions) {
-        $subject = "Order Confirmation #$order_id";
-        $body = "<h2>Thank you for your order!</h2>
-                 <p>Your order #$order_id has been placed successfully.</p>
-                 <p><strong>Total Paid:</strong> $" . number_format($net_total, 2) . "</p>
-                 <p><strong>Payment Method:</strong> " . ucfirst($payment_method) . "</p>
-                 <p><strong>Pickup Time:</strong> " . ($pickup_time ? date('M j, Y g:i a', strtotime($pickup_time)) : 'As soon as possible') . "</p>
-                 <p><strong>Special Instructions:</strong> " . nl2br(htmlspecialchars($instructions)) . "</p>
-                 <p>You can view your order details in your dashboard.</p>";
-        return ['subject' => $subject, 'body' => $body];
-    }
-}
-
 function getCartCount() {
     $count = 0;
     if (isset($_SESSION['cart']) && is_array($_SESSION['cart'])) {
@@ -132,3 +118,4 @@ function clearMenuCache() {
     }
     Cache::delete('popular_items');
 }
+?>

@@ -19,7 +19,7 @@ echo '<script>var kioskMode = ' . ($kiosk_mode ? 'true' : 'false') . ';</script>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?php echo isset($page_title) ? $page_title : 'TAMCC Deli'; ?></title>
     <link rel="manifest" href="/manifest.json">
-    <meta http-equiv="Content-Security-Policy" content="default-src * 'unsafe-inline' 'unsafe-eval'; script-src * 'unsafe-inline' 'unsafe-eval'; style-src * 'unsafe-inline'; img-src * data:; font-src * data:;">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://js.stripe.com https://www.gstatic.com https://www.googleapis.com; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; img-src 'self' data: https://images.unsplash.com https://www.tamcc.edu.gd; font-src 'self' data:; connect-src 'self' https://api.resend.com https://api.stripe.com https://www.googleapis.com;">
     <link rel="stylesheet" href="/assets/css/global.css">
     <?php if ($kiosk_mode): ?>
         <link rel="stylesheet" href="/assets/css/kiosk.css">

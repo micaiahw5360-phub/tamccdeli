@@ -15,3 +15,4 @@ function log_security_event($user_id, $action, $details = null) {
     $stmt->bind_param("isss", $user_id, $action, $details, $ip);
     $stmt->execute();
 }
+?>

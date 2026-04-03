@@ -63,14 +63,19 @@ foreach ($cart as $key => $entry) {
 
 $user_id = $_SESSION['user_id'] ?? null;
 $user_balance = 0;
+$user_name = '';
 if ($user_id) {
-    $stmt = $conn->prepare("SELECT balance FROM users WHERE id = ?");
+    $stmt = $conn->prepare("SELECT username, balance FROM users WHERE id = ?");
     $stmt->bind_param("i", $user_id);
     $stmt->execute();
-    $user_balance = $stmt->get_result()->fetch_assoc()['balance'] ?? 0;
+    $user = $stmt->get_result()->fetch_assoc();
+    $user_balance = $user['balance'] ?? 0;
+    $user_name = $user['username'] ?? '';
 }
 
 $error = '';
+$show_account_panel = ($kiosk_mode && !$user_id); // Show email lookup in kiosk mode for guests
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!validateToken($_POST['csrf_token'])) die('Invalid CSRF token');
 
@@ -78,19 +83,33 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $instructions = trim($_POST['instructions']);
     $payment_method = $_POST['payment_method'];
 
-    $user_id = $_SESSION['user_id'] ?? null;
+    // For kiosk mode with account lookup: we may have a temporary user_id from the AJAX lookup
+    $temp_user_id = $_POST['temp_user_id'] ?? null;
     $guest_email = null;
+
+    if ($kiosk_mode && !$user_id && $temp_user_id) {
+        // User identified via email in kiosk mode – use that account
+        $user_id = intval($temp_user_id);
+        // Fetch balance again for this user
+        $stmt = $conn->prepare("SELECT balance FROM users WHERE id = ?");
+        $stmt->bind_param("i", $user_id);
+        $stmt->execute();
+        $user_balance = $stmt->get_result()->fetch_assoc()['balance'] ?? 0;
+    }
+
     if (!$user_id) {
+        // Guest checkout (no account)
         if ($payment_method !== 'cash') {
-            $error = "Guests can only pay with cash on pickup.";
+            $error = "Guests can only pay with cash on pickup. Please create an account or log in to use wallet/card.";
         }
-        $guest_email = trim($_POST['guest_email']);
+        $guest_email = trim($_POST['guest_email'] ?? '');
         if (!filter_var($guest_email, FILTER_VALIDATE_EMAIL)) {
             $error = "Valid email required for guest checkout.";
         }
     } else {
+        // Logged-in user or identified kiosk user
         if ($payment_method === 'wallet' && $user_balance < $total) {
-            $error = "Insufficient wallet balance.";
+            $error = "Insufficient wallet balance. Please choose another payment method.";
         }
     }
 
@@ -116,6 +135,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $update->bind_param("di", $new_balance, $user_id);
                 $update->execute();
 
+                $description = "Order #$order_id payment";
                 $trans = $conn->prepare("INSERT INTO transactions (user_id, amount, type, description, order_id) VALUES (?, ?, 'payment', ?, ?)");
                 $trans->bind_param("idsi", $user_id, $total, $description, $order_id);
                 $trans->execute();
@@ -127,10 +147,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             $conn->commit();
 
-            $email = buildOrderEmail($order_id, $total, $total, $payment_method, $pickup_time, $instructions);
-            $subject = $email['subject'];
-            $body = $email['body'];
-
+            // Prepare email recipient
             if ($user_id) {
                 $email_stmt = $conn->prepare("SELECT email FROM users WHERE id = ?");
                 $email_stmt->bind_param("i", $user_id);
@@ -141,6 +158,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $to = $guest_email;
             }
 
+            // Online payment: redirect to Stripe
             if ($payment_method === 'online') {
                 Stripe::setApiKey(getenv('STRIPE_SECRET_KEY'));
                 $intent = PaymentIntent::create([
@@ -156,7 +174,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 exit;
             }
 
+            // Wallet or cash: clear cart, send email, redirect
             $_SESSION['cart'] = [];
+
+            $emailData = buildOrderEmail($order_id, $total, $payment_method, $pickup_time, $instructions);
+            if ($to) {
+                ignore_user_abort(true);
+                sendEmail($to, $emailData['subject'], $emailData['body']);
+            }
 
             if (!$user_id) {
                 $_SESSION['guest_order'] = $order_id;
@@ -171,11 +196,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             header("Location: $redirect");
             ob_end_flush();
             flush();
-
-            if ($to) {
-                ignore_user_abort(true);
-                sendEmail($to, $subject, $body);
-            }
             exit;
 
         } catch (Exception $e) {
@@ -196,6 +216,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         .btn.loading .btn-text { display: none; }
         .btn.loading .loading { display: inline-block; }
         .option-list { margin: 0; padding-left: 1rem; font-size: 0.9rem; }
+        .account-info { background: #f8f9fa; padding: 1rem; border-radius: 8px; margin-bottom: 1.5rem; }
+        .wallet-balance { font-size: 1.2rem; font-weight: bold; color: #28a745; }
+        .payment-options { margin-top: 1rem; }
+        .payment-option { margin-bottom: 0.5rem; }
     </style>
 </head>
 <body>
@@ -236,8 +260,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         <form method="POST" id="checkout-form">
             <input type="hidden" name="csrf_token" value="<?= generateToken() ?>">
+            <input type="hidden" name="temp_user_id" id="temp_user_id" value="">
 
-            <?php if (!isset($_SESSION['user_id'])): ?>
+            <?php if ($show_account_panel): ?>
+                <!-- Kiosk mode: prompt for email to connect to wallet/card -->
+                <div class="account-info" id="account-info">
+                    <div class="form-group">
+                        <label for="account_email">Your Email (to use wallet or card)</label>
+                        <input type="email" id="account_email" name="account_email" placeholder="student@tamcc.edu.gd">
+                        <small>If you have an account, you can pay with wallet or card. Otherwise, use cash below.</small>
+                    </div>
+                    <div id="account-details" style="display: none;">
+                        <p><strong>Welcome, <span id="account_name"></span>!</strong></p>
+                        <p>Wallet Balance: <span id="account_balance" class="wallet-balance">$0.00</span></p>
+                    </div>
+                </div>
+            <?php endif; ?>
+
+            <?php if (!isset($_SESSION['user_id']) && !$show_account_panel): ?>
+                <!-- Guest checkout (non-kiosk) -->
                 <div class="form-group">
                     <label for="guest_email">Your Email (for order confirmation)</label>
                     <input type="email" id="guest_email" name="guest_email" required>
@@ -255,9 +296,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             <div class="form-group">
                 <label>Payment Method</label>
-                <select name="payment_method" required>
+                <select name="payment_method" id="payment_method" required>
                     <option value="cash">Cash on Pickup</option>
-                    <?php if (isset($_SESSION['user_id'])): ?>
+                    <?php if ($user_id): ?>
                         <option value="wallet">Wallet Balance ($<?= number_format($user_balance, 2) ?>)</option>
                         <option value="online">Online Payment (Card)</option>
                     <?php endif; ?>
@@ -271,6 +312,57 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <a href="<?= kiosk_url('cart.php') ?>" class="btn">Return to Cart</a>
         </form>
     </div>
+
+    <?php if ($show_account_panel): ?>
+    <script>
+        const emailInput = document.getElementById('account_email');
+        const accountDetails = document.getElementById('account-details');
+        const accountNameSpan = document.getElementById('account_name');
+        const accountBalanceSpan = document.getElementById('account_balance');
+        const paymentMethodSelect = document.getElementById('payment_method');
+        const tempUserIdInput = document.getElementById('temp_user_id');
+        let timeout;
+
+        emailInput.addEventListener('input', function() {
+            clearTimeout(timeout);
+            timeout = setTimeout(() => {
+                const email = this.value.trim();
+                if (email && email.includes('@')) {
+                    fetch('<?= kiosk_url('/kiosk/get-user.php') ?>?email=' + encodeURIComponent(email))
+                        .then(r => r.json())
+                        .then(data => {
+                            if (data.success) {
+                                accountDetails.style.display = 'block';
+                                accountNameSpan.textContent = data.name;
+                                accountBalanceSpan.textContent = '$' + data.balance.toFixed(2);
+                                tempUserIdInput.value = data.id;
+                                // Update payment options
+                                paymentMethodSelect.innerHTML = '<option value="cash">Cash on Pickup</option>';
+                                if (data.balance >= <?= $total ?>) {
+                                    paymentMethodSelect.innerHTML += '<option value="wallet">Wallet Balance ($' + data.balance.toFixed(2) + ')</option>';
+                                }
+                                paymentMethodSelect.innerHTML += '<option value="online">Online Payment (Card)</option>';
+                            } else {
+                                accountDetails.style.display = 'none';
+                                tempUserIdInput.value = '';
+                                paymentMethodSelect.innerHTML = '<option value="cash">Cash on Pickup</option>';
+                                alert('Account not found. Please register or continue with cash.');
+                            }
+                        })
+                        .catch(() => {
+                            accountDetails.style.display = 'none';
+                            tempUserIdInput.value = '';
+                            paymentMethodSelect.innerHTML = '<option value="cash">Cash on Pickup</option>';
+                        });
+                } else {
+                    accountDetails.style.display = 'none';
+                    tempUserIdInput.value = '';
+                    paymentMethodSelect.innerHTML = '<option value="cash">Cash on Pickup</option>';
+                }
+            }, 500);
+        });
+    </script>
+    <?php endif; ?>
 
     <script>
         document.getElementById('checkout-form').addEventListener('submit', function() {

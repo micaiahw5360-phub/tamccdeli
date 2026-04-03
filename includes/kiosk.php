@@ -86,10 +86,7 @@ if (isset($_SESSION['role']) && $_SESSION['role'] === 'kiosk') {
     $_SESSION['kiosk_mode'] = true;
 }
 
-// If we are in kiosk mode but not logged in, redirect to normal login
-if ($kiosk_mode && !isset($_SESSION['user_id'])) {
-    header('Location: ' . normal_url('/auth/login.php'));
-    exit;
-}
+// ========== REMOVED THE LOGIN REDIRECT – KIOSK NOW WORKS FOR GUESTS ==========
+// Guests can use the kiosk without logging in (cash or card payments only)
 
 } // end if (!function_exists('kiosk_url'))

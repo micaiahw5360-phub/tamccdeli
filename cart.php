@@ -3,13 +3,10 @@ require __DIR__ . '/includes/session.php';
 require 'config/database.php';
 require 'includes/csrf.php';
 require_once __DIR__ . '/includes/kiosk.php';
-require 'includes/functions.php'; // new shared helper file
+require 'includes/functions.php';
 
-
-// --- AJAX Add to Cart handler (must be first) ---
+// ========== AJAX Add to Cart Handler (MUST BE FIRST) ==========
 if (isset($_GET['action']) && $_GET['action'] === 'add' && $_SERVER['REQUEST_METHOD'] === 'POST') {
-    require __DIR__ . '/includes/session.php';
-    require __DIR__ . '/includes/csrf.php';
     header('Content-Type: application/json');
     
     if (!validateToken($_POST['csrf_token'] ?? '')) {
@@ -49,13 +46,14 @@ if (isset($_GET['action']) && $_GET['action'] === 'add' && $_SERVER['REQUEST_MET
     exit;
 }
 
-// ... the rest of your existing cart.php code (session, database, HTML, etc.) ...
-// Initialize cart if not exists (new structure)
+// ========== Rest of cart.php ==========
+
+// Initialize cart if not exists
 if (!isset($_SESSION['cart'])) {
     $_SESSION['cart'] = [];
 }
 
-// Helper function to get option value details (for display) – kept as is (not moved)
+// Helper function to get option value details
 function getOptionDetails($conn, $optionValues) {
     if (empty($optionValues)) return [];
     $ids = array_values($optionValues);
@@ -66,60 +64,6 @@ function getOptionDetails($conn, $optionValues) {
     $stmt->bind_param(str_repeat('i', count($ids)), ...$ids);
     $stmt->execute();
     return $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
-}
-
-// --- AJAX Add to Cart handler (new) ---
-if (isset($_GET['action']) && $_GET['action'] === 'add' && $_SERVER['REQUEST_METHOD'] === 'POST') {
-    // Validate CSRF token (if present in form)
-    if (!validateToken($_POST['csrf_token'] ?? '')) {
-        if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) == 'xmlhttprequest') {
-            echo json_encode(['success' => false, 'error' => 'Invalid CSRF']);
-            exit;
-        } else {
-            die('Invalid CSRF token');
-        }
-    }
-
-    $item_id = intval($_POST['item_id'] ?? 0);
-    $quantity = max(1, intval($_POST['quantity'] ?? 1));
-    $options = $_POST['options'] ?? []; // array of option_id => value_id
-
-    if (!$item_id) {
-        http_response_code(400);
-        echo json_encode(['success' => false, 'error' => 'Invalid item']);
-        exit;
-    }
-
-    // Generate a unique key for this item + options
-    $key = 'item_' . $item_id;
-    if (!empty($options)) {
-        ksort($options);
-        $key .= '_opt_' . implode('_', array_map(function($k, $v) { return $k . '-' . $v; }, array_keys($options), $options));
-    }
-
-    if (isset($_SESSION['cart'][$key])) {
-        $_SESSION['cart'][$key]['quantity'] += $quantity;
-    } else {
-        $_SESSION['cart'][$key] = [
-            'item_id' => $item_id,
-            'quantity' => $quantity,
-            'options' => $options
-        ];
-    }
-
-    // Return JSON response for AJAX
-    if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) == 'xmlhttprequest') {
-        header('Content-Type: application/json');
-        echo json_encode([
-            'success' => true,
-            'cart_count' => array_sum(array_column($_SESSION['cart'], 'quantity'))
-        ]);
-        exit;
-    }
-
-    // Fallback for non-AJAX (should not happen with our JS)
-    header('Location: ' . ($_SERVER['HTTP_REFERER'] ?? 'menu.php'));
-    exit;
 }
 
 // --- Handle Update Cart ---
@@ -166,7 +110,6 @@ if (isset($_POST['remove'])) {
 $cart_items = [];
 $total = 0;
 if (!empty($_SESSION['cart'])) {
-    // Get all distinct item IDs
     $item_ids = array_unique(array_column($_SESSION['cart'], 'item_id'));
     $items_data = [];
     if (!empty($item_ids)) {
@@ -180,30 +123,19 @@ if (!empty($_SESSION['cart'])) {
         }
     }
 
-    // Build cart items with options
     foreach ($_SESSION['cart'] as $key => $entry) {
         $item_id = $entry['item_id'];
-        if (!isset($items_data[$item_id])) continue; // item missing? skip
-
+        if (!isset($items_data[$item_id])) continue;
         $item = $items_data[$item_id];
         $quantity = $entry['quantity'];
         $options = $entry['options'] ?? [];
-
-        // Get option value details
-        $option_details = [];
-        if (!empty($options)) {
-            $option_details = getOptionDetails($conn, $options);
-        }
-
-        // Calculate price modifiers
-        $base_price = $item['price'];
+        $option_details = !empty($options) ? getOptionDetails($conn, $options) : [];
         $modifier_total = 0;
         foreach ($option_details as $opt) {
             $modifier_total += $opt['price_modifier'];
         }
-        $unit_price = $base_price + $modifier_total;
+        $unit_price = $item['price'] + $modifier_total;
         $subtotal = $unit_price * $quantity;
-
         $cart_items[] = [
             'key' => $key,
             'item' => $item,
@@ -246,22 +178,22 @@ if (!empty($_SESSION['cart'])) {
             <form method="post">
                 <input type="hidden" name="csrf_token" value="<?= generateToken() ?>">
                 <div class="table-responsive">
-                     <table>
+                    <table>
                         <thead>
-                             <tr>
+                            <tr>
                                 <th>Item</th>
                                 <th>Options</th>
                                 <th>Unit Price</th>
                                 <th>Quantity</th>
                                 <th>Subtotal</th>
                                 <th></th>
-                             </tr>
+                            </tr>
                         </thead>
                         <tbody>
                             <?php foreach ($cart_items as $cart_item): ?>
                             <tr>
-                                 <td><?= htmlspecialchars($cart_item['item']['name']) ?></td>
-                                 <td>
+                                <td><?= htmlspecialchars($cart_item['item']['name']) ?></td>
+                                <td>
                                     <?php if (!empty($cart_item['options'])): ?>
                                         <ul class="option-list">
                                             <?php foreach ($cart_item['options'] as $opt): ?>
@@ -273,23 +205,23 @@ if (!empty($_SESSION['cart'])) {
                                     <?php else: ?>
                                         —
                                     <?php endif; ?>
-                                 </td>
-                                 <td>$<?= number_format($cart_item['unit_price'], 2) ?></td>
-                                 <td>
+                                </td>
+                                <td>$<?= number_format($cart_item['unit_price'], 2) ?></td>
+                                <td>
                                     <input type="number" name="quantity[<?= $cart_item['key'] ?>]" value="<?= $cart_item['quantity'] ?>" min="0" max="10" style="width:60px;">
-                                 </td>
-                                 <td>$<?= number_format($cart_item['subtotal'], 2) ?></td>
-                                 <td>
+                                </td>
+                                <td>$<?= number_format($cart_item['subtotal'], 2) ?></td>
+                                <td>
                                     <form method="post" style="display:inline;">
                                         <input type="hidden" name="csrf_token" value="<?= generateToken() ?>">
                                         <input type="hidden" name="key" value="<?= $cart_item['key'] ?>">
                                         <button type="submit" name="remove" class="btn btn-danger btn-small">Remove</button>
                                     </form>
-                                 </td>
+                                </td>
                             </tr>
                             <?php endforeach; ?>
                         </tbody>
-                     </table>
+                    </table>
                 </div>
                 <div class="total">Total: $<?= number_format($total, 2) ?></div>
                 <button type="submit" name="update" class="btn">Update Cart</button>
