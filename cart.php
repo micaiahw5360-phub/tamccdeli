@@ -5,6 +5,51 @@ require 'includes/csrf.php';
 require_once __DIR__ . '/includes/kiosk.php';
 require 'includes/functions.php'; // new shared helper file
 
+
+// --- AJAX Add to Cart handler (must be first) ---
+if (isset($_GET['action']) && $_GET['action'] === 'add' && $_SERVER['REQUEST_METHOD'] === 'POST') {
+    require __DIR__ . '/includes/session.php';
+    require __DIR__ . '/includes/csrf.php';
+    header('Content-Type: application/json');
+    
+    if (!validateToken($_POST['csrf_token'] ?? '')) {
+        echo json_encode(['success' => false, 'error' => 'Invalid CSRF token']);
+        exit;
+    }
+    
+    $item_id = intval($_POST['item_id'] ?? 0);
+    $quantity = max(1, intval($_POST['quantity'] ?? 1));
+    $options = json_decode($_POST['options'] ?? '{}', true);
+    
+    if (!$item_id) {
+        echo json_encode(['success' => false, 'error' => 'Invalid item ID']);
+        exit;
+    }
+    
+    // Generate unique cart key
+    $key = 'item_' . $item_id;
+    if (!empty($options)) {
+        ksort($options);
+        $key .= '_opt_' . implode('_', array_map(function($k, $v) { return $k . '-' . $v; }, array_keys($options), $options));
+    }
+    
+    if (!isset($_SESSION['cart'])) $_SESSION['cart'] = [];
+    
+    if (isset($_SESSION['cart'][$key])) {
+        $_SESSION['cart'][$key]['quantity'] += $quantity;
+    } else {
+        $_SESSION['cart'][$key] = [
+            'item_id' => $item_id,
+            'quantity' => $quantity,
+            'options' => $options
+        ];
+    }
+    
+    echo json_encode(['success' => true, 'cart_count' => array_sum(array_column($_SESSION['cart'], 'quantity'))]);
+    exit;
+}
+
+// ... the rest of your existing cart.php code (session, database, HTML, etc.) ...
 // Initialize cart if not exists (new structure)
 if (!isset($_SESSION['cart'])) {
     $_SESSION['cart'] = [];

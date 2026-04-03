@@ -6,14 +6,10 @@ require __DIR__ . '/../includes/functions.php';
 
 $kiosk_mode = true;
 
-// Greeting based on time
 $hour = date('H');
 if ($hour < 12) $greeting = "Good Morning";
 elseif ($hour < 18) $greeting = "Good Afternoon";
 else $greeting = "Good Evening";
-
-// Fetch a few popular items for display (optional)
-$popular_items = getPopularItems($conn, 3);
 
 $page_title = "TAMCC Deli Kiosk";
 ?>
@@ -26,11 +22,12 @@ $page_title = "TAMCC Deli Kiosk";
     <link rel="stylesheet" href="/assets/css/global.css">
     <link rel="stylesheet" href="/assets/css/kiosk.css">
     <style>
-        /* Additional inline styles for the landing page (keeps everything in one file) */
         .hero-landing {
             text-align: center;
             padding: var(--space-xl) var(--space);
-            background: linear-gradient(135deg, var(--primary-600) 0%, var(--accent-500) 100%);
+            background: linear-gradient(135deg, rgba(7,74,242,0.85), rgba(249,115,22,0.85)), url('/assets/images/campus-bg.jpg');
+            background-size: cover;
+            background-position: center;
             color: white;
             border-radius: var(--radius-xl);
             margin-bottom: var(--space-lg);
@@ -54,58 +51,6 @@ $page_title = "TAMCC Deli Kiosk";
             padding: 0.3rem 1rem;
             border-radius: 60px;
             margin-top: var(--space);
-        }
-        .featured-section {
-            margin: var(--space-xl) 0;
-        }
-        .featured-title {
-            text-align: center;
-            font-size: var(--text-2xl);
-            margin-bottom: var(--space-lg);
-            color: var(--primary-700);
-            position: relative;
-        }
-        .featured-title:after {
-            content: '';
-            display: block;
-            width: 80px;
-            height: 4px;
-            background: var(--accent-500);
-            margin: var(--space-sm) auto 0;
-            border-radius: 2px;
-        }
-        .featured-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-            gap: var(--space-md);
-        }
-        .featured-item {
-            background: white;
-            border-radius: var(--radius-lg);
-            overflow: hidden;
-            box-shadow: var(--shadow);
-            transition: var(--transition);
-            text-align: center;
-            padding: var(--space);
-        }
-        .featured-item:hover {
-            transform: translateY(-5px);
-            box-shadow: var(--shadow-xl);
-        }
-        .featured-item img {
-            width: 100%;
-            height: 140px;
-            object-fit: cover;
-            border-radius: var(--radius-md);
-        }
-        .featured-item h3 {
-            margin: var(--space) 0 var(--space-xs);
-            font-size: var(--text-lg);
-        }
-        .featured-item .price {
-            font-size: var(--text-xl);
-            font-weight: 700;
-            color: var(--primary-600);
         }
         .cta-button {
             display: inline-block;
@@ -151,9 +96,6 @@ $page_title = "TAMCC Deli Kiosk";
             color: var(--primary-700);
         }
         @media (max-width: 768px) {
-            .featured-grid {
-                grid-template-columns: 1fr;
-            }
             .cta-button {
                 width: 90%;
                 text-align: center;
@@ -180,29 +122,6 @@ $page_title = "TAMCC Deli Kiosk";
             </a>
         </div>
 
-        <!-- Featured / Popular Items (if any) -->
-        <?php if (!empty($popular_items)): ?>
-        <div class="featured-section">
-            <div class="featured-title">
-                <h2>🔥 Popular Picks</h2>
-            </div>
-            <div class="featured-grid">
-                <?php foreach ($popular_items as $item): ?>
-                <div class="featured-item">
-                    <?php if ($item['image']): ?>
-                        <img src="<?= htmlspecialchars($item['image']) ?>" alt="<?= htmlspecialchars($item['name']) ?>">
-                    <?php else: ?>
-                        <img src="https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=400&auto=format" alt="Food">
-                    <?php endif; ?>
-                    <h3><?= htmlspecialchars($item['name']) ?></h3>
-                    <div class="price">$<?= number_format($item['price'], 2) ?></div>
-                    <a href="<?= kiosk_url('/kiosk/items.php?cat=' . urlencode($item['category'])) ?>" class="btn btn-small" style="margin-top: var(--space-sm);">Order Now →</a>
-                </div>
-                <?php endforeach; ?>
-            </div>
-        </div>
-        <?php endif; ?>
-
         <!-- Info / Promo Cards -->
         <div class="info-cards">
             <div class="info-card">
@@ -222,13 +141,11 @@ $page_title = "TAMCC Deli Kiosk";
             </div>
         </div>
 
-        <!-- Footer note (optional) -->
         <div style="text-align: center; margin-top: var(--space-xl); font-size: var(--text-sm); color: var(--neutral-500);">
             <p>T.A. Marryshow Community College – Tanteen Campus</p>
         </div>
     </div>
 
-    <!-- Floating Cart (same as other kiosk pages) -->
     <a href="<?= kiosk_url('/cart.php') ?>" class="floating-cart">
         🛒 Cart <span class="cart-count" id="cart-count-kiosk">0</span>
     </a>
@@ -236,7 +153,6 @@ $page_title = "TAMCC Deli Kiosk";
     <?php include __DIR__ . '/../includes/footer.php'; ?>
 
     <script>
-        // Live clock update
         function updateTime() {
             const now = new Date();
             const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
@@ -246,7 +162,6 @@ $page_title = "TAMCC Deli Kiosk";
         setInterval(updateTime, 1000);
         updateTime();
 
-        // Cart count updater
         function updateCartDisplay() {
             fetch('<?= kiosk_url('/get-cart-count.php') ?>')
                 .then(r => r.json())
@@ -256,7 +171,7 @@ $page_title = "TAMCC Deli Kiosk";
                 .catch(console.error);
         }
         updateCartDisplay();
-        setInterval(updateCartDisplay, 5000); // refresh every 5 sec
+        setInterval(updateCartDisplay, 5000);
     </script>
 </body>
 </html>
