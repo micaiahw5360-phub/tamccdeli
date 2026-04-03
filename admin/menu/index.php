@@ -4,6 +4,7 @@ require __DIR__ . '/../../config/database.php';
 require __DIR__ . '/../../includes/csrf.php';
 require __DIR__ . '/../../includes/kiosk.php';
 require_once __DIR__ . '/../../includes/functions.php';
+require_once __DIR__ . '/../../includes/logging.php';  // <-- ADDED to fix undefined function
 
 $action = $_GET['action'] ?? 'list';
 $error = '';
@@ -53,7 +54,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // ---- Delete Menu Item ----
     if ($action === 'delete' && isset($_POST['id'])) {
         $id = intval($_POST['id']);
-        // Fetch name for logging
         $stmt = $conn->prepare("SELECT name FROM menu_items WHERE id = ?");
         $stmt->bind_param("i", $id);
         $stmt->execute();
@@ -106,7 +106,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // ---- Delete Option ----
     if ($action === 'option_delete' && isset($_POST['id'])) {
         $id = intval($_POST['id']);
-        // Get menu_item_id and option name for logging
         $stmt = $conn->prepare("SELECT menu_item_id, option_name FROM menu_item_options WHERE id = ?");
         $stmt->bind_param("i", $id);
         $stmt->execute();
@@ -163,7 +162,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // ---- Delete Option Value ----
     if ($action === 'value_delete' && isset($_POST['id'])) {
         $id = intval($_POST['id']);
-        // Get menu_item_id before deleting
         $stmt = $conn->prepare("SELECT o.menu_item_id, v.value_name FROM menu_item_option_values v JOIN menu_item_options o ON v.option_id = o.id WHERE v.id = ?");
         $stmt->bind_param("i", $id);
         $stmt->execute();
@@ -240,8 +238,8 @@ include __DIR__ . '/../../includes/header.php';
                                         <input type="hidden" name="id" value="<?= $item['id'] ?>">
                                         <button type="submit" name="action" value="delete" class="btn-small btn-danger">Delete</button>
                                     </form>
-                                </td>
-                            </tr>
+                                 </td>
+                             </tr>
                             <?php endforeach; ?>
                         </tbody>
                     </table>
@@ -491,8 +489,8 @@ include __DIR__ . '/../../includes/header.php';
                                                             <input type="hidden" name="id" value="<?= $val['id'] ?>">
                                                             <button type="submit" name="action" value="value_delete" class="btn-small btn-danger">Delete</button>
                                                         </form>
-                                                    </td>
-                                                </tr>
+                                                     </td>
+                                                 </tr>
                                             <?php endwhile; endif; ?>
                                         </tbody>
                                     </table>
