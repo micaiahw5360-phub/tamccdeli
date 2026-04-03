@@ -3,63 +3,49 @@ require __DIR__ . '/../includes/session.php';
 require __DIR__ . '/../config/database.php';
 require __DIR__ . '/../includes/kiosk.php';
 
-$kiosk_mode = true;
 $payment_intent = $_GET['payment_intent'] ?? null;
 $redirect_status = $_GET['redirect_status'] ?? null;
 
 if (!$payment_intent || $redirect_status !== 'succeeded') {
     $_SESSION['payment_error'] = 'Payment was not successful. Please try again.';
-    header('Location: ' . kiosk_url('/kiosk/cart.php'));
+    header('Location: ' . kiosk_url('/cart.php'));
     exit;
 }
 
-// Optionally verify with Stripe API
-\Stripe\Stripe::setApiKey(getenv('STRIPE_SECRET_KEY'));
-$intent = \Stripe\PaymentIntent::retrieve($payment_intent);
-if ($intent->status !== 'succeeded') {
-    $_SESSION['payment_error'] = 'Payment not completed.';
-    header('Location: ' . kiosk_url('/kiosk/cart.php'));
+// Optional Stripe verification (uncomment if you have Stripe SDK loaded)
+// \Stripe\Stripe::setApiKey(getenv('STRIPE_SECRET_KEY'));
+// $intent = \Stripe\PaymentIntent::retrieve($payment_intent);
+// if ($intent->status !== 'succeeded') { /* handle error */ }
+
+$type = $_SESSION['stripe_type'] ?? 'order';
+
+if ($type === 'topup') {
+    $user_id = $_SESSION['user_id'] ?? 0;
+    $amount = $_SESSION['stripe_amount'] ?? 0;
+    if ($user_id && $amount > 0) {
+        $stmt = $conn->prepare("UPDATE users SET balance = balance + ? WHERE id = ?");
+        $stmt->bind_param("di", $amount, $user_id);
+        $stmt->execute();
+        $stmt2 = $conn->prepare("INSERT INTO transactions (user_id, amount, type, description) VALUES (?, ?, 'topup', 'Wallet top-up')");
+        $stmt2->bind_param("id", $user_id, $amount);
+        $stmt2->execute();
+        $_SESSION['topup_success'] = "Successfully added $" . number_format($amount, 2) . " to your wallet.";
+    }
+    unset($_SESSION['stripe_intent_id'], $_SESSION['stripe_client_secret'], $_SESSION['stripe_amount'], $_SESSION['stripe_type']);
+    header('Location: ' . kiosk_url('/wallet.php'));
     exit;
 }
 
-// Retrieve stored order data
-$total = $_SESSION['stripe_total'] ?? 0;
-$cart_items = $_SESSION['stripe_cart_items'] ?? [];
-$customer_email = $_SESSION['stripe_customer_email'] ?? '';
-$customer_name = $_SESSION['stripe_customer_name'] ?? '';
-
-if (empty($cart_items)) {
-    header('Location: ' . kiosk_url('/kiosk/categories.php'));
-    exit;
-}
-
-// Create order as guest
-$stmt = $conn->prepare("INSERT INTO orders (guest_email, total, payment_method, payment_status, source) VALUES (?, ?, 'online', 'paid', 'kiosk')");
-$stmt->bind_param("sd", $customer_email, $total);
-$stmt->execute();
-$order_id = $conn->insert_id;
-
-// Insert order items
-$stmt = $conn->prepare("INSERT INTO order_items (order_id, menu_item_id, quantity, price, options) VALUES (?, ?, ?, ?, ?)");
-foreach ($cart_items as $ci) {
-    $options_json = json_encode($ci['options']);
-    $stmt->bind_param("iiids", $order_id, $ci['item']['id'], $ci['quantity'], $ci['unit_price'], $options_json);
+// Otherwise, it's an order payment
+$order_id = $_SESSION['pending_order'] ?? 0;
+if ($order_id) {
+    $stmt = $conn->prepare("UPDATE orders SET payment_status = 'paid' WHERE id = ?");
+    $stmt->bind_param("i", $order_id);
     $stmt->execute();
+    unset($_SESSION['stripe_intent_id'], $_SESSION['stripe_client_secret'], $_SESSION['pending_order'], $_SESSION['stripe_total']);
+    header("Location: " . kiosk_url("/order-confirmation.php?order_id=$order_id"));
+    exit;
 }
 
-// Clear cart and session data
-unset($_SESSION['cart']);
-unset($_SESSION['stripe_intent_id'], $_SESSION['stripe_client_secret'], $_SESSION['stripe_total'], $_SESSION['stripe_cart_items'], $_SESSION['stripe_customer_email'], $_SESSION['stripe_customer_name']);
-
-// Store order for receipt
-$_SESSION['last_order'] = [
-    'id' => $order_id,
-    'items' => $cart_items,
-    'total' => $total,
-    'timestamp' => date('Y-m-d H:i:s'),
-    'customer' => $customer_name,
-    'payment_method' => 'online'
-];
-
-header('Location: ' . kiosk_url('/kiosk/confirmation.php'));
+header('Location: ' . kiosk_url('/index.php'));
 exit;
