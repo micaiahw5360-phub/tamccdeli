@@ -2,13 +2,16 @@
 require_once 'config/database.php';
 require_once 'includes/session.php';
 require_once 'includes/csrf.php';
-require_once 'includes/header.php';
 require_once 'includes/kiosk.php';
 
+// Check login BEFORE any output
 if (!isset($_SESSION['user_id'])) {
     header("Location: auth/login.php");
     exit;
 }
+
+// Now include header (which outputs HTML)
+require_once 'includes/header.php';
 
 $user_id = $_SESSION['user_id'];
 $error = '';
