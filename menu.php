@@ -3,7 +3,7 @@ require __DIR__ . '/includes/session.php';
 require 'config/database.php';
 require 'includes/csrf.php';
 require_once __DIR__ . '/includes/kiosk.php';
-require 'includes/functions.php'; // new shared helper file
+require 'includes/functions.php';
 
 $categories = [
     'breakfast' => 'Breakfast',
@@ -13,7 +13,6 @@ $categories = [
     'dessert'   => 'Dessert'
 ];
 
-// Determine if we're in kiosk mode and what category is selected
 $kiosk_mode = $kiosk_mode ?? false;
 $selected_category = isset($_GET['cat']) && array_key_exists($_GET['cat'], $categories) ? $_GET['cat'] : null;
 
@@ -32,9 +31,6 @@ if ($kiosk_mode && !$selected_category) {
             <?php endforeach; ?>
         </div>
     </div>
-    <?php
-    // Add floating cart button (always visible in kiosk mode)
-    ?>
     <a href="<?= kiosk_url('cart.php') ?>" class="floating-cart">
         <span class="dashicons dashicons-cart"></span>
         <span class="cart-count" id="cart-count-kiosk">0</span>
@@ -44,21 +40,20 @@ if ($kiosk_mode && !$selected_category) {
     exit;
 }
 
-// If we reach here, we're either:
-// - in normal mode (show full menu), or
-// - in kiosk mode with a category selected (show only that category)
-
+// Normal or kiosk category view
 $stmt = $conn->prepare("SELECT * FROM menu_items " . 
     ($selected_category ? "WHERE LOWER(category) = LOWER(?) " : "") . 
     "ORDER BY FIELD(category, 'Breakfast', 'A La Carte', 'Combo', 'Beverage', 'Dessert'), sort_order, name");
 
 if ($selected_category) {
-    // Map slug to actual category name
     $cat_name = $categories[$selected_category];
     $stmt->bind_param("s", $cat_name);
 }
 $stmt->execute();
 $items = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+foreach ($items as &$item) {
+    $item['options'] = getItemOptions($conn, $item['id']);
+}
 
 // Group items by category for normal mode
 $menu_items = [];
@@ -71,6 +66,42 @@ if (!$kiosk_mode) {
 $page_title = $kiosk_mode ? $categories[$selected_category] . " | TAMCC Deli" : "Menu | TAMCC Deli";
 include 'includes/header.php';
 ?>
+
+<style>
+    /* Hover card effect */
+    .menu-card {
+        transition: transform 0.2s, box-shadow 0.2s;
+        cursor: pointer;
+    }
+    .menu-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1), 0 10px 10px -5px rgba(0,0,0,0.02);
+    }
+    /* Options dialog */
+    .option-dialog-overlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(0,0,0,0.5);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 1000;
+    }
+    .option-dialog {
+        background: white;
+        border-radius: 1rem;
+        max-width: 500px;
+        width: 90%;
+        max-height: 85vh;
+        overflow-y: auto;
+        padding: 1.5rem;
+    }
+    <?php if ($kiosk_mode): ?>
+    .option-dialog { max-width: 600px; font-size: 1.2rem; }
+    .option-dialog label { font-size: 1.1rem; }
+    .option-dialog input, .option-dialog select { font-size: 1.1rem; }
+    <?php endif; ?>
+</style>
 
 <?php if ($kiosk_mode && $selected_category): ?>
     <div class="kiosk-header">
@@ -92,133 +123,52 @@ include 'includes/header.php';
 <div class="menu-container">
     <?php if ($kiosk_mode && $selected_category): ?>
         <div class="items-grid">
-            <?php foreach ($items as $item):
-                $options = getItemOptions($conn, $item['id']); // now from functions.php
-            ?>
-                <div class="menu-item" data-name="<?= strtolower(htmlspecialchars($item['name'])) ?>">
-                    <?php if ($item['image']): ?>
-                        <img src="<?= htmlspecialchars($item['image']) ?>" alt="<?= htmlspecialchars($item['name']) ?>">
-                    <?php endif; ?>
+            <?php foreach ($items as $item): ?>
+                <div class="menu-card menu-item" data-id="<?= $item['id'] ?>" data-name="<?= htmlspecialchars($item['name']) ?>" data-price="<?= $item['price'] ?>" data-image="<?= htmlspecialchars($item['image'] ?? '') ?>" data-description="<?= htmlspecialchars($item['description'] ?? '') ?>" data-options='<?= json_encode($item['options']) ?>'>
+                    <div class="aspect-square overflow-hidden bg-gray-100">
+                        <img src="<?= htmlspecialchars($item['image'] ?? 'https://via.placeholder.com/300?text=No+Image') ?>" alt="<?= htmlspecialchars($item['name']) ?>" class="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105">
+                    </div>
                     <div class="menu-item-content">
-                        <h3 class="menu-item-name"><?= htmlspecialchars($item['name']) ?></h3>
-                        <div class="price">$<?= number_format($item['price'], 2) ?></div>
-
-                        <form class="add-to-cart-form" method="post">
-                            <input type="hidden" name="csrf_token" value="<?= generateToken() ?>">
-                            <input type="hidden" name="item_id" value="<?= $item['id'] ?>">
-
-                            <?php if (!empty($options)): ?>
-                                <div class="item-options" data-base-price="<?= $item['price'] ?>">
-                                    <?php foreach ($options as $opt): ?>
-                                        <div class="option-group">
-                                            <label><?= htmlspecialchars($opt['option_name']) ?> <?= $opt['required'] ? '*' : '' ?></label>
-                                            <?php if ($opt['option_type'] == 'dropdown'): ?>
-                                                <select name="options[<?= $opt['id'] ?>]" class="option-select" <?= $opt['required'] ? 'required' : '' ?>>
-                                                    <option value="">-- Select --</option>
-                                                    <?php foreach ($opt['values'] as $val): ?>
-                                                        <option value="<?= $val['id'] ?>" data-price="<?= $val['price_modifier'] ?>">
-                                                            <?= htmlspecialchars($val['value_name']) ?>
-                                                            <?php if ($val['price_modifier'] != 0): ?>
-                                                                (<?= ($val['price_modifier'] > 0 ? '+' : '-') ?>$<?= number_format(abs($val['price_modifier']), 2) ?>)
-                                                            <?php endif; ?>
-                                                        </option>
-                                                    <?php endforeach; ?>
-                                                </select>
-                                            <?php else: ?>
-                                                <div class="radio-group">
-                                                    <?php foreach ($opt['values'] as $val): ?>
-                                                        <label>
-                                                            <input type="radio" name="options[<?= $opt['id'] ?>]" value="<?= $val['id'] ?>" data-price="<?= $val['price_modifier'] ?>" <?= $opt['required'] ? 'required' : '' ?>>
-                                                            <?= htmlspecialchars($val['value_name']) ?>
-                                                            <?php if ($val['price_modifier'] != 0): ?>
-                                                                (<?= ($val['price_modifier'] > 0 ? '+' : '-') ?>$<?= number_format(abs($val['price_modifier']), 2) ?>)
-                                                            <?php endif; ?>
-                                                        </label>
-                                                    <?php endforeach; ?>
-                                                </div>
-                                            <?php endif; ?>
-                                        </div>
-                                    <?php endforeach; ?>
-                                    <div class="dynamic-price">Price: $<span class="item-total-price"><?= number_format($item['price'], 2) ?></span></div>
-                                </div>
-                            <?php endif; ?>
-
-                            <div class="menu-item-footer">
-                                <input type="number" name="quantity" value="1" min="1" max="10" class="qty-input">
-                                <button type="submit" class="add-to-cart-btn">Add to Cart</button>
-                            </div>
-                        </form>
+                        <div class="mb-2">
+                            <span class="text-xs font-medium text-blue-600 bg-blue-50 px-2 py-1 rounded"><?= htmlspecialchars($item['category']) ?></span>
+                        </div>
+                        <h3 class="menu-item-name font-bold mb-2 <?= $kiosk_mode ? 'text-xl' : 'text-lg' ?>"><?= htmlspecialchars($item['name']) ?></h3>
+                        <p class="text-gray-600 text-sm mb-4 line-clamp-2"><?= htmlspecialchars($item['description'] ?? '') ?></p>
+                        <div class="flex items-center justify-between">
+                            <span class="font-bold text-blue-600 <?= $kiosk_mode ? 'text-2xl' : 'text-xl' ?>">$<?= number_format($item['price'], 2) ?></span>
+                            <button class="add-to-cart-btn bg-orange-500 hover:bg-orange-600 text-white font-medium py-2 px-4 rounded-lg transition <?= $kiosk_mode ? 'px-6 py-3 text-base' : 'text-sm' ?>">
+                                <svg class="inline w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/></svg>
+                                Add
+                            </button>
+                        </div>
                     </div>
                 </div>
             <?php endforeach; ?>
         </div>
-
-        <?php if (empty($items)): ?>
-            <p class="no-items">No items in this category.</p>
-        <?php endif; ?>
-
+        <?php if (empty($items)): ?><p class="no-items">No items in this category.</p><?php endif; ?>
     <?php else: ?>
-        <!-- Normal mode: show all categories with sections -->
         <?php foreach ($menu_items as $cat_name => $cat_items): ?>
             <div id="<?= strtolower(str_replace(' ', '', $cat_name)) ?>" class="category">
                 <h2><?= htmlspecialchars($cat_name) ?></h2>
                 <div class="items-grid">
-                    <?php foreach ($cat_items as $item):
-                        $options = getItemOptions($conn, $item['id']); // now from functions.php
-                    ?>
-                        <div class="menu-item" data-name="<?= strtolower(htmlspecialchars($item['name'])) ?>">
-                            <?php if ($item['image']): ?>
-                                <img src="<?= htmlspecialchars($item['image']) ?>" alt="<?= htmlspecialchars($item['name']) ?>">
-                            <?php endif; ?>
+                    <?php foreach ($cat_items as $item): ?>
+                        <div class="menu-card menu-item" data-id="<?= $item['id'] ?>" data-name="<?= htmlspecialchars($item['name']) ?>" data-price="<?= $item['price'] ?>" data-image="<?= htmlspecialchars($item['image'] ?? '') ?>" data-description="<?= htmlspecialchars($item['description'] ?? '') ?>" data-options='<?= json_encode($item['options']) ?>'>
+                            <div class="aspect-square overflow-hidden bg-gray-100">
+                                <img src="<?= htmlspecialchars($item['image'] ?? 'https://via.placeholder.com/300?text=No+Image') ?>" alt="<?= htmlspecialchars($item['name']) ?>" class="w-full h-full object-cover transition-transform duration-300">
+                            </div>
                             <div class="menu-item-content">
-                                <h3 class="menu-item-name"><?= htmlspecialchars($item['name']) ?></h3>
-                                <div class="price">$<?= number_format($item['price'], 2) ?></div>
-
-                                <form class="add-to-cart-form" method="post">
-                                    <input type="hidden" name="csrf_token" value="<?= generateToken() ?>">
-                                    <input type="hidden" name="item_id" value="<?= $item['id'] ?>">
-
-                                    <?php if (!empty($options)): ?>
-                                        <div class="item-options" data-base-price="<?= $item['price'] ?>">
-                                            <?php foreach ($options as $opt): ?>
-                                                <div class="option-group">
-                                                    <label><?= htmlspecialchars($opt['option_name']) ?> <?= $opt['required'] ? '*' : '' ?></label>
-                                                    <?php if ($opt['option_type'] == 'dropdown'): ?>
-                                                        <select name="options[<?= $opt['id'] ?>]" class="option-select" <?= $opt['required'] ? 'required' : '' ?>>
-                                                            <option value="">-- Select --</option>
-                                                            <?php foreach ($opt['values'] as $val): ?>
-                                                                <option value="<?= $val['id'] ?>" data-price="<?= $val['price_modifier'] ?>">
-                                                                    <?= htmlspecialchars($val['value_name']) ?>
-                                                                    <?php if ($val['price_modifier'] != 0): ?>
-                                                                        (<?= ($val['price_modifier'] > 0 ? '+' : '-') ?>$<?= number_format(abs($val['price_modifier']), 2) ?>)
-                                                                    <?php endif; ?>
-                                                                </option>
-                                                            <?php endforeach; ?>
-                                                        </select>
-                                                    <?php else: ?>
-                                                        <div class="radio-group">
-                                                            <?php foreach ($opt['values'] as $val): ?>
-                                                                <label>
-                                                                    <input type="radio" name="options[<?= $opt['id'] ?>]" value="<?= $val['id'] ?>" data-price="<?= $val['price_modifier'] ?>" <?= $opt['required'] ? 'required' : '' ?>>
-                                                                    <?= htmlspecialchars($val['value_name']) ?>
-                                                                    <?php if ($val['price_modifier'] != 0): ?>
-                                                                        (<?= ($val['price_modifier'] > 0 ? '+' : '-') ?>$<?= number_format(abs($val['price_modifier']), 2) ?>)
-                                                                    <?php endif; ?>
-                                                                </label>
-                                                            <?php endforeach; ?>
-                                                        </div>
-                                                    <?php endif; ?>
-                                                </div>
-                                            <?php endforeach; ?>
-                                            <div class="dynamic-price">Price: $<span class="item-total-price"><?= number_format($item['price'], 2) ?></span></div>
-                                        </div>
-                                    <?php endif; ?>
-
-                                    <div class="menu-item-footer">
-                                        <input type="number" name="quantity" value="1" min="1" max="10" class="qty-input">
-                                        <button type="submit" class="add-to-cart-btn">Add to Cart</button>
-                                    </div>
-                                </form>
+                                <div class="mb-2">
+                                    <span class="text-xs font-medium text-blue-600 bg-blue-50 px-2 py-1 rounded"><?= htmlspecialchars($item['category']) ?></span>
+                                </div>
+                                <h3 class="menu-item-name font-bold mb-2 <?= $kiosk_mode ? 'text-xl' : 'text-lg' ?>"><?= htmlspecialchars($item['name']) ?></h3>
+                                <p class="text-gray-600 text-sm mb-4 line-clamp-2"><?= htmlspecialchars($item['description'] ?? '') ?></p>
+                                <div class="flex items-center justify-between">
+                                    <span class="font-bold text-blue-600 <?= $kiosk_mode ? 'text-2xl' : 'text-xl' ?>">$<?= number_format($item['price'], 2) ?></span>
+                                    <button class="add-to-cart-btn bg-orange-500 hover:bg-orange-600 text-white font-medium py-2 px-4 rounded-lg transition <?= $kiosk_mode ? 'px-6 py-3 text-base' : 'text-sm' ?>">
+                                        <svg class="inline w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/></svg>
+                                        Add
+                                    </button>
+                                </div>
                             </div>
                         </div>
                     <?php endforeach; ?>
@@ -229,36 +179,256 @@ include 'includes/header.php';
 </div>
 
 <?php if ($kiosk_mode): ?>
-    <!-- Floating cart button (already added above for category screen, but also needed on item screens) -->
     <a href="<?= kiosk_url('cart.php') ?>" class="floating-cart">
         <span class="dashicons dashicons-cart"></span>
         <span class="cart-count" id="cart-count-kiosk">0</span>
     </a>
 <?php endif; ?>
 
+<!-- Options Dialog (hidden by default) -->
+<div id="optionsDialog" class="option-dialog-overlay" style="display: none;">
+    <div class="option-dialog">
+        <div class="flex justify-between items-center mb-4">
+            <h2 id="dialogTitle" class="text-xl font-bold"></h2>
+            <button id="closeDialog" class="text-gray-500 hover:text-gray-700 text-2xl">&times;</button>
+        </div>
+        <div class="aspect-video overflow-hidden rounded-lg mb-4">
+            <img id="dialogImage" src="" alt="" class="w-full h-full object-cover">
+        </div>
+        <p id="dialogDesc" class="text-gray-600 mb-4"></p>
+        <div id="dialogOptionsContainer" class="space-y-4 mb-6"></div>
+        <div class="flex justify-between items-center mb-4">
+            <span class="font-bold text-blue-600 text-2xl">$<span id="dialogTotalPrice">0.00</span></span>
+            <button id="dialogAddToCart" class="bg-orange-500 hover:bg-orange-600 text-white font-bold py-2 px-6 rounded-lg">Add to Cart</button>
+        </div>
+    </div>
+</div>
+
 <script>
-// Dynamic price update when options change
-document.querySelectorAll('.item-options').forEach(container => {
-    const basePrice = parseFloat(container.dataset.basePrice);
-    const priceSpan = container.querySelector('.item-total-price');
-    const selects = container.querySelectorAll('select, input[type="radio"]');
+// Search & filter
+const searchInput = document.getElementById('menu-search');
+const filterBtns = document.querySelectorAll('.filter-btn');
+const menuCards = document.querySelectorAll('.menu-card');
+const categoriesDiv = document.querySelectorAll('.category');
 
-    function updatePrice() {
-        let modifiers = 0;
-        selects.forEach(input => {
-            if (input.checked || (input.selectedIndex !== undefined && input.value)) {
-                const selected = input.options ? input.options[input.selectedIndex] : input;
-                const priceMod = parseFloat(selected.dataset.price || 0);
-                if (!isNaN(priceMod)) modifiers += priceMod;
-            }
+function filterMenu() {
+    const term = searchInput ? searchInput.value.toLowerCase() : '';
+    const activeCat = document.querySelector('.filter-btn.active')?.dataset.category || 'all';
+    menuCards.forEach(card => {
+        const name = card.dataset.name?.toLowerCase() || '';
+        const catId = card.closest('.category')?.id || '';
+        const matchesSearch = name.includes(term);
+        const matchesCat = activeCat === 'all' || catId === activeCat;
+        card.style.display = matchesSearch && matchesCat ? '' : 'none';
+    });
+    if (categoriesDiv.length) {
+        categoriesDiv.forEach(cat => {
+            const hasVisible = Array.from(cat.querySelectorAll('.menu-card')).some(c => c.style.display !== 'none');
+            cat.style.display = hasVisible ? '' : 'none';
         });
-        const total = basePrice + modifiers;
-        priceSpan.textContent = total.toFixed(2);
     }
-
-    selects.forEach(input => input.addEventListener('change', updatePrice));
-    updatePrice();
+}
+if (searchInput) searchInput.addEventListener('input', filterMenu);
+filterBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+        filterBtns.forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        filterMenu();
+    });
 });
+
+// Options dialog logic
+const dialog = document.getElementById('optionsDialog');
+const closeDialog = document.getElementById('closeDialog');
+const dialogTitle = document.getElementById('dialogTitle');
+const dialogImage = document.getElementById('dialogImage');
+const dialogDesc = document.getElementById('dialogDesc');
+const dialogOptionsContainer = document.getElementById('dialogOptionsContainer');
+const dialogTotalPriceSpan = document.getElementById('dialogTotalPrice');
+const dialogAddToCart = document.getElementById('dialogAddToCart');
+let currentItem = null;
+let currentOptionsState = {};
+
+function openDialog(item) {
+    currentItem = item;
+    dialogTitle.textContent = item.name;
+    dialogImage.src = item.image || 'https://via.placeholder.com/400?text=No+Image';
+    dialogDesc.textContent = item.description || '';
+    dialogTotalPriceSpan.textContent = item.price.toFixed(2);
+    currentOptionsState = {};
+    // Build options UI
+    dialogOptionsContainer.innerHTML = '';
+    if (item.options && item.options.length > 0) {
+        item.options.forEach(opt => {
+            const optDiv = document.createElement('div');
+            optDiv.className = 'space-y-2';
+            optDiv.innerHTML = `<label class="block font-medium">${opt.option_name} ${opt.required ? '*' : ''}</label>`;
+            const radioGroup = document.createElement('div');
+            radioGroup.className = 'space-y-2';
+            opt.values.forEach(val => {
+                const radioId = `opt_${opt.id}_${val.id}`;
+                const radio = document.createElement('input');
+                radio.type = 'radio';
+                radio.name = `option_${opt.id}`;
+                radio.value = val.id;
+                radio.id = radioId;
+                radio.className = 'mr-2';
+                if (opt.required && !currentOptionsState[opt.id]) {
+                    radio.checked = true;
+                    currentOptionsState[opt.id] = val.id;
+                }
+                radio.addEventListener('change', (e) => {
+                    if (e.target.checked) {
+                        currentOptionsState[opt.id] = val.id;
+                        updateDialogPrice();
+                    }
+                });
+                const label = document.createElement('label');
+                label.htmlFor = radioId;
+                label.className = 'cursor-pointer';
+                let priceText = val.value_name;
+                if (val.price_modifier !== 0) {
+                    const sign = val.price_modifier > 0 ? '+' : '-';
+                    priceText += ` (${sign}$${Math.abs(val.price_modifier).toFixed(2)})`;
+                }
+                label.textContent = priceText;
+                const wrapper = document.createElement('div');
+                wrapper.className = 'flex items-center';
+                wrapper.appendChild(radio);
+                wrapper.appendChild(label);
+                radioGroup.appendChild(wrapper);
+            });
+            optDiv.appendChild(radioGroup);
+            dialogOptionsContainer.appendChild(optDiv);
+        });
+    }
+    updateDialogPrice();
+    dialog.style.display = 'flex';
+}
+
+function updateDialogPrice() {
+    if (!currentItem) return;
+    let modifiers = 0;
+    if (currentItem.options) {
+        for (const [optId, valId] of Object.entries(currentOptionsState)) {
+            const opt = currentItem.options.find(o => o.id == optId);
+            if (opt) {
+                const val = opt.values.find(v => v.id == valId);
+                if (val) modifiers += parseFloat(val.price_modifier || 0);
+            }
+        }
+    }
+    const total = currentItem.price + modifiers;
+    dialogTotalPriceSpan.textContent = total.toFixed(2);
+}
+
+function addToCartFromDialog() {
+    if (!currentItem) return;
+    // Validate required options
+    if (currentItem.options) {
+        for (const opt of currentItem.options) {
+            if (opt.required && !currentOptionsState[opt.id]) {
+                alert(`Please select ${opt.option_name}`);
+                return;
+            }
+        }
+    }
+    // Build options object
+    const options = {};
+    for (const [optId, valId] of Object.entries(currentOptionsState)) {
+        options[optId] = valId;
+    }
+    // AJAX add to cart
+    const formData = new URLSearchParams();
+    formData.append('csrf_token', '<?= generateToken() ?>');
+    formData.append('item_id', currentItem.id);
+    formData.append('quantity', 1);
+    formData.append('options', JSON.stringify(options));
+    fetch('<?= kiosk_url('/cart.php?action=add') ?>', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'X-Requested-With': 'XMLHttpRequest' },
+        body: formData
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.success) {
+            alert('Added to cart!');
+            dialog.style.display = 'none';
+            updateCartCount();
+        } else {
+            alert('Error adding item');
+        }
+    })
+    .catch(err => alert('Network error'));
+}
+
+// Attach click events to menu cards and Add buttons
+document.querySelectorAll('.menu-card').forEach(card => {
+    const addBtn = card.querySelector('.add-to-cart-btn');
+    // Card click opens dialog if options exist
+    card.addEventListener('click', (e) => {
+        if (e.target === addBtn || addBtn.contains(e.target)) return;
+        const options = JSON.parse(card.dataset.options || '[]');
+        if (options.length > 0) {
+            const item = {
+                id: parseInt(card.dataset.id),
+                name: card.dataset.name,
+                price: parseFloat(card.dataset.price),
+                image: card.dataset.image,
+                description: card.dataset.description,
+                options: options
+            };
+            openDialog(item);
+        }
+    });
+    // Add button click
+    addBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const options = JSON.parse(card.dataset.options || '[]');
+        if (options.length > 0) {
+            const item = {
+                id: parseInt(card.dataset.id),
+                name: card.dataset.name,
+                price: parseFloat(card.dataset.price),
+                image: card.dataset.image,
+                description: card.dataset.description,
+                options: options
+            };
+            openDialog(item);
+        } else {
+            // Direct add (no options)
+            const formData = new URLSearchParams();
+            formData.append('csrf_token', '<?= generateToken() ?>');
+            formData.append('item_id', card.dataset.id);
+            formData.append('quantity', 1);
+            formData.append('options', '{}');
+            fetch('<?= kiosk_url('/cart.php?action=add') ?>', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'X-Requested-With': 'XMLHttpRequest' },
+                body: formData
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    alert('Added to cart!');
+                    updateCartCount();
+                } else alert('Error');
+            });
+        }
+    });
+});
+
+closeDialog.addEventListener('click', () => dialog.style.display = 'none');
+dialogAddToCart.addEventListener('click', addToCartFromDialog);
+
+function updateCartCount() {
+    fetch('<?= kiosk_url('/get-cart-count.php') ?>')
+        .then(r => r.json())
+        .then(data => {
+            document.querySelectorAll('.cart-count').forEach(el => el.textContent = data.count);
+        });
+}
+updateCartCount();
 </script>
 
 <?php include 'includes/footer.php'; ?>

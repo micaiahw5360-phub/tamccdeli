@@ -20,19 +20,17 @@ if (empty($_SESSION['cart'])) {
     exit;
 }
 
+// Calculate cart items and total (same as cart.php)
 $cart = $_SESSION['cart'];
 $item_ids = array_unique(array_column($cart, 'item_id'));
 $items_data = [];
-
 if (!empty($item_ids)) {
     $placeholders = implode(',', array_fill(0, count($item_ids), '?'));
     $stmt = $conn->prepare("SELECT * FROM menu_items WHERE id IN ($placeholders)");
     $stmt->bind_param(str_repeat('i', count($item_ids)), ...$item_ids);
     $stmt->execute();
     $result = $stmt->get_result();
-    while ($row = $result->fetch_assoc()) {
-        $items_data[$row['id']] = $row;
-    }
+    while ($row = $result->fetch_assoc()) $items_data[$row['id']] = $row;
 }
 
 $cart_items = [];
@@ -45,9 +43,7 @@ foreach ($cart as $key => $entry) {
     $options = $entry['options'] ?? [];
     $option_details = getOptionDetails($conn, $options);
     $modifier_total = 0;
-    foreach ($option_details as $opt) {
-        $modifier_total += $opt['price_modifier'];
-    }
+    foreach ($option_details as $opt) $modifier_total += $opt['price_modifier'];
     $unit_price = $item['price'] + $modifier_total;
     $subtotal = $unit_price * $quantity;
     $cart_items[] = [
@@ -74,7 +70,7 @@ if ($user_id) {
 }
 
 $error = '';
-$show_account_panel = ($kiosk_mode && !$user_id); // Show email lookup in kiosk mode for guests
+$show_account_panel = ($kiosk_mode && !$user_id);
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!validateToken($_POST['csrf_token'])) die('Invalid CSRF token');
@@ -83,14 +79,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $instructions = trim($_POST['instructions']);
     $payment_method = $_POST['payment_method'];
 
-    // For kiosk mode with account lookup: we may have a temporary user_id from the AJAX lookup
     $temp_user_id = $_POST['temp_user_id'] ?? null;
     $guest_email = null;
 
     if ($kiosk_mode && !$user_id && $temp_user_id) {
-        // User identified via email in kiosk mode – use that account
         $user_id = intval($temp_user_id);
-        // Fetch balance again for this user
         $stmt = $conn->prepare("SELECT balance FROM users WHERE id = ?");
         $stmt->bind_param("i", $user_id);
         $stmt->execute();
@@ -98,7 +91,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     if (!$user_id) {
-        // Guest checkout (no account)
         if ($payment_method !== 'cash') {
             $error = "Guests can only pay with cash on pickup. Please create an account or log in to use wallet/card.";
         }
@@ -107,7 +99,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $error = "Valid email required for guest checkout.";
         }
     } else {
-        // Logged-in user or identified kiosk user
         if ($payment_method === 'wallet' && $user_balance < $total) {
             $error = "Insufficient wallet balance. Please choose another payment method.";
         }
@@ -134,12 +125,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $update = $conn->prepare("UPDATE users SET balance = ? WHERE id = ?");
                 $update->bind_param("di", $new_balance, $user_id);
                 $update->execute();
-
                 $description = "Order #$order_id payment";
                 $trans = $conn->prepare("INSERT INTO transactions (user_id, amount, type, description, order_id) VALUES (?, ?, 'payment', ?, ?)");
                 $trans->bind_param("idsi", $user_id, $total, $description, $order_id);
                 $trans->execute();
-
                 $update_order = $conn->prepare("UPDATE orders SET payment_status = 'paid' WHERE id = ?");
                 $update_order->bind_param("i", $order_id);
                 $update_order->execute();
@@ -176,7 +165,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             // Wallet or cash: clear cart, send email, redirect
             $_SESSION['cart'] = [];
-
             $emailData = buildOrderEmail($order_id, $total, $payment_method, $pickup_time, $instructions);
             if ($to) {
                 ignore_user_abort(true);
@@ -197,7 +185,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             ob_end_flush();
             flush();
             exit;
-
         } catch (Exception $e) {
             $conn->rollback();
             $error = "Failed to place order: " . $e->getMessage();
@@ -218,8 +205,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         .option-list { margin: 0; padding-left: 1rem; font-size: 0.9rem; }
         .account-info { background: #f8f9fa; padding: 1rem; border-radius: 8px; margin-bottom: 1.5rem; }
         .wallet-balance { font-size: 1.2rem; font-weight: bold; color: #28a745; }
-        .payment-options { margin-top: 1rem; }
-        .payment-option { margin-bottom: 0.5rem; }
     </style>
 </head>
 <body>
@@ -232,9 +217,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <div class="order-summary">
             <h3>Order Summary</h3>
             <table>
-                <thead>
-                    <tr><th>Item</th><th>Options</th><th>Qty</th><th>Price</th><th>Subtotal</th></tr>
-                </thead>
+                <thead><tr><th>Item</th><th>Options</th><th>Qty</th><th>Price</th><th>Subtotal</th></tr></thead>
                 <tbody>
                     <?php foreach ($cart_items as $item): ?>
                     <tr>
@@ -263,7 +246,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <input type="hidden" name="temp_user_id" id="temp_user_id" value="">
 
             <?php if ($show_account_panel): ?>
-                <!-- Kiosk mode: prompt for email to connect to wallet/card -->
                 <div class="account-info" id="account-info">
                     <div class="form-group">
                         <label for="account_email">Your Email (to use wallet or card)</label>
@@ -278,7 +260,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <?php endif; ?>
 
             <?php if (!isset($_SESSION['user_id']) && !$show_account_panel): ?>
-                <!-- Guest checkout (non-kiosk) -->
                 <div class="form-group">
                     <label for="guest_email">Your Email (for order confirmation)</label>
                     <input type="email" id="guest_email" name="guest_email" required>
@@ -336,7 +317,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                 accountNameSpan.textContent = data.name;
                                 accountBalanceSpan.textContent = '$' + data.balance.toFixed(2);
                                 tempUserIdInput.value = data.id;
-                                // Update payment options
                                 paymentMethodSelect.innerHTML = '<option value="cash">Cash on Pickup</option>';
                                 if (data.balance >= <?= $total ?>) {
                                     paymentMethodSelect.innerHTML += '<option value="wallet">Wallet Balance ($' + data.balance.toFixed(2) + ')</option>';
