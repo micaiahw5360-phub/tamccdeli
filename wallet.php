@@ -38,7 +38,22 @@ include 'includes/header.php';
 ?>
 
 <style>
-    /* Styles exactly as in the screenshot */
+    /* Custom wallet styles – replaces Tailwind */
+    .wallet-container {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 2rem 1rem;
+    }
+    .wallet-grid {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 2rem;
+    }
+    @media (min-width: 1024px) {
+        .wallet-grid {
+            grid-template-columns: 1fr 2fr;
+        }
+    }
     .wallet-balance-card {
         background: linear-gradient(135deg, #074af2 0%, #0639c0 100%);
         color: white;
@@ -57,8 +72,48 @@ include 'includes/header.php';
         justify-content: center;
         margin-bottom: 1rem;
     }
-    .balance-icon svg { width: 2rem; height: 2rem; }
-    .balance-amount { font-size: 2.5rem; font-weight: 800; margin: 0.5rem 0; }
+    .balance-icon svg {
+        width: 2rem;
+        height: 2rem;
+    }
+    .balance-amount {
+        font-size: 2.5rem;
+        font-weight: 800;
+        margin: 0.5rem 0;
+    }
+    .topup-card, .transaction-card, .info-card {
+        background: white;
+        border-radius: 1rem;
+        box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
+        border: 1px solid #e5e7eb;
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+    }
+    .topup-card h2, .transaction-card h2, .info-card h3 {
+        font-size: 1.25rem;
+        font-weight: 700;
+        margin-bottom: 1rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    .form-group {
+        margin-bottom: 1rem;
+    }
+    .form-group label {
+        display: block;
+        font-size: 0.875rem;
+        font-weight: 500;
+        color: #374151;
+        margin-bottom: 0.25rem;
+    }
+    .form-group input {
+        width: 100%;
+        padding: 0.5rem 0.75rem;
+        border: 1px solid #d1d5db;
+        border-radius: 0.5rem;
+        font-size: 1rem;
+    }
     .quick-amount-grid {
         display: grid;
         grid-template-columns: repeat(3, 1fr);
@@ -73,10 +128,63 @@ include 'includes/header.php';
         font-weight: 500;
         transition: all 0.2s;
         cursor: pointer;
+        text-align: center;
     }
     .quick-amount:hover {
         background: #e5e7eb;
         transform: translateY(-2px);
+    }
+    .btn-add-funds {
+        width: 100%;
+        background: #f97316;
+        color: white;
+        font-weight: 700;
+        padding: 0.5rem 1rem;
+        border-radius: 0.5rem;
+        border: none;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+        transition: background 0.2s;
+    }
+    .btn-add-funds:hover {
+        background: #ea580c;
+    }
+    .btn-continue {
+        display: block;
+        width: 100%;
+        text-align: center;
+        border: 1px solid #d1d5db;
+        background: white;
+        padding: 0.5rem 1rem;
+        border-radius: 0.5rem;
+        color: #374151;
+        text-decoration: none;
+        transition: background 0.2s;
+    }
+    .btn-continue:hover {
+        background: #f9fafb;
+    }
+    .transactions-table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+    .transactions-table th {
+        text-align: left;
+        padding: 0.75rem;
+        background: #f9fafb;
+        font-size: 0.75rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        color: #6b7280;
+        border-bottom: 1px solid #e5e7eb;
+    }
+    .transactions-table td {
+        padding: 0.75rem;
+        border-bottom: 1px solid #e5e7eb;
+        font-size: 0.875rem;
     }
     .transaction-type {
         display: inline-flex;
@@ -87,11 +195,26 @@ include 'includes/header.php';
         font-weight: 600;
         text-transform: uppercase;
     }
-    .transaction-type-credit { background: #dcfce7; color: #15803d; }
-    .transaction-type-debit { background: #fee2e2; color: #b91c1c; }
-    .amount-positive { color: #15803d; font-weight: 600; }
-    .amount-negative { color: #b91c1c; font-weight: 600; }
-    .info-list { list-style: none; padding-left: 0; }
+    .transaction-type-credit {
+        background: #dcfce7;
+        color: #15803d;
+    }
+    .transaction-type-debit {
+        background: #fee2e2;
+        color: #b91c1c;
+    }
+    .amount-positive {
+        color: #15803d;
+        font-weight: 600;
+    }
+    .amount-negative {
+        color: #b91c1c;
+        font-weight: 600;
+    }
+    .info-list {
+        list-style: none;
+        padding-left: 0;
+    }
     .info-list li {
         display: flex;
         align-items: flex-start;
@@ -107,25 +230,33 @@ include 'includes/header.php';
         font-size: 1.25rem;
     }
     @media (max-width: 768px) {
-        .wallet-balance-card { padding: 1.5rem; }
-        .balance-amount { font-size: 2rem; }
+        .wallet-container {
+            padding: 1rem;
+        }
+        .balance-amount {
+            font-size: 2rem;
+        }
+        .transactions-table th, .transactions-table td {
+            padding: 0.5rem;
+        }
     }
 </style>
 
-<div class="container mx-auto px-4 py-8 max-w-6xl">
-    <!-- Header -->
-    <div class="mb-8">
-        <a href="<?= kiosk_url('index.php') ?>" class="inline-flex items-center text-gray-600 hover:text-gray-900 mb-4">
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mr-2"><path d="m15 18-6-6 6-6"/></svg>
+<div class="wallet-container">
+    <!-- Back link -->
+    <div class="mb-6">
+        <a href="<?= kiosk_url('index.php') ?>" class="inline-flex items-center text-gray-600 hover:text-gray-900">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 0.5rem;"><path d="m15 18-6-6 6-6"/></svg>
             Back to Home
         </a>
-        <h1 class="text-3xl font-bold text-gray-900">My Wallet</h1>
-        <p class="text-gray-600 mt-1">Manage your TAMCC Deli wallet balance</p>
     </div>
 
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        <!-- Left Column: Balance + Top‑up -->
-        <div class="lg:col-span-1">
+    <h1 class="text-3xl font-bold text-gray-900 mb-2">My Wallet</h1>
+    <p class="text-gray-600 mb-6">Manage your TAMCC Deli wallet balance</p>
+
+    <div class="wallet-grid">
+        <!-- Left Column: Balance + Top-up -->
+        <div>
             <!-- Balance Card -->
             <div class="wallet-balance-card">
                 <div class="balance-icon">
@@ -136,17 +267,17 @@ include 'includes/header.php';
             </div>
 
             <!-- Top-up Form -->
-            <div class="bg-white rounded-lg shadow-md p-6 mt-6 border border-gray-100">
-                <h2 class="text-xl font-bold flex items-center gap-2 mb-4">
+            <div class="topup-card">
+                <h2>
                     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14"/><path d="M5 12h14"/></svg>
                     Top Up Wallet
                 </h2>
                 <form method="post" action="topup.php" id="topupForm">
                     <input type="hidden" name="csrf_token" value="<?= generateToken() ?>">
-                    <div class="mb-4">
-                        <label for="amount" class="block text-sm font-medium text-gray-700 mb-1">Amount ($)</label>
-                        <input type="number" name="amount" id="amount" step="0.01" min="1" max="500" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500">
-                        <p class="text-xs text-gray-500 mt-1">Maximum $500 per transaction</p>
+                    <div class="form-group">
+                        <label for="amount">Amount ($)</label>
+                        <input type="number" name="amount" id="amount" step="0.01" min="1" max="500" required>
+                        <small class="text-gray-500 text-xs">Maximum $500 per transaction</small>
                     </div>
 
                     <!-- Quick Amount Buttons -->
@@ -156,7 +287,7 @@ include 'includes/header.php';
                         <button type="button" class="quick-amount" data-amount="50">$50</button>
                     </div>
 
-                    <button type="submit" class="w-full bg-orange-500 hover:bg-orange-600 text-white font-bold py-2 px-4 rounded-lg transition flex items-center justify-center gap-2">
+                    <button type="submit" class="btn-add-funds">
                         <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>
                         Add Funds
                     </button>
@@ -164,54 +295,42 @@ include 'includes/header.php';
             </div>
 
             <!-- Continue Shopping Button -->
-            <div class="mt-6">
-                <a href="<?= kiosk_url('menu.php') ?>" class="block w-full text-center border border-gray-300 bg-white hover:bg-gray-50 text-gray-700 font-medium py-2 px-4 rounded-lg transition">
-                    Continue Shopping
-                </a>
-            </div>
+            <a href="<?= kiosk_url('menu.php') ?>" class="btn-continue">Continue Shopping</a>
         </div>
 
-        <!-- Right Column: Transaction History -->
-        <div class="lg:col-span-2">
-            <div class="bg-white rounded-lg shadow-md border border-gray-100">
-                <div class="p-6 border-b border-gray-100">
-                    <h2 class="text-xl font-bold">Recent Transactions</h2>
-                </div>
-                <div class="p-0 overflow-x-auto">
-                    <table class="min-w-full divide-y divide-gray-200">
-                        <thead class="bg-gray-50">
+        <!-- Right Column: Transactions & Info -->
+        <div>
+            <div class="transaction-card">
+                <h2>Recent Transactions</h2>
+                <div class="overflow-x-auto">
+                    <table class="transactions-table">
+                        <thead>
                             <tr>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Description</th>
-                                <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Amount</th>
+                                <th>Date</th>
+                                <th>Type</th>
+                                <th>Description</th>
+                                <th class="text-right">Amount</th>
                             </tr>
                         </thead>
-                        <tbody class="bg-white divide-y divide-gray-200">
+                        <tbody>
                             <?php if ($transactions && $transactions->num_rows > 0): ?>
                                 <?php while ($tx = $transactions->fetch_assoc()): ?>
                                     <tr>
-                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                            <?= date('M j, Y', strtotime($tx['created_at'])) ?>
-                                        </td>
-                                        <td class="px-6 py-4 whitespace-nowrap">
+                                        <td><?= date('M j, Y', strtotime($tx['created_at'])) ?></td>
+                                        <td>
                                             <span class="transaction-type transaction-type-<?= $tx['type'] ?>">
                                                 <?= $tx['type'] === 'topup' ? 'Credit' : 'Debit' ?>
                                             </span>
                                         </td>
-                                        <td class="px-6 py-4 text-sm text-gray-600">
-                                            <?= htmlspecialchars($tx['description'] ?? ($tx['type'] === 'topup' ? 'Wallet Top‑up' : 'Order Payment')) ?>
-                                        </td>
-                                        <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium <?= $tx['type'] === 'topup' ? 'amount-positive' : 'amount-negative' ?>">
+                                        <td><?= htmlspecialchars($tx['description'] ?? ($tx['type'] === 'topup' ? 'Wallet Top‑up' : 'Order Payment')) ?></td>
+                                        <td class="<?= $tx['type'] === 'topup' ? 'amount-positive' : 'amount-negative' ?> text-right">
                                             <?= $tx['type'] === 'topup' ? '+' : '-' ?> $<?= number_format($tx['amount'], 2) ?>
                                         </td>
                                     </tr>
                                 <?php endwhile; ?>
                             <?php else: ?>
                                 <tr>
-                                    <td colspan="4" class="px-6 py-12 text-center text-gray-500">
-                                        No transactions yet
-                                    </td>
+                                    <td colspan="4" class="text-center py-6 text-gray-500">No transactions yet</td>
                                 </tr>
                             <?php endif; ?>
                         </tbody>
@@ -219,9 +338,8 @@ include 'includes/header.php';
                 </div>
             </div>
 
-            <!-- Info Card -->
-            <div class="bg-white rounded-lg shadow-md p-6 mt-6 border border-gray-100">
-                <h3 class="font-bold text-lg mb-3">How It Works</h3>
+            <div class="info-card">
+                <h3>How It Works</h3>
                 <ul class="info-list">
                     <li>Add funds to your wallet using a credit/debit card</li>
                     <li>Use your wallet balance to pay for orders quickly at checkout</li>
@@ -234,11 +352,18 @@ include 'includes/header.php';
 </div>
 
 <script>
-    // Quick amount buttons
-    const amountInput = document.getElementById('amount');
-    document.querySelectorAll('.quick-amount').forEach(btn => {
-        btn.addEventListener('click', () => {
-            amountInput.value = btn.dataset.amount;
+    // Quick amount buttons – set the amount field value
+    document.addEventListener('DOMContentLoaded', function() {
+        const amountInput = document.getElementById('amount');
+        const quickButtons = document.querySelectorAll('.quick-amount');
+        quickButtons.forEach(btn => {
+            btn.addEventListener('click', function(e) {
+                e.preventDefault();
+                const amount = this.getAttribute('data-amount');
+                if (amountInput) {
+                    amountInput.value = amount;
+                }
+            });
         });
     });
 </script>
