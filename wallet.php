@@ -38,7 +38,7 @@ include 'includes/header.php';
 ?>
 
 <style>
-    /* Additional styles for wallet page – similar to React component */
+    /* Styles exactly as in the screenshot */
     .wallet-balance-card {
         background: linear-gradient(135deg, #074af2 0%, #0639c0 100%);
         color: white;
@@ -57,20 +57,26 @@ include 'includes/header.php';
         justify-content: center;
         margin-bottom: 1rem;
     }
-    .balance-icon svg {
-        width: 2rem;
-        height: 2rem;
-    }
-    .balance-amount {
-        font-size: 2.5rem;
-        font-weight: 800;
-        margin: 0.5rem 0;
-    }
+    .balance-icon svg { width: 2rem; height: 2rem; }
+    .balance-amount { font-size: 2.5rem; font-weight: 800; margin: 0.5rem 0; }
     .quick-amount-grid {
         display: grid;
         grid-template-columns: repeat(3, 1fr);
         gap: 0.5rem;
         margin: 1rem 0;
+    }
+    .quick-amount {
+        background: #f3f4f6;
+        border: 1px solid #e5e7eb;
+        border-radius: 0.5rem;
+        padding: 0.5rem;
+        font-weight: 500;
+        transition: all 0.2s;
+        cursor: pointer;
+    }
+    .quick-amount:hover {
+        background: #e5e7eb;
+        transform: translateY(-2px);
     }
     .transaction-type {
         display: inline-flex;
@@ -81,26 +87,11 @@ include 'includes/header.php';
         font-weight: 600;
         text-transform: uppercase;
     }
-    .transaction-type-credit {
-        background: #dcfce7;
-        color: #15803d;
-    }
-    .transaction-type-debit {
-        background: #fee2e2;
-        color: #b91c1c;
-    }
-    .amount-positive {
-        color: #15803d;
-        font-weight: 600;
-    }
-    .amount-negative {
-        color: #b91c1c;
-        font-weight: 600;
-    }
-    .info-list {
-        list-style: none;
-        padding-left: 0;
-    }
+    .transaction-type-credit { background: #dcfce7; color: #15803d; }
+    .transaction-type-debit { background: #fee2e2; color: #b91c1c; }
+    .amount-positive { color: #15803d; font-weight: 600; }
+    .amount-negative { color: #b91c1c; font-weight: 600; }
+    .info-list { list-style: none; padding-left: 0; }
     .info-list li {
         display: flex;
         align-items: flex-start;
@@ -116,12 +107,8 @@ include 'includes/header.php';
         font-size: 1.25rem;
     }
     @media (max-width: 768px) {
-        .wallet-balance-card {
-            padding: 1.5rem;
-        }
-        .balance-amount {
-            font-size: 2rem;
-        }
+        .wallet-balance-card { padding: 1.5rem; }
+        .balance-amount { font-size: 2rem; }
     }
 </style>
 
@@ -164,9 +151,9 @@ include 'includes/header.php';
 
                     <!-- Quick Amount Buttons -->
                     <div class="quick-amount-grid">
-                        <button type="button" class="quick-amount bg-gray-100 hover:bg-gray-200 text-gray-800 py-2 rounded-lg text-sm font-medium transition" data-amount="10">$10</button>
-                        <button type="button" class="quick-amount bg-gray-100 hover:bg-gray-200 text-gray-800 py-2 rounded-lg text-sm font-medium transition" data-amount="25">$25</button>
-                        <button type="button" class="quick-amount bg-gray-100 hover:bg-gray-200 text-gray-800 py-2 rounded-lg text-sm font-medium transition" data-amount="50">$50</button>
+                        <button type="button" class="quick-amount" data-amount="10">$10</button>
+                        <button type="button" class="quick-amount" data-amount="25">$25</button>
+                        <button type="button" class="quick-amount" data-amount="50">$50</button>
                     </div>
 
                     <button type="submit" class="w-full bg-orange-500 hover:bg-orange-600 text-white font-bold py-2 px-4 rounded-lg transition flex items-center justify-center gap-2">
