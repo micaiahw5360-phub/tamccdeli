@@ -1,5 +1,6 @@
 /*
- * TAMCC Deli – Main JavaScript (with kiosk mode support & fixed paths)
+ * TAMCC Deli – Main JavaScript (Normal Mode)
+ * Enhanced: fixed cart count, AJAX add to cart, modal handling, toast improvements.
  */
 document.addEventListener('DOMContentLoaded', function() {
     // Mobile menu toggle
@@ -102,13 +103,12 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // Close mobile dropdown after selecting a link (improves UX)
+    // Close mobile dropdown after selecting a link
     document.querySelectorAll('.dropdown-content a').forEach(link => {
         link.addEventListener('click', () => {
             const dropdown = link.closest('.dropdown');
             if (dropdown && window.innerWidth <= 768) {
                 dropdown.classList.remove('active');
-                // If the mobile menu is also open, keep it open – but dropdown should close
             }
         });
     });
@@ -147,32 +147,26 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
-    // AJAX Add to Cart (updated robust version)
+    // AJAX Add to Cart (enhanced)
     document.querySelectorAll('.add-to-cart-form').forEach(form => {
         form.addEventListener('submit', async function(e) {
-            e.preventDefault(); // Stop normal form submission
-
+            e.preventDefault();
             const submitBtn = this.querySelector('button[type="submit"]');
             if (submitBtn) submitBtn.disabled = true;
 
             const formData = new FormData(this);
             try {
-                // Build URL with kiosk parameter if needed
-                const url = (typeof kioskUrl === 'function') ? kioskUrl('/cart.php?action=add') : '/cart.php?action=add';
+                const url = kioskUrl('/cart.php?action=add');
                 const response = await fetch(url, {
                     method: 'POST',
                     body: formData,
-                    headers: {
-                        'X-Requested-With': 'XMLHttpRequest' // Identify AJAX request
-                    }
+                    headers: { 'X-Requested-With': 'XMLHttpRequest' }
                 });
-
                 if (!response.ok) throw new Error('Network error');
-
                 const result = await response.json();
                 if (result.success) {
                     showToast('Item added to cart!', 'success');
-                    updateCartCount(); // defined elsewhere
+                    updateCartCount();
                 } else {
                     showToast(result.error || 'Error adding item', 'error');
                 }
@@ -313,14 +307,7 @@ function showToast(message, type = 'info') {
     }, 3000);
 }
 
-// --- Additional helper functions as requested ---
-
-/**
- * Display a temporary flash message.
- * @param {string} message - The text to display.
- * @param {string} type - 'success', 'error', or 'info'.
- * @param {number} duration - Milliseconds to show the message.
- */
+// Flash message helper
 function showFlashMessage(message, type = 'info', duration = 3000) {
     let container = document.getElementById('flash-container');
     if (!container) {
@@ -354,16 +341,7 @@ function showFlashMessage(message, type = 'info', duration = 3000) {
     }, duration);
 }
 
-/**
- * Show a confirmation modal with customizable buttons and callbacks.
- * @param {Object} options - Configuration object.
- * @param {string} options.message - The confirmation message.
- * @param {string} [options.title='Confirm'] - Modal title.
- * @param {string} [options.confirmText='Yes'] - Text for confirm button.
- * @param {string} [options.cancelText='Cancel'] - Text for cancel button.
- * @param {Function} [options.onConfirm] - Callback when confirm is clicked.
- * @param {Function} [options.onCancel] - Callback when cancel or close is clicked.
- */
+// Confirmation modal
 function showConfirmModal(options) {
     const {
         message,
@@ -374,7 +352,6 @@ function showConfirmModal(options) {
         onCancel = () => {}
     } = options;
 
-    // Remove any existing modal to avoid stacking
     const existingModal = document.getElementById('custom-confirm-modal');
     if (existingModal) existingModal.remove();
 
@@ -470,22 +447,14 @@ function showConfirmModal(options) {
     modal.appendChild(modalContent);
     document.body.appendChild(modal);
 
-    // Focus the confirm button by default for accessibility
     confirmBtn.focus();
 }
 
-/**
- * Attach loading state to a form's submit button.
- * Optionally runs an async callback while managing the loading state.
- * @param {HTMLFormElement} form - The form element.
- * @param {Function} [onSubmit] - Async function that receives the form and event.
- *                                If provided, it will prevent default and handle loading.
- * @returns {Object} - Contains startLoading() and stopLoading() methods.
- */
+// Attach loading state to forms
 function attachFormLoading(form, onSubmit) {
     const submitBtn = form.querySelector('button[type="submit"], input[type="submit"]');
     if (!submitBtn) {
-        console.warn('attachFormLoading: No submit button found in form');
+        console.warn('attachFormLoading: No submit button found');
         return { startLoading: () => {}, stopLoading: () => {} };
     }
 
@@ -500,7 +469,6 @@ function attachFormLoading(form, onSubmit) {
             originalText = submitBtn.textContent;
             submitBtn.disabled = true;
             submitBtn.textContent = 'Loading...';
-            // Optionally add a spinner icon (simple)
             if (!submitBtn.querySelector('.spinner')) {
                 const spinner = document.createElement('span');
                 spinner.className = 'spinner';

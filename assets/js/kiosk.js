@@ -1,342 +1,426 @@
-// kiosk.js – Shared state and utilities
+/*
+ * TAMCC Deli – Kiosk Mode JavaScript
+ * Enhanced: cart management, dynamic price updates, option dialogs, payment simulation.
+ * Note: This file works with both localStorage (fallback) and server-side cart via AJAX.
+ */
 
-// Mock menu data (replace with PHP-generated JSON)
-const menu = {
-  "Combo": [
-    { id: 1, name: "Chicken Combo", price: 9.99, image: "https://images.unsplash.com/photo-1551782450-17144efb9c50?w=400" },
-    { id: 2, name: "Veggie Combo", price: 8.99, image: "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=400" }
-  ],
-  "Drinks": [
-    { id: 3, name: "Fresh Lemonade", price: 2.99, image: "https://images.unsplash.com/photo-1519923834699-ef0b7cde4712?w=400" },
-    { id: 4, name: "Iced Coffee", price: 3.49, image: "https://images.unsplash.com/photo-1517701604599-bb9b56dc32c7?w=400" }
-  ],
-  "Breakfast": [
-    { id: 5, name: "Breakfast Wrap", price: 5.99, image: "https://images.unsplash.com/photo-1623428454612-2b7a00cf9a9b?w=400" },
-    { id: 6, name: "Pancakes", price: 4.99, image: "https://images.unsplash.com/photo-1528207776546-365bb710ee93?w=400" }
-  ],
-  "À la carte": [
-    { id: 7, name: "Grilled Chicken", price: 7.99, image: "https://images.unsplash.com/photo-1604908176997-125f25cc6f3d?w=400" },
-    { id: 8, name: "Fish Fillet", price: 8.49, image: "https://images.unsplash.com/photo-1519708227418-c8fd9a32b7a2?w=400" }
-  ],
-  "Dessert": [
-    { id: 9, name: "Chocolate Cake", price: 3.99, image: "https://images.unsplash.com/photo-1578985545062-69928b1d9587?w=400" },
-    { id: 10, name: "Ice Cream", price: 2.49, image: "https://images.unsplash.com/photo-1501443762994-82bd5dace89a?w=400" }
-  ]
-};
-
-// Cart helpers
-function getCart() {
-  return JSON.parse(localStorage.getItem('cart')) || [];
-}
-
-function saveCart(cart) {
-  localStorage.setItem('cart', JSON.stringify(cart));
-  updateCartDisplay();
-}
-
-function addToCart(item, quantity = 1) {
-  let cart = getCart();
-  const existing = cart.find(i => i.id === item.id);
-  if (existing) {
-    existing.quantity += quantity;
-  } else {
-    cart.push({ ...item, quantity });
-  }
-  saveCart(cart);
-}
-
-function updateQuantity(itemId, delta) {
-  let cart = getCart();
-  const item = cart.find(i => i.id === itemId);
-  if (item) {
-    item.quantity += delta;
-    if (item.quantity <= 0) {
-      cart = cart.filter(i => i.id !== itemId);
+// ==================== CART HELPERS (SERVER-SYNCED) ====================
+async function getCart() {
+    try {
+        const response = await fetch('/get-cart-count.php');
+        const data = await response.json();
+        // We'll also fetch full cart contents if needed, but count is sufficient for display.
+        return { count: data.count };
+    } catch (e) {
+        console.error('Failed to fetch cart count:', e);
+        return { count: 0 };
     }
-    saveCart(cart);
-  }
 }
 
-function removeItem(itemId) {
-  let cart = getCart();
-  cart = cart.filter(i => i.id !== itemId);
-  saveCart(cart);
+async function addToCart(itemId, quantity, options = {}) {
+    const formData = new URLSearchParams();
+    formData.append('csrf_token', getCsrfToken());
+    formData.append('item_id', itemId);
+    formData.append('quantity', quantity);
+    formData.append('options', JSON.stringify(options));
+    try {
+        const response = await fetch('/cart.php?action=add', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'X-Requested-With': 'XMLHttpRequest' },
+            body: formData
+        });
+        const data = await response.json();
+        if (data.success) {
+            updateCartDisplay();
+            return true;
+        } else {
+            showToast(data.error || 'Error adding item', 'error');
+            return false;
+        }
+    } catch (error) {
+        console.error('Add to cart error:', error);
+        showToast('Network error. Please try again.', 'error');
+        return false;
+    }
 }
 
-function getCartTotal() {
-  const cart = getCart();
-  return cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+async function updateCartDisplay() {
+    try {
+        const response = await fetch('/get-cart-count.php');
+        const data = await response.json();
+        const countSpans = document.querySelectorAll('.cart-count');
+        countSpans.forEach(span => span.textContent = data.count);
+    } catch (e) {
+        console.error('Failed to update cart display:', e);
+    }
 }
 
-function getCartCount() {
-  return getCart().reduce((sum, item) => sum + item.quantity, 0);
-}
-
-function updateCartDisplay() {
-  const countEls = document.querySelectorAll('.cart-count');
-  const total = getCartCount();
-  countEls.forEach(el => el.textContent = total);
-}
-
-// Wallet helpers (mock)
-function getWalletBalance() {
-  return parseFloat(localStorage.getItem('walletBalance')) || 20.00;
-}
-
-function updateWalletBalance(amount) {
-  const newBalance = getWalletBalance() + amount;
-  localStorage.setItem('walletBalance', newBalance);
-  return newBalance;
-}
-
-function deductWallet(amount) {
-  const balance = getWalletBalance();
-  if (balance >= amount) {
-    updateWalletBalance(-amount);
-    return true;
-  }
-  return false;
-}
-
-// Staff login (mock)
-function isStaffLoggedIn() {
-  return localStorage.getItem('staffLoggedIn') === 'true';
-}
-
-function staffLogin(username, password) {
-  // For demo, accept any non-empty credentials
-  if (username && password) {
-    localStorage.setItem('staffLoggedIn', 'true');
-    localStorage.setItem('staffName', username);
-    return true;
-  }
-  return false;
-}
-
-function staffLogout() {
-  localStorage.removeItem('staffLoggedIn');
-  localStorage.removeItem('staffName');
-}
-
-// Selected category
-function setSelectedCategory(category) {
-  sessionStorage.setItem('selectedCategory', category);
-}
-
-function getSelectedCategory() {
-  return sessionStorage.getItem('selectedCategory');
-}
-
-// Time display
-function updateTime() {
-  const now = new Date();
-  const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-  const timeEl = document.querySelector('.time');
-  if (timeEl) timeEl.textContent = timeStr;
-}
-setInterval(updateTime, 1000);
-updateTime();
-
-// Greeting
-function getGreeting() {
-  const hour = new Date().getHours();
-  if (hour < 12) return "Good Morning";
-  if (hour < 18) return "Good Afternoon";
-  return "Good Evening";
-}
-
-// Populate items screen
-function loadItems() {
-  const category = getSelectedCategory();
-  const items = menu[category] || [];
-  const container = document.querySelector('.items-container');
-  if (container) {
-    container.innerHTML = items.map(item => `
-      <div class="item-card" data-id="${item.id}">
-        <img src="${item.image}" alt="${item.name}">
-        <div class="item-card-content">
-          <h3>${item.name}</h3>
-          <div class="item-price">$${item.price.toFixed(2)}</div>
-          <div class="item-actions">
-            <div class="qty-control">
-              <button class="qty-btn dec">-</button>
-              <span class="qty-value">1</span>
-              <button class="qty-btn inc">+</button>
-            </div>
-            <button class="btn btn-small add-to-cart">Add</button>
-          </div>
-        </div>
-      </div>
-    `).join('');
-
-    // Attach event listeners
-    container.querySelectorAll('.item-card').forEach(card => {
-      const id = parseInt(card.dataset.id);
-      const item = items.find(i => i.id === id);
-      const qtySpan = card.querySelector('.qty-value');
-      const decBtn = card.querySelector('.dec');
-      const incBtn = card.querySelector('.inc');
-      const addBtn = card.querySelector('.add-to-cart');
-
-      let quantity = 1;
-      const updateQtyDisplay = () => { qtySpan.textContent = quantity; };
-      decBtn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        if (quantity > 1) quantity--;
-        updateQtyDisplay();
-      });
-      incBtn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        quantity++;
-        updateQtyDisplay();
-      });
-      addBtn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        addToCart(item, quantity);
-        quantity = 1;
-        updateQtyDisplay();
-        showToast(`Added ${item.name} to cart`);
-      });
-    });
-  }
-}
-
-// Toast notification (simple)
-function showToast(message) {
-  let toast = document.querySelector('.toast');
-  if (!toast) {
-    toast = document.createElement('div');
-    toast.className = 'toast';
-    document.body.appendChild(toast);
-  }
-  toast.textContent = message;
-  toast.style.opacity = '1';
-  setTimeout(() => { toast.style.opacity = '0'; }, 2000);
-}
-
-// Payment simulation
-function processPayment(name, password) {
-  const total = getCartTotal();
-  if (!name || !password) {
-    showToast('Please enter name and password');
-    return false;
-  }
-  if (deductWallet(total)) {
-    // Clear cart
-    localStorage.removeItem('cart');
-    // Store order for receipt
-    const order = {
-      id: Date.now(),
-      items: getCart(), // cart is cleared after this, so we store before clearing
-      total: total,
-      timestamp: new Date().toISOString(),
-      customer: name
+// ==================== DYNAMIC PRICE UPDATE (for items with options) ====================
+function attachPriceUpdater(card) {
+    const basePriceElem = card.querySelector('.price');
+    if (!basePriceElem) return;
+    const basePrice = parseFloat(basePriceElem.dataset.basePrice);
+    const radios = card.querySelectorAll('input[type="radio"][data-price]');
+    const updatePrice = () => {
+        let modifier = 0;
+        radios.forEach(radio => {
+            if (radio.checked) modifier += parseFloat(radio.dataset.price || 0);
+        });
+        basePriceElem.textContent = `$${(basePrice + modifier).toFixed(2)}`;
     };
-    // Actually cart is already cleared after deductWallet? We need to store before clearing.
-    const cart = getCart();
-    order.items = cart;
-    localStorage.setItem('lastOrder', JSON.stringify(order));
-    localStorage.removeItem('cart');
-    return true;
-  } else {
-    showToast('Insufficient wallet balance');
-    return false;
-  }
+    radios.forEach(radio => radio.addEventListener('change', updatePrice));
+    updatePrice();
 }
 
-// Load receipt on confirmation page
-function loadReceipt() {
-  const order = JSON.parse(localStorage.getItem('lastOrder'));
-  if (!order) return;
-  const container = document.querySelector('.receipt-items');
-  if (container) {
-    container.innerHTML = order.items.map(item => `
-      <div class="receipt-item">
-        <span>${item.quantity}x ${item.name}</span>
-        <span>$${(item.price * item.quantity).toFixed(2)}</span>
-      </div>
-    `).join('');
-    document.querySelector('.receipt-total').textContent = `Total: $${order.total.toFixed(2)}`;
-    document.querySelector('.order-id').textContent = `Order #${order.id}`;
-    document.querySelector('.order-time').textContent = new Date(order.timestamp).toLocaleString();
-    document.querySelector('.customer-name').textContent = order.customer;
-  }
+// ==================== QUANTITY CONTROLS ====================
+function attachQuantityControls(card) {
+    const qtySpan = card.querySelector('.qty-value');
+    const decBtn = card.querySelector('.dec');
+    const incBtn = card.querySelector('.inc');
+    if (!qtySpan || !decBtn || !incBtn) return;
+    let quantity = 1;
+    decBtn.addEventListener('click', () => {
+        if (quantity > 1) quantity--;
+        qtySpan.textContent = quantity;
+    });
+    incBtn.addEventListener('click', () => {
+        quantity++;
+        qtySpan.textContent = quantity;
+    });
+    return () => quantity;
 }
 
-// Cart page display
-function loadCart() {
-  const cart = getCart();
-  const container = document.querySelector('.cart-items');
-  const totalSpan = document.querySelector('.cart-total');
-  if (container) {
-    if (cart.length === 0) {
-      container.innerHTML = '<p>Your cart is empty.</p>';
-      totalSpan.textContent = '$0.00';
-      return;
+// ==================== OPTIONS DIALOG (REUSABLE) ====================
+let currentOptionsDialog = null;
+let currentItemData = null;
+let currentSelectedOptions = {};
+
+function showOptionsDialog(item) {
+    if (currentOptionsDialog) currentOptionsDialog.remove();
+    currentItemData = item;
+    currentSelectedOptions = {};
+
+    const overlay = document.createElement('div');
+    overlay.className = 'option-dialog-overlay';
+    overlay.style.cssText = `
+        position: fixed;
+        inset: 0;
+        background: rgba(0,0,0,0.5);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 1000;
+    `;
+    const dialog = document.createElement('div');
+    dialog.className = 'option-dialog';
+    dialog.style.cssText = `
+        background: white;
+        border-radius: 1rem;
+        max-width: 500px;
+        width: 90%;
+        max-height: 85vh;
+        overflow-y: auto;
+        padding: 1.5rem;
+    `;
+
+    // Header
+    const header = document.createElement('div');
+    header.style.display = 'flex';
+    header.style.justifyContent = 'space-between';
+    header.style.alignItems = 'center';
+    header.style.marginBottom = '1rem';
+    const title = document.createElement('h2');
+    title.textContent = item.name;
+    title.style.fontSize = '1.5rem';
+    const closeBtn = document.createElement('button');
+    closeBtn.textContent = '×';
+    closeBtn.style.background = 'none';
+    closeBtn.style.border = 'none';
+    closeBtn.style.fontSize = '2rem';
+    closeBtn.style.cursor = 'pointer';
+    closeBtn.addEventListener('click', () => overlay.remove());
+    header.appendChild(title);
+    header.appendChild(closeBtn);
+    dialog.appendChild(header);
+
+    // Image
+    if (item.image) {
+        const img = document.createElement('img');
+        img.src = item.image;
+        img.alt = item.name;
+        img.style.width = '100%';
+        img.style.borderRadius = '0.5rem';
+        img.style.marginBottom = '1rem';
+        dialog.appendChild(img);
     }
-    container.innerHTML = cart.map(item => `
-      <tr>
-        <td>${item.name}</td>
-        <td>
-          <div class="cart-actions">
-            <button class="qty-btn dec" data-id="${item.id}">-</button>
-            <span class="qty-value">${item.quantity}</span>
-            <button class="qty-btn inc" data-id="${item.id}">+</button>
-            <button class="btn-small remove" data-id="${item.id}">Remove</button>
-          </div>
-        </td>
-        <td>$${item.price.toFixed(2)}</td>
-        <td>$${(item.price * item.quantity).toFixed(2)}</td>
-      </tr>
-    `).join('');
-    const total = getCartTotal();
-    totalSpan.textContent = `$${total.toFixed(2)}`;
 
-    // Attach event handlers
-    container.querySelectorAll('.dec').forEach(btn => {
-      btn.addEventListener('click', () => updateQuantity(parseInt(btn.dataset.id), -1));
+    // Description
+    if (item.description) {
+        const desc = document.createElement('p');
+        desc.textContent = item.description;
+        desc.style.marginBottom = '1rem';
+        desc.style.color = '#4b5563';
+        dialog.appendChild(desc);
+    }
+
+    // Options
+    const optionsContainer = document.createElement('div');
+    optionsContainer.style.marginBottom = '1rem';
+    item.options.forEach(opt => {
+        const optGroup = document.createElement('div');
+        optGroup.style.marginBottom = '1rem';
+        const label = document.createElement('label');
+        label.textContent = opt.option_name + (opt.required ? ' *' : '');
+        label.style.fontWeight = '600';
+        label.style.display = 'block';
+        label.style.marginBottom = '0.5rem';
+        optGroup.appendChild(label);
+        const radioGroup = document.createElement('div');
+        radioGroup.style.display = 'flex';
+        radioGroup.style.flexDirection = 'column';
+        radioGroup.style.gap = '0.5rem';
+        opt.values.forEach(val => {
+            const radioWrapper = document.createElement('div');
+            radioWrapper.style.display = 'flex';
+            radioWrapper.style.alignItems = 'center';
+            radioWrapper.style.gap = '0.5rem';
+            const radio = document.createElement('input');
+            radio.type = 'radio';
+            radio.name = `opt_${opt.id}`;
+            radio.value = val.id;
+            radio.dataset.price = val.price_modifier;
+            if (opt.required && !currentSelectedOptions[opt.id]) {
+                radio.checked = true;
+                currentSelectedOptions[opt.id] = val.id;
+            }
+            radio.addEventListener('change', () => {
+                currentSelectedOptions[opt.id] = val.id;
+                updateTotalPrice();
+            });
+            const valLabel = document.createElement('label');
+            valLabel.textContent = val.value_name;
+            if (val.price_modifier !== 0) {
+                const sign = val.price_modifier > 0 ? '+' : '-';
+                valLabel.textContent += ` (${sign}$${Math.abs(val.price_modifier).toFixed(2)})`;
+            }
+            radioWrapper.appendChild(radio);
+            radioWrapper.appendChild(valLabel);
+            radioGroup.appendChild(radioWrapper);
+        });
+        optGroup.appendChild(radioGroup);
+        optionsContainer.appendChild(optGroup);
     });
-    container.querySelectorAll('.inc').forEach(btn => {
-      btn.addEventListener('click', () => updateQuantity(parseInt(btn.dataset.id), 1));
+    dialog.appendChild(optionsContainer);
+
+    // Total price
+    const totalDiv = document.createElement('div');
+    totalDiv.style.display = 'flex';
+    totalDiv.style.justifyContent = 'space-between';
+    totalDiv.style.alignItems = 'center';
+    totalDiv.style.marginBottom = '1rem';
+    const totalLabel = document.createElement('span');
+    totalLabel.textContent = 'Total:';
+    totalLabel.style.fontWeight = 'bold';
+    const totalPrice = document.createElement('span');
+    totalPrice.id = 'dialog-total-price';
+    totalPrice.style.fontSize = '1.5rem';
+    totalPrice.style.fontWeight = 'bold';
+    totalPrice.style.color = '#074af2';
+    totalDiv.appendChild(totalLabel);
+    totalDiv.appendChild(totalPrice);
+    dialog.appendChild(totalDiv);
+
+    // Add to cart button
+    const addBtn = document.createElement('button');
+    addBtn.textContent = 'Add to Cart';
+    addBtn.className = 'btn btn-primary';
+    addBtn.style.width = '100%';
+    addBtn.style.padding = '0.75rem';
+    addBtn.style.fontSize = '1rem';
+    addBtn.addEventListener('click', async () => {
+        // Validate required options
+        let valid = true;
+        item.options.forEach(opt => {
+            if (opt.required && !currentSelectedOptions[opt.id]) {
+                showToast(`Please select ${opt.option_name}`, 'error');
+                valid = false;
+            }
+        });
+        if (!valid) return;
+
+        const success = await addToCart(item.id, 1, currentSelectedOptions);
+        if (success) {
+            overlay.remove();
+            showToast('Added to cart!', 'success');
+        }
     });
-    container.querySelectorAll('.remove').forEach(btn => {
-      btn.addEventListener('click', () => removeItem(parseInt(btn.dataset.id)));
-    });
-  }
+    dialog.appendChild(addBtn);
+
+    overlay.appendChild(dialog);
+    document.body.appendChild(overlay);
+    currentOptionsDialog = overlay;
+
+    function updateTotalPrice() {
+        let modifiers = 0;
+        item.options.forEach(opt => {
+            const selectedId = currentSelectedOptions[opt.id];
+            const val = opt.values.find(v => v.id == selectedId);
+            if (val) modifiers += parseFloat(val.price_modifier || 0);
+        });
+        const total = item.price + modifiers;
+        totalPrice.textContent = `$${total.toFixed(2)}`;
+    }
+    updateTotalPrice();
 }
 
-// Initialize per page
+// ==================== INITIALIZE PAGE ====================
 document.addEventListener('DOMContentLoaded', () => {
-  updateCartDisplay();
-  if (document.querySelector('.items-container')) loadItems();
-  if (document.querySelector('.cart-items')) loadCart();
-  if (document.querySelector('.receipt-items')) loadReceipt();
+    updateCartDisplay();
 
-  // Login form handling
-  const loginForm = document.querySelector('#login-form');
-  if (loginForm) {
-    loginForm.addEventListener('submit', (e) => {
-      e.preventDefault();
-      const username = document.querySelector('#staff-name').value;
-      const password = document.querySelector('#staff-password').value;
-      if (staffLogin(username, password)) {
-        window.location.href = 'home.html';
-      } else {
-        showToast('Invalid credentials');
-      }
-    });
-  }
+    // Handle menu items with options: attach click handlers
+    document.querySelectorAll('.menu-item').forEach(card => {
+        const optionsData = card.dataset.options;
+        let options = [];
+        try {
+            options = JSON.parse(optionsData || '[]');
+        } catch(e) { console.warn(e); }
 
-  // Payment form handling
-  const paymentForm = document.querySelector('#payment-form');
-  if (paymentForm) {
-    paymentForm.addEventListener('submit', (e) => {
-      e.preventDefault();
-      const name = document.querySelector('#customer-name').value;
-      const password = document.querySelector('#customer-password').value;
-      if (processPayment(name, password)) {
-        window.location.href = 'confirmation.html';
-      }
+        const addBtn = card.querySelector('.add-to-cart-btn');
+        const itemId = parseInt(card.dataset.id);
+        const itemName = card.dataset.name;
+        const itemPrice = parseFloat(card.dataset.price);
+        const itemImage = card.dataset.image;
+        const itemDesc = card.dataset.description;
+
+        if (options.length > 0) {
+            // Show dialog on card click (except on add button)
+            card.addEventListener('click', (e) => {
+                if (e.target === addBtn || addBtn?.contains(e.target)) return;
+                showOptionsDialog({
+                    id: itemId,
+                    name: itemName,
+                    price: itemPrice,
+                    image: itemImage,
+                    description: itemDesc,
+                    options: options
+                });
+            });
+            // Add button also shows dialog
+            if (addBtn) {
+                addBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    showOptionsDialog({
+                        id: itemId,
+                        name: itemName,
+                        price: itemPrice,
+                        image: itemImage,
+                        description: itemDesc,
+                        options: options
+                    });
+                });
+            }
+        } else {
+            // No options: direct add
+            if (addBtn) {
+                addBtn.addEventListener('click', async (e) => {
+                    e.stopPropagation();
+                    const success = await addToCart(itemId, 1, {});
+                    if (success) showToast('Added to cart!', 'success');
+                });
+            }
+        }
+
+        // Attach price updater if options exist and radio buttons present
+        if (card.querySelectorAll('input[type="radio"][data-price]').length) {
+            attachPriceUpdater(card);
+        }
+        // Attach quantity controls if present
+        attachQuantityControls(card);
     });
-  }
+
+    // Cart page: attach update/remove handlers
+    document.querySelectorAll('.qty-input').forEach(input => {
+        input.addEventListener('change', async function() {
+            const key = this.dataset.key;
+            const qty = parseInt(this.value);
+            if (isNaN(qty) || qty < 1) return;
+            const formData = new FormData();
+            formData.append('csrf_token', getCsrfToken());
+            formData.append('key', key);
+            formData.append('quantity', qty);
+            try {
+                const response = await fetch('/cart.php', {
+                    method: 'POST',
+                    body: formData,
+                    headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                });
+                const data = await response.json();
+                if (data.success) location.reload();
+                else showToast('Error updating quantity', 'error');
+            } catch(e) {
+                showToast('Network error', 'error');
+            }
+        });
+    });
+
+    document.querySelectorAll('.remove-item').forEach(btn => {
+        btn.addEventListener('click', async () => {
+            const key = btn.dataset.key;
+            const formData = new FormData();
+            formData.append('csrf_token', getCsrfToken());
+            formData.append('key', key);
+            formData.append('action', 'remove');
+            try {
+                const response = await fetch('/cart.php', {
+                    method: 'POST',
+                    body: formData,
+                    headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                });
+                const data = await response.json();
+                if (data.success) location.reload();
+                else showToast('Error removing item', 'error');
+            } catch(e) {
+                showToast('Network error', 'error');
+            }
+        });
+    });
 });
+
+// Helper to get CSRF token from meta or from PHP output
+function getCsrfToken() {
+    const tokenInput = document.querySelector('input[name="csrf_token"]');
+    if (tokenInput) return tokenInput.value;
+    return '';
+}
+
+// Toast function
+function showToast(message, type = 'info') {
+    let container = document.getElementById('toast-container');
+    if (!container) {
+        container = document.createElement('div');
+        container.id = 'toast-container';
+        container.style.cssText = 'position:fixed; bottom:20px; right:20px; z-index:99999;';
+        document.body.appendChild(container);
+    }
+    const toast = document.createElement('div');
+    toast.className = `toast toast-${type}`;
+    toast.textContent = message;
+    toast.style.cssText = `
+        background: ${type === 'success' ? '#4caf50' : type === 'error' ? '#f44336' : '#2196f3'};
+        color: white;
+        padding: 12px 20px;
+        margin-top: 10px;
+        border-radius: 5px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        opacity: 0;
+        transition: opacity 0.3s ease;
+        font-size: 1rem;
+        pointer-events: none;
+    `;
+    container.appendChild(toast);
+    setTimeout(() => toast.style.opacity = 1, 10);
+    setTimeout(() => {
+        toast.style.opacity = 0;
+        setTimeout(() => toast.remove(), 300);
+    }, 3000);
+}

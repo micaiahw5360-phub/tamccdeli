@@ -87,7 +87,7 @@ h1, h2, h3 {
   top: 0;
   z-index: 1000;
   border-bottom: 1px solid rgba(0,0,0,0.05);
-  min-height: 70px; /* Ensure enough space for the larger logo */
+  min-height: 70px;
 }
 
 .logo {
@@ -233,7 +233,6 @@ h1, h2, h3 {
   .dropdown.active .dropdown-content {
     display: block;
   }
-  /* Additional alignment for mobile */
   .navbar {
     flex-direction: column;
     align-items: stretch;
@@ -248,7 +247,7 @@ h1, h2, h3 {
   }
 }
 
-/* ==================== BUTTONS ==================== */
+/* ==================== BUTTONS (ENHANCED) ==================== */
 .btn {
   display: inline-flex;
   align-items: center;
@@ -312,6 +311,27 @@ h1, h2, h3 {
 .btn-primary { background: var(--primary-600); }
 .btn-accent { background: var(--accent-500); }
 .btn-accent:hover { background: var(--accent-600); }
+
+/* Additional button variants (improvements) */
+.btn-outline {
+  background: transparent;
+  border: 1px solid var(--neutral-300);
+  color: var(--neutral-700);
+  box-shadow: none;
+}
+.btn-outline:hover {
+  background: var(--neutral-100);
+  border-color: var(--primary-600);
+  color: var(--primary-600);
+}
+.btn-icon {
+  padding: 0.5rem;
+  border-radius: var(--radius);
+}
+.btn-block {
+  width: 100%;
+  justify-content: center;
+}
 
 /* ==================== ACCESSIBILITY ==================== */
 :focus {
@@ -636,9 +656,6 @@ tr:hover td {
 .status-cancelled, .status-failed { color: var(--danger); background: rgba(239,68,68,0.1); }
 
 /* ==================== ADMIN & STAFF PANEL ==================== */
-/* Admin tables */
-
-/* Restore small images in admin menu table */
 .admin-table .item-image {
     width: 50px;
     height: 50px;
@@ -664,8 +681,6 @@ tr:hover td {
 .admin-table tr:hover td {
     background: var(--neutral-50);
 }
-
-/* Stat cards with icons */
 .stat-card {
     position: relative;
     padding-top: 2rem;
@@ -686,13 +701,9 @@ tr:hover td {
     box-shadow: var(--shadow);
     color: var(--primary-600);
 }
-
-/* Inline forms */
 .inline-form {
     display: inline;
 }
-
-/* Modal */
 .modal {
     display: none;
     position: fixed;
@@ -723,8 +734,6 @@ tr:hover td {
     gap: 1rem;
     justify-content: center;
 }
-
-/* Loading spinner */
 .loading-spinner {
     display: inline-block;
     width: 1rem;
@@ -767,9 +776,6 @@ tr:hover td {
   background: var(--primary-600);
   color: white;
   border-color: var(--primary-600);
-}
-.inline-form {
-  display: inline;
 }
 .admin-panel .btn-small,
 .staff-panel .btn-small {
