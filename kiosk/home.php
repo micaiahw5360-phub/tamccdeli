@@ -1,177 +1,173 @@
 <?php
 require __DIR__ . '/../includes/session.php';
-require __DIR__ . '/../config/database.php';
 require __DIR__ . '/../includes/kiosk.php';
-require __DIR__ . '/../includes/functions.php';
 
-$kiosk_mode = true;
-
+$greeting = '';
 $hour = date('H');
-if ($hour < 12) $greeting = "Good Morning";
-elseif ($hour < 18) $greeting = "Good Afternoon";
-else $greeting = "Good Evening";
+if ($hour < 12) $greeting = "🌅 Good Morning! Ready for Breakfast? 🌅";
+elseif ($hour < 18) $greeting = "☀️ Good Afternoon! Lunch Time? ☀️";
+else $greeting = "🌙 Good Evening! Dinner's Waiting! 🌙";
 
-$page_title = "TAMCC Deli Kiosk";
+$fun_facts = [
+    "🍔 Our famous bake & bulla sells out every morning by 10 AM!",
+    "🎉 Students love our combo deals - best value on campus!",
+    "🌿 We use fresh local ingredients from Grenadian farms!",
+    "⭐ Over 500 happy meals served this week alone!",
+    "🔥 Try our signature Marryshow Burger - student approved!",
+    "💰 Wallet payments get you 5% cashback!"
+];
+$random_fact = $fun_facts[array_rand($fun_facts)];
+
+$page_title = "Welcome | TAMCC Deli Kiosk";
 ?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title><?= $page_title ?></title>
-    <link rel="stylesheet" href="/assets/css/global.css">
-    <link rel="stylesheet" href="/assets/css/kiosk.css">
     <style>
-        .hero-landing {
-            text-align: center;
-            padding: var(--space-xl) var(--space);
-            background: linear-gradient(135deg, rgba(7,74,242,0.85), rgba(249,115,22,0.85)), url('/assets/images/campus-bg.jpg');
-            background-size: cover;
-            background-position: center;
-            color: white;
-            border-radius: var(--radius-xl);
-            margin-bottom: var(--space-lg);
-            box-shadow: var(--shadow-lg);
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
         }
-        .hero-landing h1 {
-            color: white;
-            font-size: clamp(2.5rem, 8vw, 4rem);
-            text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
-            margin-bottom: var(--space);
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            overflow-x: hidden;
         }
-        .hero-landing p {
-            font-size: clamp(1.2rem, 4vw, 1.8rem);
-            opacity: 0.95;
-        }
-        .time-large {
-            font-size: clamp(1.5rem, 5vw, 2rem);
-            font-weight: 600;
-            background: rgba(0,0,0,0.2);
-            display: inline-block;
-            padding: 0.3rem 1rem;
-            border-radius: 60px;
-            margin-top: var(--space);
-        }
-        .cta-button {
-            display: inline-block;
-            background: var(--accent-500);
-            color: white;
-            font-size: clamp(1.5rem, 5vw, 2.2rem);
-            font-weight: 700;
-            padding: var(--space) var(--space-xl);
-            border-radius: 60px;
-            text-decoration: none;
-            transition: var(--transition);
-            box-shadow: var(--shadow-lg);
-            margin-top: var(--space);
-        }
-        .cta-button:hover {
-            background: var(--accent-600);
-            transform: scale(1.02);
-            box-shadow: var(--shadow-xl);
-        }
-        .info-cards {
+        .kiosk-home {
+            background: linear-gradient(135deg, rgba(0,0,0,0.65), rgba(0,0,0,0.75)), 
+                        url('/assets/images/main.menu.png') center/cover fixed;
+            min-height: 100vh;
             display: flex;
-            flex-wrap: wrap;
-            gap: var(--space);
+            align-items: center;
             justify-content: center;
-            margin: var(--space-xl) 0;
+            padding: 2rem;
+            position: relative;
+            overflow: hidden;
         }
-        .info-card {
-            background: rgba(255,255,255,0.9);
-            backdrop-filter: blur(8px);
-            border-radius: var(--radius-lg);
-            padding: var(--space);
-            flex: 1;
-            min-width: 160px;
+        .kiosk-home::before {
+            content: '🍔 🍕 🥤 🍳 🍰 🍦 🥗 🌮 🍪 🧃';
+            position: absolute;
+            font-size: 6rem;
+            white-space: nowrap;
+            opacity: 0.08;
+            animation: slideEmojis 30s linear infinite;
+            pointer-events: none;
+            bottom: 0;
+        }
+        @keyframes slideEmojis {
+            0% { transform: translateX(-20%); }
+            100% { transform: translateX(20%); }
+        }
+        @keyframes bounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-15px); }
+        }
+        @keyframes cardPopIn {
+            0% { opacity: 0; transform: scale(0.8) translateY(50px); }
+            100% { opacity: 1; transform: scale(1) translateY(0); }
+        }
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.02); opacity: 0.95; }
+        }
+        .home-card {
+            background: rgba(255, 255, 255, 0.97);
+            backdrop-filter: blur(20px);
+            border-radius: 4rem;
+            padding: 4rem 3rem;
             text-align: center;
-            box-shadow: var(--shadow);
-            border: 1px solid rgba(255,255,255,0.3);
+            max-width: 750px;
+            width: 100%;
+            animation: cardPopIn 0.6s cubic-bezier(0.34, 1.2, 0.64, 1);
+            box-shadow: 0 30px 60px rgba(0,0,0,0.3);
+            border: 3px solid rgba(255,255,255,0.5);
+            position: relative;
+            z-index: 1;
         }
-        .info-card .emoji {
-            font-size: 2.5rem;
+        .home-card .logo {
+            max-width: 160px;
+            margin-bottom: 1.5rem;
+            animation: bounce 2s infinite;
         }
-        .info-card h4 {
-            margin: var(--space-xs) 0;
-            color: var(--primary-700);
+        .home-card h1 {
+            font-size: 3.8rem;
+            margin-bottom: 1rem;
+            background: linear-gradient(135deg, #FF6B35, #FF4757, #6C5CE7, #FF69B4);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+        .greeting-text {
+            font-size: 2rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, #FF6B35, #FF4757);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            margin-bottom: 2rem;
+        }
+        .fun-fact-card {
+            background: linear-gradient(135deg, #FF6B35, #FF4757);
+            padding: 1.2rem;
+            border-radius: 3rem;
+            margin: 2rem 0;
+            color: white;
+            font-weight: bold;
+            animation: pulse 2s infinite;
+        }
+        .fun-fact-card span {
+            font-size: 1.8rem;
+            margin-right: 0.5rem;
+        }
+        .fun-fact-card p {
+            font-size: 1.2rem;
+            margin: 0;
+        }
+        .start-btn {
+            background: linear-gradient(135deg, #FF6B35, #FF4757);
+            color: white;
+            border: none;
+            padding: 1.2rem 3.5rem;
+            font-size: 2rem;
+            font-weight: 800;
+            border-radius: 4rem;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.34, 1.2, 0.64, 1);
+            box-shadow: 0 10px 30px rgba(255, 107, 53, 0.4);
+            text-decoration: none;
+            display: inline-block;
+            letter-spacing: 2px;
+        }
+        .start-btn:hover {
+            transform: scale(1.08) translateY(-5px);
+            box-shadow: 0 20px 40px rgba(255, 107, 53, 0.6);
         }
         @media (max-width: 768px) {
-            .cta-button {
-                width: 90%;
-                text-align: center;
-            }
+            .home-card { padding: 2rem; }
+            .home-card h1 { font-size: 2rem; }
+            .greeting-text { font-size: 1.3rem; }
+            .start-btn { font-size: 1.3rem; padding: 0.8rem 2rem; }
+            .fun-fact-card p { font-size: 0.9rem; }
         }
     </style>
 </head>
 <body>
-    <?php include __DIR__ . '/../includes/header.php'; ?>
-
-    <div class="kiosk-container" style="max-width: 1200px; margin: 0 auto; padding: var(--space);">
-        
-        <!-- Hero Section -->
-        <div class="hero-landing">
-            <h1>Marryshow Mealhouse</h1>
-            <p><?= $greeting ?>! Ready for a delicious meal?</p>
-            <div class="time-large" id="live-time"></div>
-        </div>
-
-        <!-- Main CTA -->
-        <div style="text-align: center;">
-            <a href="<?= kiosk_url('/kiosk/categories.php') ?>" class="cta-button">
-                🍽️ Start Your Order
+    <div class="kiosk-home">
+        <div class="home-card">
+            <img src="/assets/images/ta-logo-1536x512.png" alt="TAMCC Deli" class="logo">
+            <h1>🍔 TAMCC DELI 🍕<br><span style="font-size: 1.5rem;">Marryshow Mealhouse</span></h1>
+            <div class="greeting-text"><?= $greeting ?></div>
+            <div class="fun-fact-card">
+                <span>🎉 FUN FACT! 🎉</span>
+                <p><?= $random_fact ?></p>
+            </div>
+            <a href="<?= kiosk_url('/kiosk/categories.php') ?>" class="start-btn">
+                🍽️ START YOUR ORDER 🍽️
             </a>
         </div>
-
-        <!-- Info / Promo Cards -->
-        <div class="info-cards">
-            <div class="info-card">
-                <div class="emoji">💰</div>
-                <h4>Wallet Friendly</h4>
-                <p>Top up & pay with student wallet</p>
-            </div>
-            <div class="info-card">
-                <div class="emoji">⚡</div>
-                <h4>Fast Pickup</h4>
-                <p>Ready in 10-15 minutes</p>
-            </div>
-            <div class="info-card">
-                <div class="emoji">🌱</div>
-                <h4>Fresh Local</h4>
-                <p>Sourced from Grenada</p>
-            </div>
-        </div>
-
-        <div style="text-align: center; margin-top: var(--space-xl); font-size: var(--text-sm); color: var(--neutral-500);">
-            <p>T.A. Marryshow Community College – Tanteen Campus</p>
-        </div>
     </div>
-
-    <a href="<?= kiosk_url('/cart.php') ?>" class="floating-cart">
-        🛒 Cart <span class="cart-count" id="cart-count-kiosk">0</span>
-    </a>
-
-    <?php include __DIR__ . '/../includes/footer.php'; ?>
-
-    <script>
-        function updateTime() {
-            const now = new Date();
-            const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-            const timeEl = document.getElementById('live-time');
-            if (timeEl) timeEl.textContent = timeStr;
-        }
-        setInterval(updateTime, 1000);
-        updateTime();
-
-        function updateCartDisplay() {
-            fetch('<?= kiosk_url('/get-cart-count.php') ?>')
-                .then(r => r.json())
-                .then(data => {
-                    document.querySelectorAll('.cart-count').forEach(el => el.textContent = data.count);
-                })
-                .catch(console.error);
-        }
-        updateCartDisplay();
-        setInterval(updateCartDisplay, 5000);
-    </script>
 </body>
 </html>
