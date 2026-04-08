@@ -26,16 +26,20 @@ $page_title = "Welcome | TAMCC Deli Kiosk";
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title><?= $page_title ?></title>
+    <link rel="stylesheet" href="/assets/css/global.css">
     <style>
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
         }
+
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
             overflow-x: hidden;
         }
+
+        /* Kiosk Home Page */
         .kiosk-home {
             background: linear-gradient(135deg, rgba(0,0,0,0.65), rgba(0,0,0,0.75)), 
                         url('/assets/images/main.menu.png') center/cover fixed;
@@ -47,6 +51,7 @@ $page_title = "Welcome | TAMCC Deli Kiosk";
             position: relative;
             overflow: hidden;
         }
+
         .kiosk-home::before {
             content: '🍔 🍕 🥤 🍳 🍰 🍦 🥗 🌮 🍪 🧃';
             position: absolute;
@@ -57,22 +62,33 @@ $page_title = "Welcome | TAMCC Deli Kiosk";
             pointer-events: none;
             bottom: 0;
         }
+
         @keyframes slideEmojis {
             0% { transform: translateX(-20%); }
             100% { transform: translateX(20%); }
         }
+
         @keyframes bounce {
             0%, 100% { transform: translateY(0); }
             50% { transform: translateY(-15px); }
         }
+
         @keyframes cardPopIn {
-            0% { opacity: 0; transform: scale(0.8) translateY(50px); }
-            100% { opacity: 1; transform: scale(1) translateY(0); }
+            0% {
+                opacity: 0;
+                transform: scale(0.8) translateY(50px);
+            }
+            100% {
+                opacity: 1;
+                transform: scale(1) translateY(0);
+            }
         }
+
         @keyframes pulse {
             0%, 100% { transform: scale(1); opacity: 1; }
             50% { transform: scale(1.02); opacity: 0.95; }
         }
+
         .home-card {
             background: rgba(255, 255, 255, 0.97);
             backdrop-filter: blur(20px);
@@ -87,11 +103,13 @@ $page_title = "Welcome | TAMCC Deli Kiosk";
             position: relative;
             z-index: 1;
         }
+
         .home-card .logo {
             max-width: 160px;
             margin-bottom: 1.5rem;
             animation: bounce 2s infinite;
         }
+
         .home-card h1 {
             font-size: 3.8rem;
             margin-bottom: 1rem;
@@ -99,7 +117,9 @@ $page_title = "Welcome | TAMCC Deli Kiosk";
             -webkit-background-clip: text;
             background-clip: text;
             color: transparent;
+            text-shadow: none;
         }
+
         .greeting-text {
             font-size: 2rem;
             font-weight: 700;
@@ -109,6 +129,7 @@ $page_title = "Welcome | TAMCC Deli Kiosk";
             color: transparent;
             margin-bottom: 2rem;
         }
+
         .fun-fact-card {
             background: linear-gradient(135deg, #FF6B35, #FF4757);
             padding: 1.2rem;
@@ -118,14 +139,17 @@ $page_title = "Welcome | TAMCC Deli Kiosk";
             font-weight: bold;
             animation: pulse 2s infinite;
         }
+
         .fun-fact-card span {
             font-size: 1.8rem;
             margin-right: 0.5rem;
         }
+
         .fun-fact-card p {
             font-size: 1.2rem;
             margin: 0;
         }
+
         .start-btn {
             background: linear-gradient(135deg, #FF6B35, #FF4757);
             color: white;
@@ -141,16 +165,33 @@ $page_title = "Welcome | TAMCC Deli Kiosk";
             display: inline-block;
             letter-spacing: 2px;
         }
+
         .start-btn:hover {
             transform: scale(1.08) translateY(-5px);
             box-shadow: 0 20px 40px rgba(255, 107, 53, 0.6);
         }
+
+        .start-btn:active {
+            transform: scale(0.96);
+        }
+
         @media (max-width: 768px) {
-            .home-card { padding: 2rem; }
-            .home-card h1 { font-size: 2rem; }
-            .greeting-text { font-size: 1.3rem; }
-            .start-btn { font-size: 1.3rem; padding: 0.8rem 2rem; }
-            .fun-fact-card p { font-size: 0.9rem; }
+            .home-card {
+                padding: 2rem;
+            }
+            .home-card h1 {
+                font-size: 2rem;
+            }
+            .greeting-text {
+                font-size: 1.3rem;
+            }
+            .start-btn {
+                font-size: 1.3rem;
+                padding: 0.8rem 2rem;
+            }
+            .fun-fact-card p {
+                font-size: 0.9rem;
+            }
         }
     </style>
 </head>
