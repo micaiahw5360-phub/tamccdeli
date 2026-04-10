@@ -124,8 +124,11 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
         .form-group label { display: block; margin-bottom: 0.5rem; font-weight: 600; }
         .form-group input { width: 100%; padding: 0.75rem; border: 1.5px solid var(--neutral-300); border-radius: var(--radius); font-size: 1rem; padding-right: 2.5rem; }
         .form-group input:focus { border-color: var(--primary-600); outline: none; box-shadow: 0 0 0 3px rgba(7,74,242,0.1); }
-        .password-toggle { position: absolute; right: 12px; top: 42px; cursor: pointer; color: var(--neutral-500); }
+        .password-toggle { position: absolute; right: 12px; top: 42px; cursor: pointer; color: var(--neutral-600); font-size: 0.85rem; font-weight: 500; background: var(--neutral-100); padding: 0.2rem 0.5rem; border-radius: 20px; transition: all 0.2s; }
+        .password-toggle:hover { background: var(--neutral-200); }
         .checkbox-group { display: flex; align-items: center; gap: 0.5rem; margin-bottom: 1.5rem; }
+        .checkbox-group input { margin: 0; width: auto; }
+        .checkbox-group label { margin: 0; font-weight: normal; cursor: pointer; }
         .btn-block { width: 100%; padding: 0.75rem; font-size: 1.1rem; border-radius: 2rem; }
         .btn-outline { background: transparent; border: 1px solid var(--neutral-300); color: var(--neutral-700); display: flex; align-items: center; justify-content: center; gap: 0.5rem; width: 100%; padding: 0.75rem; border-radius: 2rem; text-decoration: none; transition: all 0.2s; cursor: pointer; }
         .btn-outline:hover { background: var(--neutral-100); border-color: var(--primary-600); color: var(--primary-600); }
@@ -153,7 +156,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
             <div class="form-group">
                 <label for="password">Password</label>
                 <input type="password" id="password" name="password" required>
-                <span class="password-toggle" onclick="togglePassword()">👁️</span>
+                <span class="password-toggle" id="togglePwdBtn" onclick="togglePassword()">Show</span>
             </div>
             <div class="checkbox-group">
                 <input type="checkbox" id="remember" name="remember">
@@ -203,7 +206,14 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 
     function togglePassword() {
         const pwd = document.getElementById('password');
-        pwd.type = pwd.type === 'password' ? 'text' : 'password';
+        const toggleBtn = document.getElementById('togglePwdBtn');
+        if (pwd.type === 'password') {
+            pwd.type = 'text';
+            toggleBtn.textContent = 'Hide';
+        } else {
+            pwd.type = 'password';
+            toggleBtn.textContent = 'Show';
+        }
     }
 
     document.getElementById('googleSignInBtn').addEventListener('click', async () => {
