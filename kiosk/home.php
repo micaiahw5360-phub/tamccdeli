@@ -164,7 +164,8 @@ $page_title = "Welcome | TAMCC Deli Kiosk";
                 <span>🎉 FUN FACT! 🎉</span>
                 <p><?= $random_fact ?></p>
             </div>
-            <a href="<?= kiosk_url('/kiosk/categories.php') ?>" class="start-btn">
+            <!-- FIXED: Link to menu.php instead of missing categories.php -->
+            <a href="<?= kiosk_url('/kiosk/menu.php') ?>" class="start-btn">
                 🍽️ START YOUR ORDER 🍽️
             </a>
         </div>
