@@ -1,9 +1,9 @@
 <?php
-require __DIR__ . '/includes/session.php';
-require 'config/database.php';
-require 'includes/csrf.php';
-require_once __DIR__ . '/includes/kiosk.php';
-require 'includes/functions.php'; // new shared helper file
+require __DIR__ . '/../includes/session.php';
+require __DIR__ . '/../config/database.php';
+require __DIR__ . '/../includes/csrf.php';
+require_once __DIR__ . '/../includes/kiosk.php';
+require __DIR__ . '/../includes/functions.php';
 
 $categories = [
     'breakfast' => 'Breakfast',
@@ -13,252 +13,109 @@ $categories = [
     'dessert'   => 'Dessert'
 ];
 
-// Determine if we're in kiosk mode and what category is selected
 $kiosk_mode = $kiosk_mode ?? false;
 $selected_category = isset($_GET['cat']) && array_key_exists($_GET['cat'], $categories) ? $_GET['cat'] : null;
 
-// In kiosk mode with no category selected → show category tiles
+// If no category selected in kiosk mode, show category tiles
 if ($kiosk_mode && !$selected_category) {
     $page_title = "Select Category | TAMCC Deli";
-    include 'includes/header.php';
     ?>
-    <div class="kiosk-categories-container">
-        <h1>Select Your Meal</h1>
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+        <title><?= $page_title ?></title>
+        <style>
+            * { margin:0; padding:0; box-sizing:border-box; }
+            body {
+                font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                min-height: 100vh;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                padding: 2rem;
+            }
+            .kiosk-categories {
+                background: rgba(255,255,255,0.95);
+                border-radius: 3rem;
+                padding: 3rem;
+                text-align: center;
+                max-width: 800px;
+                width: 100%;
+                animation: fadeInUp 0.5s;
+            }
+            @keyframes fadeInUp {
+                from { opacity:0; transform:translateY(30px); }
+                to { opacity:1; transform:translateY(0); }
+            }
+            h1 {
+                font-size: 2.8rem;
+                background: linear-gradient(135deg, #FF6B35, #FF4757);
+                -webkit-background-clip: text;
+                background-clip: text;
+                color: transparent;
+                margin-bottom: 2rem;
+            }
+            .category-grid {
+                display: grid;
+                grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+                gap: 1.5rem;
+            }
+            .category-card {
+                background: white;
+                border-radius: 2rem;
+                padding: 1.5rem;
+                text-decoration: none;
+                color: #333;
+                font-weight: bold;
+                font-size: 1.3rem;
+                transition: transform 0.2s, box-shadow 0.2s;
+                box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                gap: 0.5rem;
+            }
+            .category-card:hover {
+                transform: translateY(-8px);
+                box-shadow: 0 15px 30px rgba(0,0,0,0.2);
+                background: linear-gradient(135deg, #FF6B35, #FF4757);
+                color: white;
+            }
+        </style>
+    </head>
+    <body>
         <div class="kiosk-categories">
-            <?php foreach ($categories as $slug => $name): ?>
-                <a href="<?= kiosk_url('menu.php?cat=' . $slug) ?>" class="kiosk-category">
-                    <?= htmlspecialchars($name) ?>
-                </a>
-            <?php endforeach; ?>
+            <h1>🍽️ What would you like?</h1>
+            <div class="category-grid">
+                <?php foreach ($categories as $slug => $name): ?>
+                    <a href="<?= kiosk_url('menu.php?cat=' . $slug) ?>" class="category-card">
+                        <?= $name ?>
+                    </a>
+                <?php endforeach; ?>
+            </div>
         </div>
-    </div>
+        <a href="<?= kiosk_url('/kiosk/cart.php') ?>" style="position:fixed; bottom:20px; right:20px; background:#FF6B35; color:white; padding:0.8rem 1.5rem; border-radius:3rem; text-decoration:none; font-weight:bold;">🛒 Cart (<span id="cart-count">0</span>)</a>
+        <script>
+            fetch('<?= kiosk_url('/get-cart-count.php') ?>')
+                .then(r=>r.json())
+                .then(d=>document.getElementById('cart-count').innerText=d.count);
+        </script>
+    </body>
+    </html>
     <?php
-    // Add floating cart button (always visible in kiosk mode)
-    ?>
-    <a href="<?= kiosk_url('cart.php') ?>" class="floating-cart">
-        <span class="dashicons dashicons-cart"></span>
-        <span class="cart-count" id="cart-count-kiosk">0</span>
-    </a>
-    <?php
-    include 'includes/footer.php';
     exit;
 }
 
-// If we reach here, we're either:
-// - in normal mode (show full menu), or
-// - in kiosk mode with a category selected (show only that category)
-
-$stmt = $conn->prepare("SELECT * FROM menu_items " . 
-    ($selected_category ? "WHERE LOWER(category) = LOWER(?) " : "") . 
-    "ORDER BY FIELD(category, 'Breakfast', 'A La Carte', 'Combo', 'Beverage', 'Dessert'), sort_order, name");
-
+// If a category is selected, redirect to items.php
 if ($selected_category) {
-    // Map slug to actual category name
-    $cat_name = $categories[$selected_category];
-    $stmt->bind_param("s", $cat_name);
-}
-$stmt->execute();
-$items = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
-
-// Group items by category for normal mode
-$menu_items = [];
-if (!$kiosk_mode) {
-    foreach ($items as $item) {
-        $menu_items[$item['category']][] = $item;
-    }
+    $category_name = $categories[$selected_category];
+    header('Location: ' . kiosk_url('/kiosk/items.php?cat=' . urlencode($category_name)));
+    exit;
 }
 
-$page_title = $kiosk_mode ? $categories[$selected_category] . " | TAMCC Deli" : "Menu | TAMCC Deli";
-include 'includes/header.php';
+// Fallback for non-kiosk mode (not used in kiosk)
+echo "Normal menu not implemented in kiosk mode.";
 ?>
-
-<?php if ($kiosk_mode && $selected_category): ?>
-    <div class="kiosk-header">
-        <a href="<?= kiosk_url('menu.php') ?>" class="back-to-categories">← Back to Categories</a>
-        <h1><?= htmlspecialchars($categories[$selected_category]) ?></h1>
-    </div>
-<?php else: ?>
-    <div class="menu-search-container">
-        <input type="text" id="menu-search" class="menu-search" placeholder="Search menu...">
-    </div>
-    <div class="category-filter">
-        <button class="filter-btn active" data-category="all">All</button>
-        <?php foreach ($categories as $slug => $name): ?>
-            <button class="filter-btn" data-category="<?= $slug ?>"><?= $name ?></button>
-        <?php endforeach; ?>
-    </div>
-<?php endif; ?>
-
-<div class="menu-container">
-    <?php if ($kiosk_mode && $selected_category): ?>
-        <div class="items-grid">
-            <?php foreach ($items as $item):
-                $options = getItemOptions($conn, $item['id']); // now from functions.php
-            ?>
-                <div class="menu-item" data-name="<?= strtolower(htmlspecialchars($item['name'])) ?>">
-                    <?php if ($item['image']): ?>
-                        <img src="<?= htmlspecialchars($item['image']) ?>" alt="<?= htmlspecialchars($item['name']) ?>">
-                    <?php endif; ?>
-                    <div class="menu-item-content">
-                        <h3 class="menu-item-name"><?= htmlspecialchars($item['name']) ?></h3>
-                        <div class="price">$<?= number_format($item['price'], 2) ?></div>
-
-                        <form class="add-to-cart-form" method="post">
-                            <input type="hidden" name="csrf_token" value="<?= generateToken() ?>">
-                            <input type="hidden" name="item_id" value="<?= $item['id'] ?>">
-
-                            <?php if (!empty($options)): ?>
-                                <div class="item-options" data-base-price="<?= $item['price'] ?>">
-                                    <?php foreach ($options as $opt): ?>
-                                        <div class="option-group">
-                                            <label><?= htmlspecialchars($opt['option_name']) ?> <?= $opt['required'] ? '*' : '' ?></label>
-                                            <?php if ($opt['option_type'] == 'dropdown'): ?>
-                                                <select name="options[<?= $opt['id'] ?>]" class="option-select" <?= $opt['required'] ? 'required' : '' ?>>
-                                                    <option value="">-- Select --</option>
-                                                    <?php foreach ($opt['values'] as $val): ?>
-                                                        <option value="<?= $val['id'] ?>" data-price="<?= $val['price_modifier'] ?>">
-                                                            <?= htmlspecialchars($val['value_name']) ?>
-                                                            <?php if ($val['price_modifier'] != 0): ?>
-                                                                (<?= ($val['price_modifier'] > 0 ? '+' : '-') ?>$<?= number_format(abs($val['price_modifier']), 2) ?>)
-                                                            <?php endif; ?>
-                                                        </option>
-                                                    <?php endforeach; ?>
-                                                </select>
-                                            <?php else: ?>
-                                                <div class="radio-group">
-                                                    <?php foreach ($opt['values'] as $val): ?>
-                                                        <label>
-                                                            <input type="radio" name="options[<?= $opt['id'] ?>]" value="<?= $val['id'] ?>" data-price="<?= $val['price_modifier'] ?>" <?= $opt['required'] ? 'required' : '' ?>>
-                                                            <?= htmlspecialchars($val['value_name']) ?>
-                                                            <?php if ($val['price_modifier'] != 0): ?>
-                                                                (<?= ($val['price_modifier'] > 0 ? '+' : '-') ?>$<?= number_format(abs($val['price_modifier']), 2) ?>)
-                                                            <?php endif; ?>
-                                                        </label>
-                                                    <?php endforeach; ?>
-                                                </div>
-                                            <?php endif; ?>
-                                        </div>
-                                    <?php endforeach; ?>
-                                    <div class="dynamic-price">Price: $<span class="item-total-price"><?= number_format($item['price'], 2) ?></span></div>
-                                </div>
-                            <?php endif; ?>
-
-                            <div class="menu-item-footer">
-                                <input type="number" name="quantity" value="1" min="1" max="10" class="qty-input">
-                                <button type="submit" class="add-to-cart-btn">Add to Cart</button>
-                            </div>
-                        </form>
-                    </div>
-                </div>
-            <?php endforeach; ?>
-        </div>
-
-        <?php if (empty($items)): ?>
-            <p class="no-items">No items in this category.</p>
-        <?php endif; ?>
-
-    <?php else: ?>
-        <!-- Normal mode: show all categories with sections -->
-        <?php foreach ($menu_items as $cat_name => $cat_items): ?>
-            <div id="<?= strtolower(str_replace(' ', '', $cat_name)) ?>" class="category">
-                <h2><?= htmlspecialchars($cat_name) ?></h2>
-                <div class="items-grid">
-                    <?php foreach ($cat_items as $item):
-                        $options = getItemOptions($conn, $item['id']); // now from functions.php
-                    ?>
-                        <div class="menu-item" data-name="<?= strtolower(htmlspecialchars($item['name'])) ?>">
-                            <?php if ($item['image']): ?>
-                                <img src="<?= htmlspecialchars($item['image']) ?>" alt="<?= htmlspecialchars($item['name']) ?>">
-                            <?php endif; ?>
-                            <div class="menu-item-content">
-                                <h3 class="menu-item-name"><?= htmlspecialchars($item['name']) ?></h3>
-                                <div class="price">$<?= number_format($item['price'], 2) ?></div>
-
-                                <form class="add-to-cart-form" method="post">
-                                    <input type="hidden" name="csrf_token" value="<?= generateToken() ?>">
-                                    <input type="hidden" name="item_id" value="<?= $item['id'] ?>">
-
-                                    <?php if (!empty($options)): ?>
-                                        <div class="item-options" data-base-price="<?= $item['price'] ?>">
-                                            <?php foreach ($options as $opt): ?>
-                                                <div class="option-group">
-                                                    <label><?= htmlspecialchars($opt['option_name']) ?> <?= $opt['required'] ? '*' : '' ?></label>
-                                                    <?php if ($opt['option_type'] == 'dropdown'): ?>
-                                                        <select name="options[<?= $opt['id'] ?>]" class="option-select" <?= $opt['required'] ? 'required' : '' ?>>
-                                                            <option value="">-- Select --</option>
-                                                            <?php foreach ($opt['values'] as $val): ?>
-                                                                <option value="<?= $val['id'] ?>" data-price="<?= $val['price_modifier'] ?>">
-                                                                    <?= htmlspecialchars($val['value_name']) ?>
-                                                                    <?php if ($val['price_modifier'] != 0): ?>
-                                                                        (<?= ($val['price_modifier'] > 0 ? '+' : '-') ?>$<?= number_format(abs($val['price_modifier']), 2) ?>)
-                                                                    <?php endif; ?>
-                                                                </option>
-                                                            <?php endforeach; ?>
-                                                        </select>
-                                                    <?php else: ?>
-                                                        <div class="radio-group">
-                                                            <?php foreach ($opt['values'] as $val): ?>
-                                                                <label>
-                                                                    <input type="radio" name="options[<?= $opt['id'] ?>]" value="<?= $val['id'] ?>" data-price="<?= $val['price_modifier'] ?>" <?= $opt['required'] ? 'required' : '' ?>>
-                                                                    <?= htmlspecialchars($val['value_name']) ?>
-                                                                    <?php if ($val['price_modifier'] != 0): ?>
-                                                                        (<?= ($val['price_modifier'] > 0 ? '+' : '-') ?>$<?= number_format(abs($val['price_modifier']), 2) ?>)
-                                                                    <?php endif; ?>
-                                                                </label>
-                                                            <?php endforeach; ?>
-                                                        </div>
-                                                    <?php endif; ?>
-                                                </div>
-                                            <?php endforeach; ?>
-                                            <div class="dynamic-price">Price: $<span class="item-total-price"><?= number_format($item['price'], 2) ?></span></div>
-                                        </div>
-                                    <?php endif; ?>
-
-                                    <div class="menu-item-footer">
-                                        <input type="number" name="quantity" value="1" min="1" max="10" class="qty-input">
-                                        <button type="submit" class="add-to-cart-btn">Add to Cart</button>
-                                    </div>
-                                </form>
-                            </div>
-                        </div>
-                    <?php endforeach; ?>
-                </div>
-            </div>
-        <?php endforeach; ?>
-    <?php endif; ?>
-</div>
-
-<?php if ($kiosk_mode): ?>
-    <!-- Floating cart button (already added above for category screen, but also needed on item screens) -->
-    <a href="<?= kiosk_url('cart.php') ?>" class="floating-cart">
-        <span class="dashicons dashicons-cart"></span>
-        <span class="cart-count" id="cart-count-kiosk">0</span>
-    </a>
-<?php endif; ?>
-
-<script>
-// Dynamic price update when options change
-document.querySelectorAll('.item-options').forEach(container => {
-    const basePrice = parseFloat(container.dataset.basePrice);
-    const priceSpan = container.querySelector('.item-total-price');
-    const selects = container.querySelectorAll('select, input[type="radio"]');
-
-    function updatePrice() {
-        let modifiers = 0;
-        selects.forEach(input => {
-            if (input.checked || (input.selectedIndex !== undefined && input.value)) {
-                const selected = input.options ? input.options[input.selectedIndex] : input;
-                const priceMod = parseFloat(selected.dataset.price || 0);
-                if (!isNaN(priceMod)) modifiers += priceMod;
-            }
-        });
-        const total = basePrice + modifiers;
-        priceSpan.textContent = total.toFixed(2);
-    }
-
-    selects.forEach(input => input.addEventListener('change', updatePrice));
-    updatePrice();
-});
-</script>
-
-<?php include 'includes/footer.php'; ?>
