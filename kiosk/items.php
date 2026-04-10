@@ -196,7 +196,7 @@ $page_title = "$category | TAMCC Deli Kiosk";
 <body>
 <div class="kiosk-items-page">
     <div class="items-header">
-        <a href="<?= kiosk_url('/kiosk/categories.php') ?>" class="back-btn">← BACK</a>
+        <a href="<?= kiosk_url('/kiosk/menu.php') ?>" class="back-btn">← BACK</a>
         <div class="category-title"><?= $emoji ?> <?= htmlspecialchars($category) ?> <?= $emoji ?></div>
         <div></div>
     </div>

@@ -209,7 +209,7 @@ $page_title = "Your Cart | TAMCC Deli Kiosk";
         <div class="empty-cart">
             <div style="font-size: 4rem;">🍽️</div>
             <p>Your cart is empty.</p>
-            <a href="<?= kiosk_url('/kiosk/categories.php') ?>" class="checkout-btn">Start Ordering</a>
+            <a href="<?= kiosk_url('/kiosk/menu.php') ?>" class="checkout-btn">Start Ordering</a>
         </div>
     <?php else: ?>
         <div class="cart-items">
@@ -241,7 +241,8 @@ $page_title = "Your Cart | TAMCC Deli Kiosk";
             <a href="<?= kiosk_url('/kiosk/payment.php') ?>" class="checkout-btn">Proceed to Payment →</a>
         </div>
     <?php endif; ?>
-    <div><a href="<?= kiosk_url('/kiosk/categories.php') ?>" class="back-link">← Continue Shopping</a></div>
+    <!-- FIXED: Continue Shopping now goes to menu.php (categories) -->
+    <div><a href="<?= kiosk_url('/kiosk/menu.php') ?>" class="back-link">← Continue Shopping</a></div>
 </div>
 <script>
     function updateCartCount() {
