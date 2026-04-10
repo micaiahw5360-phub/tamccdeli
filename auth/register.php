@@ -3,7 +3,6 @@ require __DIR__ . '/../includes/session.php';
 require __DIR__ . '/../config/database.php';
 require __DIR__ . '/../includes/csrf.php';
 require_once __DIR__ . '/../includes/kiosk.php';
-require_once __DIR__ . '/../includes/mail.php';
 
 $error = "";
 $prefill_email = $_POST['email'] ?? $_GET['email'] ?? '';
@@ -54,31 +53,23 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
                     }
                 }
                 if (empty($error)) {
-                    // Create user (no phone verification required)
+                    // Create user – email is considered verified immediately
                     $hash = password_hash($password, PASSWORD_DEFAULT);
-                    $stmt = $conn->prepare("INSERT INTO users (username, email, phone, password, email_verified) VALUES (?, ?, ?, ?, 0)");
+                    $stmt = $conn->prepare("INSERT INTO users (username, email, phone, password, email_verified) VALUES (?, ?, ?, ?, 1)");
                     $stmt->bind_param("ssss", $username, $email, $phone, $hash);
                     if ($stmt->execute()) {
                         $user_id = $conn->insert_id;
 
-                        // Send email verification code
-                        $email_code = rand(100000, 999999);
-                        $expires = date('Y-m-d H:i:s', strtotime('+15 minutes'));
-                        $stmt = $conn->prepare("INSERT INTO email_verifications (email, code, expires_at) VALUES (?, ?, ?)");
-                        $stmt->bind_param("sss", $email, $email_code, $expires);
-                        $stmt->execute();
+                        // Auto-login after registration
+                        session_regenerate_id(true);
+                        $_SESSION['user_id'] = $user_id;
+                        $_SESSION['role'] = 'customer';
+                        unset($_SESSION['kiosk_mode']);
 
-                        $subject = "Verify Your Email - TAMCC Deli";
-                        $body = "<h2>Email Verification</h2>
-                                 <p>Your verification code is: <strong>$email_code</strong></p>
-                                 <p>Enter this code on the verification page to activate your account.</p>
-                                 <p>Code expires in 15 minutes.</p>";
-                        sendEmail($email, $subject, $body);
-
-                        $_SESSION['pending_verification_user_id'] = $user_id;
-                        $_SESSION['pending_verification_email'] = $email;
-
-                        header("Location: verify-account.php");
+                        // Redirect to homepage
+                        $redirect = $_SESSION['redirect_after_login'] ?? '../index.php';
+                        unset($_SESSION['redirect_after_login']);
+                        header("Location: $redirect");
                         exit;
                     } else {
                         $error = "Registration failed. Please try again.";
@@ -120,7 +111,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
     <div class="auth-card">
         <div class="brand-icon">📝</div>
         <h2>Create an Account</h2>
-        <div class="sub-title">Join TAMCC Deli – verify your email after registration</div>
+        <div class="sub-title">Join TAMCC Deli – register and start ordering</div>
 
         <?php if ($error): ?>
             <div class="error-message"><?= $error ?></div>
@@ -145,7 +136,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
                 <input type="password" id="password" name="password" required>
                 <span class="password-toggle" id="togglePwdBtn" onclick="togglePassword()">Show</span>
             </div>
-            <button type="submit" class="btn btn-primary btn-block">Register & Verify Email</button>
+            <button type="submit" class="btn btn-primary btn-block">Register & Login</button>
         </form>
         <div class="auth-footer">
             Already have an account? <a href="login.php">Log in</a>
