@@ -4,10 +4,6 @@ require __DIR__ . '/../config/database.php';
 require __DIR__ . '/../includes/kiosk.php';
 require __DIR__ . '/../includes/functions.php';
 require __DIR__ . '/../includes/csrf.php';
-require_once __DIR__ . '/../vendor/autoload.php';
-
-use Stripe\Stripe;
-use Stripe\PaymentIntent;
 
 $kiosk_mode = true;
 $cart = $_SESSION['cart'] ?? [];
@@ -16,7 +12,7 @@ if (empty($cart)) {
     exit;
 }
 
-// Calculate total
+// Calculate total and cart items
 $total = 0;
 $cart_items = [];
 $item_ids = array_unique(array_column($cart, 'item_id'));
@@ -56,8 +52,8 @@ $customer_name = '';
 $customer_balance = 0;
 $customer_id = 0;
 
-// Handle POST (wallet or card)
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['payment_type'])) {
+// Handle wallet payment
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!validateToken($_POST['csrf_token'])) die('Invalid CSRF token');
     $email = trim($_POST['customer_email']);
     $stmt = $conn->prepare("SELECT id, username, balance FROM users WHERE email = ? AND is_active = 1");
@@ -66,15 +62,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['payment_type'])) {
     $user = $stmt->get_result()->fetch_assoc();
 
     if (!$user) {
-        $error = 'No account found with that email. Please register or use card payment.';
+        $error = 'No account found with that email. Please register or use a different email.';
     } else {
         $customer_id = $user['id'];
         $customer_name = $user['username'];
         $customer_balance = $user['balance'];
 
-        if ($_POST['payment_type'] === 'wallet') {
-            if ($customer_balance >= $total) {
-                $new_balance = $customer_balance - $total;
+        if ($customer_balance >= $total) {
+            $new_balance = $customer_balance - $total;
+            $conn->begin_transaction();
+            try {
                 $stmt = $conn->prepare("UPDATE users SET balance = ? WHERE id = ?");
                 $stmt->bind_param("di", $new_balance, $customer_id);
                 $stmt->execute();
@@ -90,6 +87,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['payment_type'])) {
                     $stmt->bind_param("iiids", $order_id, $ci['item']['id'], $ci['quantity'], $ci['unit_price'], $options_json);
                     $stmt->execute();
                 }
+
+                $conn->commit();
                 unset($_SESSION['cart']);
                 $_SESSION['last_order'] = [
                     'id' => $order_id,
@@ -101,45 +100,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['payment_type'])) {
                 ];
                 header('Location: ' . kiosk_url('/kiosk/confirmation.php'));
                 exit;
-            } else {
-                $error = 'Insufficient wallet balance. Please use card payment.';
+            } catch (Exception $e) {
+                $conn->rollback();
+                $error = 'Transaction failed. Please try again.';
             }
+        } else {
+            $error = "Insufficient wallet balance. Your balance: $$customer_balance, Total: $$total";
         }
     }
 }
 
-// Card payment: create Stripe PaymentIntent
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['payment_type']) && $_POST['payment_type'] === 'card') {
-    if (!validateToken($_POST['csrf_token'])) die('Invalid CSRF token');
-    $email = trim($_POST['customer_email']);
-    $customer_name = trim($_POST['customer_name'] ?? '');
-    if (empty($email) || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
-        $error = 'Please enter a valid email address.';
-    } elseif (empty($customer_name)) {
-        $error = 'Please enter your name.';
-    } else {
-        Stripe::setApiKey(getenv('STRIPE_SECRET_KEY'));
-        $intent = PaymentIntent::create([
-            'amount'   => round($total * 100),
-            'currency' => 'usd',
-            'metadata' => [
-                'customer_email' => $email,
-                'customer_name'  => $customer_name,
-                'cart_items'     => json_encode($cart_items)
-            ]
-        ]);
-        $_SESSION['stripe_intent_id'] = $intent->id;
-        $_SESSION['stripe_client_secret'] = $intent->client_secret;
-        $_SESSION['stripe_total'] = $total;
-        $_SESSION['stripe_cart_items'] = $cart_items;
-        $_SESSION['stripe_customer_email'] = $email;
-        $_SESSION['stripe_customer_name'] = $customer_name;
-        header('Location: ' . kiosk_url('/kiosk/stripe-payment.php'));
-        exit;
-    }
-}
-
-$page_title = "Payment | TAMCC Deli Kiosk";
+$page_title = "Wallet Payment | TAMCC Deli Kiosk";
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -148,115 +119,163 @@ $page_title = "Payment | TAMCC Deli Kiosk";
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <title><?= $page_title ?></title>
     <style>
-        :root {
-            --primary-600: #074af2; --primary-700: #0538c2; --neutral-300: #b0b5c2;
-            --neutral-500: #6c7384; --accent-500: #f97316; --accent-600: #ea580c;
-            --space-4: 1rem; --space-6: 1.5rem; --space-8: 2rem; --text-lg: clamp(1.125rem,3.5vw,1.25rem);
-            --text-xl: clamp(1.25rem,4vw,1.5rem); --text-4xl: clamp(2.25rem,7vw,3rem);
-            --radius-lg: 0.75rem; --radius-xl: 1rem; --radius-full: 9999px;
-            --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1); --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.1);
-            --transition: all 0.2s ease;
-        }
         * { margin:0; padding:0; box-sizing:border-box; }
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-            background: #f8f9fa;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             min-height: 100vh;
             display: flex;
             align-items: center;
             justify-content: center;
-            padding: var(--space-4);
+            padding: 2rem;
         }
-        .kiosk { max-width: 1400px; width:100%; background: rgba(255,255,255,0.95); border-radius: var(--radius-xl); box-shadow: var(--shadow-xl); backdrop-filter: blur(8px); overflow: hidden; min-height: 80vh; }
-        .screen { padding: var(--space-8); }
-        .time { text-align: right; font-size: var(--text-lg); color: var(--neutral-500); margin-bottom: var(--space-6); }
-        h1 { font-size: var(--text-4xl); font-weight: 700; margin-bottom: var(--space-4); color: var(--primary-700); }
-        .form-group { margin-bottom: var(--space-6); }
-        .form-label { display: block; font-size: var(--text-lg); font-weight: 600; margin-bottom: var(--space-2); color: #4a4f5d; }
-        .form-input { width:100%; padding: var(--space-4); font-size: var(--text-lg); border:2px solid var(--neutral-300); border-radius: var(--radius-lg); background:white; transition: var(--transition); }
-        .form-input:focus { border-color: var(--primary-600); outline:none; box-shadow:0 0 0 3px rgba(7,74,242,0.2); }
-        .btn { display: inline-flex; align-items: center; justify-content: center; gap: var(--space-2); padding: var(--space-4) var(--space-8); font-size: var(--text-xl); font-weight: 600; border-radius: var(--radius-full); transition: var(--transition); cursor: pointer; border: none; background: var(--primary-600); color: white; box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1); min-height: 64px; min-width: 120px; }
+        .kiosk {
+            max-width: 600px;
+            width: 100%;
+            background: rgba(255,255,255,0.97);
+            border-radius: 3rem;
+            box-shadow: 0 30px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+            animation: fadeInUp 0.5s ease;
+        }
+        @keyframes fadeInUp {
+            from { opacity:0; transform:translateY(30px); }
+            to { opacity:1; transform:translateY(0); }
+        }
+        .screen { padding: 2rem; }
+        h1 {
+            font-size: 2.5rem;
+            background: linear-gradient(135deg, #FF6B35, #FF4757);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            margin-bottom: 1rem;
+        }
+        .total-box {
+            background: linear-gradient(135deg, #FF6B35, #FF4757);
+            color: white;
+            padding: 1rem;
+            border-radius: 2rem;
+            text-align: center;
+            font-size: 1.5rem;
+            font-weight: bold;
+            margin-bottom: 2rem;
+        }
+        .form-group { margin-bottom: 1.5rem; }
+        label { font-weight: 600; display: block; margin-bottom: 0.5rem; }
+        input {
+            width: 100%;
+            padding: 1rem;
+            font-size: 1.1rem;
+            border: 2px solid #e2e8f0;
+            border-radius: 2rem;
+            transition: all 0.2s;
+        }
+        input:focus { border-color: #FF6B35; outline: none; box-shadow: 0 0 0 3px rgba(255,107,53,0.2); }
+        .btn {
+            background: linear-gradient(135deg, #00D25B, #00CEC9);
+            color: white;
+            border: none;
+            padding: 1rem;
+            width: 100%;
+            font-size: 1.3rem;
+            font-weight: bold;
+            border-radius: 3rem;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
         .btn:active { transform: scale(0.98); }
-        .btn-primary { background: var(--primary-600); }
-        .btn-primary:hover { background: var(--primary-700); transform: translateY(-2px); box-shadow: var(--shadow-lg); }
-        .btn-accent { background: var(--accent-500); }
-        .btn-accent:hover { background: var(--accent-600); transform: translateY(-2px); }
-        .btn-outline { background: transparent; border: 2px solid var(--primary-600); color: var(--primary-600); }
-        .error-message { background: #fee2e2; color: #dc2626; padding: var(--space-3); border-radius: var(--radius-lg); margin-bottom: var(--space-4); text-align: center; border-left: 3px solid #dc2626; }
-        @media (max-width:768px){ .screen{padding:var(--space-4);} .btn{padding:var(--space-3) var(--space-6); font-size:var(--text-lg); min-height:56px;} }
+        .error-message {
+            background: #fee2e2;
+            color: #dc2626;
+            padding: 0.75rem;
+            border-radius: 2rem;
+            margin-bottom: 1rem;
+            text-align: center;
+        }
+        .back-link {
+            display: inline-block;
+            margin-top: 1rem;
+            text-align: center;
+            width: 100%;
+            color: #FF6B35;
+            text-decoration: none;
+            font-weight: 600;
+        }
+        .wallet-info {
+            background: #f1f5f9;
+            border-radius: 1.5rem;
+            padding: 1rem;
+            margin-bottom: 1.5rem;
+            text-align: center;
+        }
     </style>
 </head>
 <body>
 <div class="kiosk">
     <div class="screen">
-        <div class="time"></div>
-        <h1>Complete Your Order</h1>
-        <p style="font-size: var(--text-xl); margin-bottom: var(--space-6);">Total: <strong>$<?= number_format($total, 2) ?></strong></p>
-        <?php if ($error): ?><div class="error-message"><?= htmlspecialchars($error) ?></div><?php endif; ?>
-        <form id="payment-form" method="post">
+        <h1>💳 Pay with Wallet</h1>
+        <div class="total-box">Total: $<?= number_format($total, 2) ?></div>
+        <?php if ($error): ?>
+            <div class="error-message"><?= htmlspecialchars($error) ?></div>
+        <?php endif; ?>
+        <form method="post">
             <input type="hidden" name="csrf_token" value="<?= generateToken() ?>">
             <div class="form-group">
-                <label class="form-label">Your Email (to identify your account)</label>
-                <input type="email" id="customer-email" name="customer_email" class="form-input" required>
+                <label>Your Email (registered account)</label>
+                <input type="email" id="customer_email" name="customer_email" required>
             </div>
-            <div id="wallet-info" style="display: none;">
-                <div class="form-group"><label class="form-label">Your Name</label><input type="text" id="customer-name" name="customer_name" class="form-input" readonly></div>
-                <div class="form-group"><label class="form-label">Wallet Balance</label><input type="text" id="customer-balance" class="form-input" readonly></div>
-                <button type="submit" name="payment_type" value="wallet" class="btn btn-primary" id="pay-wallet-btn" style="display: none;">Pay with Wallet</button>
+            <div id="walletInfo" class="wallet-info" style="display: none;">
+                <p>👤 <strong id="userName"></strong></p>
+                <p>💰 Balance: <strong id="userBalance"></strong></p>
             </div>
-            <div id="card-info" style="display: none;">
-                <div class="form-group"><label class="form-label">Your Name (for receipt)</label><input type="text" id="card-customer-name" name="customer_name" class="form-input" required></div>
-                <button type="submit" name="payment_type" value="card" class="btn btn-accent">Pay with Credit/Debit Card</button>
-            </div>
+            <button type="submit" class="btn" id="payBtn" disabled>Pay with Wallet</button>
         </form>
-        <div style="margin-top: var(--space-6);"><a href="<?= kiosk_url('/kiosk/cart.php') ?>" class="btn btn-outline">Back to Cart</a></div>
+        <a href="<?= kiosk_url('/kiosk/cart.php') ?>" class="back-link">← Back to Cart</a>
     </div>
 </div>
 <script>
-function updateCartDisplay() { fetch('<?= kiosk_url('/get-cart-count.php') ?>').then(r=>r.json()).then(data=>{document.querySelectorAll('.cart-count').forEach(el=>el.textContent=data.count);}); }
-updateCartDisplay();
-const emailInput = document.getElementById('customer-email');
-const walletInfo = document.getElementById('wallet-info');
-const cardInfo = document.getElementById('card-info');
-const customerNameInput = document.getElementById('customer-name');
-const balanceInput = document.getElementById('customer-balance');
-const payWalletBtn = document.getElementById('pay-wallet-btn');
-const cardNameInput = document.getElementById('card-customer-name');
-let timeout;
-emailInput.addEventListener('input', function() {
-    clearTimeout(timeout);
-    timeout = setTimeout(() => {
-        const email = this.value.trim();
-        if (email && email.includes('@')) {
-            fetch('<?= kiosk_url('/kiosk/get-user.php') ?>?email=' + encodeURIComponent(email))
-                .then(r => r.json())
-                .then(data => {
-                    if (data.success) {
-                        walletInfo.style.display = 'block';
-                        cardInfo.style.display = 'none';
-                        customerNameInput.value = data.name;
-                        balanceInput.value = '$' + data.balance.toFixed(2);
-                        if (data.balance >= <?= $total ?>) {
-                            payWalletBtn.style.display = 'inline-block';
-                            document.querySelector('button[value="card"]').style.display = 'none';
+    const emailInput = document.getElementById('customer_email');
+    const walletInfo = document.getElementById('walletInfo');
+    const userNameSpan = document.getElementById('userName');
+    const userBalanceSpan = document.getElementById('userBalance');
+    const payBtn = document.getElementById('payBtn');
+    let timeout;
+    emailInput.addEventListener('input', function() {
+        clearTimeout(timeout);
+        timeout = setTimeout(() => {
+            const email = this.value.trim();
+            if (email && email.includes('@')) {
+                fetch('<?= kiosk_url('/kiosk/get-user.php') ?>?email=' + encodeURIComponent(email))
+                    .then(r => r.json())
+                    .then(data => {
+                        if (data.success) {
+                            walletInfo.style.display = 'block';
+                            userNameSpan.textContent = data.name;
+                            userBalanceSpan.textContent = '$' + data.balance.toFixed(2);
+                            if (data.balance >= <?= $total ?>) {
+                                payBtn.disabled = false;
+                                payBtn.style.opacity = '1';
+                            } else {
+                                payBtn.disabled = true;
+                                payBtn.style.opacity = '0.5';
+                            }
                         } else {
-                            payWalletBtn.style.display = 'none';
-                            document.querySelector('button[value="card"]').style.display = 'inline-block';
+                            walletInfo.style.display = 'none';
+                            payBtn.disabled = true;
+                            payBtn.style.opacity = '0.5';
                         }
-                    } else {
+                    })
+                    .catch(() => {
                         walletInfo.style.display = 'none';
-                        cardInfo.style.display = 'block';
-                        if (data.name) cardNameInput.value = data.name;
-                        document.querySelector('button[value="card"]').style.display = 'inline-block';
-                    }
-                })
-                .catch(() => { walletInfo.style.display = 'none'; cardInfo.style.display = 'block'; });
-        } else {
-            walletInfo.style.display = 'none';
-            cardInfo.style.display = 'none';
-        }
-    }, 500);
-});
+                        payBtn.disabled = true;
+                    });
+            } else {
+                walletInfo.style.display = 'none';
+                payBtn.disabled = true;
+            }
+        }, 500);
+    });
 </script>
 </body>
 </html>
