@@ -6,32 +6,36 @@ require __DIR__ . '/../includes/functions.php';
 require __DIR__ . '/../includes/csrf.php';
 
 $kiosk_mode = true;
-$category = isset($_GET['cat']) ? $_GET['cat'] : '';
-if (!$category) {
+
+// Map slug to real database category name and emoji
+$category_map = [
+    'breakfast' => ['db_name' => 'Breakfast', 'emoji' => '🍳'],
+    'alacarte'  => ['db_name' => 'A La Carte', 'emoji' => '🍔'],
+    'combo'     => ['db_name' => 'Combo', 'emoji' => '🍱'],
+    'beverage'  => ['db_name' => 'Beverage', 'emoji' => '🥤'],
+    'dessert'   => ['db_name' => 'Dessert', 'emoji' => '🍰']
+];
+
+$slug = isset($_GET['cat']) ? $_GET['cat'] : '';
+if (!$slug || !isset($category_map[$slug])) {
     header('Location: ' . kiosk_url('/kiosk/menu.php'));
     exit;
 }
 
-// Fetch items with options using the cached function (same as your original)
+$category_db = $category_map[$slug]['db_name'];
+$category_emoji = $category_map[$slug]['emoji'];
+
+// Fetch items using the real database category name
 $stmt = $conn->prepare("SELECT * FROM menu_items WHERE category = ? ORDER BY sort_order, name");
-$stmt->bind_param("s", $category);
+$stmt->bind_param("s", $category_db);
 $stmt->execute();
 $items = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
 foreach ($items as &$item) {
     $item['options'] = getItemOptions($conn, $item['id']);
-    // Fallback image if no image exists
     $item['display_image'] = !empty($item['image']) ? $item['image'] : '/assets/images/default-food.jpg';
 }
 
-$category_emoji = [
-    'Breakfast' => '🍳',
-    'A La Carte' => '🍽️',
-    'Combo' => '🍱',
-    'Beverage' => '🥤',
-    'Dessert' => '🍰'
-];
-$emoji = $category_emoji[$category] ?? '🍽️';
-$page_title = "$category | TAMCC Deli Kiosk";
+$page_title = $category_db . " | TAMCC Deli Kiosk";
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -40,6 +44,7 @@ $page_title = "$category | TAMCC Deli Kiosk";
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <title><?= $page_title ?></title>
     <style>
+        /* (Keep all CSS exactly as you already have in your items.php) */
         * { margin:0; padding:0; box-sizing:border-box; }
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
@@ -232,7 +237,7 @@ $page_title = "$category | TAMCC Deli Kiosk";
 <div class="kiosk-items-page">
     <div class="items-header">
         <a href="<?= kiosk_url('/kiosk/menu.php') ?>" class="back-btn">← BACK</a>
-        <div class="category-title"><?= $emoji ?> <?= htmlspecialchars($category) ?> <?= $emoji ?></div>
+        <div class="category-title"><?= $category_emoji ?> <?= htmlspecialchars($category_db) ?> <?= $category_emoji ?></div>
         <div></div>
     </div>
     <div class="items-grid">
@@ -349,7 +354,6 @@ document.querySelectorAll('.item-card').forEach(card => {
         });
         if (missing) return;
 
-        // IMPORTANT: Change this URL to match your add-to-cart endpoint
         fetch('<?= kiosk_url('/kiosk/add-to-cart.php') ?>', {
             method: 'POST',
             headers: { 'Content-Type': 'application/x-www-form-urlencoded' },

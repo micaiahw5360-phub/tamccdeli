@@ -5,19 +5,20 @@ require __DIR__ . '/../includes/csrf.php';
 require_once __DIR__ . '/../includes/kiosk.php';
 require __DIR__ . '/../includes/functions.php';
 
+// Define categories: slug => [display_name, emoji]
 $categories = [
-    'breakfast' => '🍳 Breakfast',
-    'alacarte'  => '🍔 A La Carte',
-    'combo'     => '🍱 Combo',
-    'beverage'  => '🥤 Beverage',
-    'dessert'   => '🍰 Dessert'
+    'breakfast' => ['display' => 'Breakfast', 'emoji' => '🍳'],
+    'alacarte'  => ['display' => 'A La Carte', 'emoji' => '🍔'],
+    'combo'     => ['display' => 'Combo', 'emoji' => '🍱'],
+    'beverage'  => ['display' => 'Beverage', 'emoji' => '🥤'],
+    'dessert'   => ['display' => 'Dessert', 'emoji' => '🍰']
 ];
 
 $kiosk_mode = $kiosk_mode ?? false;
-$selected_category = isset($_GET['cat']) && array_key_exists($_GET['cat'], $categories) ? $_GET['cat'] : null;
+$selected_slug = isset($_GET['cat']) && array_key_exists($_GET['cat'], $categories) ? $_GET['cat'] : null;
 
 // If no category selected, show category tiles
-if ($kiosk_mode && !$selected_category) {
+if ($kiosk_mode && !$selected_slug) {
     $page_title = "Select Category | TAMCC Deli";
     ?>
     <!DOCTYPE html>
@@ -104,9 +105,9 @@ if ($kiosk_mode && !$selected_category) {
         <div class="kiosk-categories">
             <h1>🍽️ What would you like today?</h1>
             <div class="category-grid">
-                <?php foreach ($categories as $slug => $name): ?>
+                <?php foreach ($categories as $slug => $info): ?>
                     <a href="<?= kiosk_url('menu.php?cat=' . $slug) ?>" class="category-card">
-                        <?= $name ?>
+                        <?= $info['emoji'] ?> <?= $info['display'] ?>
                     </a>
                 <?php endforeach; ?>
             </div>
@@ -132,10 +133,9 @@ if ($kiosk_mode && !$selected_category) {
     exit;
 }
 
-// If a category is selected, redirect to items.php
-if ($selected_category) {
-    $category_name = $categories[$selected_category];
-    header('Location: ' . kiosk_url('/kiosk/items.php?cat=' . urlencode($category_name)));
+// If a category is selected, redirect to items.php with the slug
+if ($selected_slug) {
+    header('Location: ' . kiosk_url('/kiosk/items.php?cat=' . urlencode($selected_slug)));
     exit;
 }
 
