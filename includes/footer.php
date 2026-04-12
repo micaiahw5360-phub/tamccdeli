@@ -54,7 +54,7 @@ if (!$hide_footer):
     </div>
 
     <div class="footer-bottom">
-        <p>&copy; <?php echo date('Y'); ?> T.A. Marryshow Community College – Marryshow Mealhouse. All rights reserved.</p>
+        <p>&copy; <?php echo date('Y'); ?> T.A. Marryshow Community College – Marryshow's Mealhouse. All rights reserved.</p>
         <p>
             <a href="<?= kiosk_url('terms.php') ?>">Terms</a> | 
             <a href="<?= kiosk_url('privacy.php') ?>">Privacy</a> | 

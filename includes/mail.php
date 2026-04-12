@@ -63,7 +63,7 @@ function buildOrderEmail($order_id, $total, $payment_method, $pickup_time = null
                     <p><strong>Pickup Time:</strong> " . ($pickup_time ? date('M j, Y g:i a', strtotime($pickup_time)) : 'As soon as possible') . "</p>
                     <p><strong>Special Instructions:</strong> " . nl2br(htmlspecialchars($instructions)) . "</p>
                     <p>Your order will be ready for pickup at the TAMCC Deli counter.</p>
-                    <p>Thank you for choosing Marryshow Mealhouse!</p>";
+                    <p>Thank you for choosing Marryshow's Mealhouse!</p>";
     return ['subject' => $subject, 'body' => $body];
 }
 

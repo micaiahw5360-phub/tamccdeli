@@ -3,7 +3,7 @@ require __DIR__ . '/includes/session.php';
 require "config/database.php";
 require "includes/functions.php"; // Required for getPopularItems()
 
-$page_title = "TAMCC Deli | Marryshow Mealhouse";
+$page_title = "Marryshow's Mealhouse";
 include 'includes/header.php';
 
 // Fetch popular items from cache (top 3 items by sales in last 30 days)
@@ -102,7 +102,7 @@ $popular_items = getPopularItems($conn, 3);
 <!-- Hero Section -->
 <div class="hero">
     <div>
-        <h1>Marryshow Mealhouse</h1>
+        <h1>Marryshow's Mealhouse</h1>
         <p>Fresh. Local. Affordable.<br>Serving the T.A. Marryshow Community College since 2024.</p>
         <a href="<?= kiosk_url('menu.php') ?>" class="btn btn-accent">View Our Menu</a>
     </div>
@@ -184,7 +184,7 @@ $popular_items = getPopularItems($conn, 3);
 
 <!-- About -->
 <section class="section">
-    <h2>About Marryshow Mealhouse</h2>
+    <h2>About Marryshow's Mealhouse</h2>
     <div class="about-content">
         <div class="about-text">
             <p>Welcome to TAMCC Deli – your on‑campus dining destination at T.A. Marryshow Community College. We believe that good food fuels great minds, and we're dedicated to providing students, faculty, and staff with delicious, nutritious, and affordable meals.</p>

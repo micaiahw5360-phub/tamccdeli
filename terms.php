@@ -11,7 +11,7 @@ include 'includes/header.php';
         <div class="card-icon" style="font-size: 4rem; text-align: center; margin-bottom: 1rem;">⚖️</div>
         
         <h2>1. Introduction</h2>
-        <p>Welcome to TAMCC Deli (Marryshow Mealhouse). By using our website and services, you agree to these terms.</p>
+        <p>Welcome to Marryshow's Mealhouse. By using our website and services, you agree to these terms.</p>
 
         <h2>2. Eligibility</h2>
         <p>You must be a student, staff, or faculty member of T.A. Marryshow Community College to place orders. Orders are subject to availability.</p>
