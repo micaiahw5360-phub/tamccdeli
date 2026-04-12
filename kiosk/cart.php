@@ -10,7 +10,7 @@ $cart = $_SESSION['cart'] ?? [];
 $cart_items = [];
 $total = 0;
 
-// Helper to get option details from stored option value IDs
+// Helper to get option details from stored option value IDs (if needed)
 function getOptionDetailsFromIds($conn, $option_ids) {
     if (empty($option_ids)) return [];
     $ids = array_values($option_ids);
@@ -51,7 +51,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_SERVER['HTTP_X_REQUESTED_WI
     exit;
 }
 
-// Build cart items with full details
+// Build cart items with full details (including options)
 if (!empty($cart)) {
     $item_ids = array_unique(array_column($cart, 'item_id'));
     $items_data = [];
@@ -97,12 +97,12 @@ $page_title = "Your Cart | TAMCC Deli Kiosk";
         * { margin:0; padding:0; box-sizing:border-box; }
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, #1e3c72 0%, #2b4c7c 100%);
             min-height: 100vh;
             padding: 2rem;
         }
         .cart-wrapper {
-            max-width: 1200px;
+            max-width: 1000px;
             margin: 0 auto;
             background: rgba(255,255,255,0.97);
             border-radius: 2rem;
@@ -114,11 +114,8 @@ $page_title = "Your Cart | TAMCC Deli Kiosk";
             to { opacity:1; transform:translateY(0); }
         }
         h1 {
-            font-size: 2.5rem;
-            background: linear-gradient(135deg, #FF6B35, #FF4757);
-            -webkit-background-clip: text;
-            background-clip: text;
-            color: transparent;
+            font-size: 2rem;
+            color: #1e3c72;
             margin-bottom: 1.5rem;
         }
         .cart-items { display: flex; flex-direction: column; gap: 1rem; }
@@ -130,12 +127,26 @@ $page_title = "Your Cart | TAMCC Deli Kiosk";
             justify-content: space-between;
             align-items: center;
             flex-wrap: wrap;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            gap: 1rem;
+            margin-bottom: 1rem;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+            border: 1px solid #e2e8f0;
         }
         .item-details { flex: 2; }
-        .item-name { font-size: 1.2rem; font-weight: bold; }
-        .item-options { font-size: 0.85rem; color: #666; margin-top: 0.25rem; }
-        .item-price, .item-subtotal { font-weight: bold; color: #FF6B35; }
+        .item-name {
+            font-weight: bold;
+            font-size: 1.1rem;
+            color: #1e3c72;
+        }
+        .item-options {
+            font-size: 0.85rem;
+            color: #4a5568;
+            margin-top: 0.25rem;
+        }
+        .item-price, .item-subtotal {
+            font-weight: bold;
+            color: #1e3c72;
+        }
         .quantity-control {
             display: flex;
             align-items: center;
@@ -153,7 +164,7 @@ $page_title = "Your Cart | TAMCC Deli Kiosk";
             font-size: 1.2rem;
             font-weight: bold;
             cursor: pointer;
-            color: #FF6B35;
+            color: #1e3c72;
         }
         .remove-btn {
             background: #fee2e2;
@@ -167,32 +178,40 @@ $page_title = "Your Cart | TAMCC Deli Kiosk";
         .cart-summary {
             margin-top: 2rem;
             text-align: right;
-            border-top: 2px dashed #e2e8f0;
+            border-top: 2px solid #e2e8f0;
             padding-top: 1rem;
         }
-        .total { font-size: 1.8rem; font-weight: bold; }
+        .total {
+            font-size: 1.8rem;
+            font-weight: bold;
+            color: #1e3c72;
+        }
         .checkout-btn {
-            background: linear-gradient(135deg, #00D25B, #00CEC9);
+            background: #1e3c72;
             color: white;
             border: none;
             padding: 1rem 2rem;
-            font-size: 1.3rem;
+            font-size: 1.2rem;
             border-radius: 3rem;
             cursor: pointer;
             margin-top: 1rem;
             display: inline-block;
             text-decoration: none;
         }
-        .empty-cart { text-align: center; padding: 3rem; }
+        .checkout-btn:hover { background: #2b4c7c; }
+        .empty-cart {
+            text-align: center;
+            padding: 3rem;
+        }
         .back-link {
             display: inline-block;
             margin-top: 1rem;
-            color: #FF6B35;
+            color: #1e3c72;
             text-decoration: none;
             font-weight: bold;
         }
         @media (max-width: 768px) {
-            .cart-item { flex-direction: column; align-items: stretch; gap: 0.5rem; }
+            .cart-item { flex-direction: column; align-items: stretch; }
             .quantity-control { justify-content: center; }
         }
     </style>
@@ -202,7 +221,7 @@ $page_title = "Your Cart | TAMCC Deli Kiosk";
     <h1>🛒 Your Order</h1>
     <?php if (empty($cart_items)): ?>
         <div class="empty-cart">
-            <div style="font-size: 4rem;">🍽️</div>
+            <div style="font-size: 4rem;">🛍️</div>
             <p>Your cart is empty.</p>
             <a href="<?= kiosk_url('/kiosk/menu.php') ?>" class="checkout-btn">Start Ordering</a>
         </div>
@@ -213,14 +232,14 @@ $page_title = "Your Cart | TAMCC Deli Kiosk";
                     <div class="item-details">
                         <div class="item-name"><?= htmlspecialchars($item['item']['name']) ?></div>
                         <?php if (!empty($item['options'])): ?>
-                            <?php foreach ($item['options'] as $opt): ?>
-                                <div class="item-options">
-                                    <?= htmlspecialchars($opt['option_name']) ?>: <?= htmlspecialchars($opt['value_name']) ?>
+                            <div class="item-options">
+                                <?php foreach ($item['options'] as $opt): ?>
+                                    • <?= htmlspecialchars($opt['option_name']) ?>: <?= htmlspecialchars($opt['value_name']) ?>
                                     <?php if ($opt['price_modifier'] != 0): ?>
                                         (<?= ($opt['price_modifier'] > 0 ? '+' : '-') ?>$<?= number_format(abs($opt['price_modifier']), 2) ?>)
-                                    <?php endif; ?>
-                                </div>
-                            <?php endforeach; ?>
+                                    <?php endif; ?><br>
+                                <?php endforeach; ?>
+                            </div>
                         <?php endif; ?>
                     </div>
                     <div class="item-price">$<?= number_format($item['unit_price'], 2) ?> each</div>
@@ -236,44 +255,33 @@ $page_title = "Your Cart | TAMCC Deli Kiosk";
         </div>
         <div class="cart-summary">
             <div class="total">Total: $<?= number_format($total, 2) ?></div>
-            <a href="<?= kiosk_url('/kiosk/payment.php') ?>" class="checkout-btn">Proceed to Payment →</a>
+            <a href="<?= kiosk_url('/kiosk/payment.php') ?>" class="checkout-btn">💳 Proceed to Payment</a>
         </div>
     <?php endif; ?>
     <div><a href="<?= kiosk_url('/kiosk/menu.php') ?>" class="back-link">← Continue Shopping</a></div>
 </div>
+
 <script>
-    function updateCartCount() {
-        fetch('<?= kiosk_url('/get-cart-count.php') ?>')
-            .then(r => r.json())
-            .then(data => {
-                document.querySelectorAll('.cart-count').forEach(el => el.textContent = data.count);
-            });
-    }
-    function updateCartItem(key, action) {
-        fetch('<?= kiosk_url('/kiosk/cart.php') ?>', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'X-Requested-With': 'XMLHttpRequest' },
-            body: new URLSearchParams({
-                csrf_token: '<?= generateToken() ?>',
-                key: key,
-                action: action
-            })
-        })
-        .then(r => r.json())
-        .then(data => {
-            if (data.success) location.reload();
-        });
-    }
-    document.querySelectorAll('.increment').forEach(btn => {
-        btn.addEventListener('click', () => updateCartItem(btn.dataset.key, 'increment'));
-    });
-    document.querySelectorAll('.decrement').forEach(btn => {
-        btn.addEventListener('click', () => updateCartItem(btn.dataset.key, 'decrement'));
-    });
-    document.querySelectorAll('.remove-btn').forEach(btn => {
-        btn.addEventListener('click', () => updateCartItem(btn.dataset.key, 'remove'));
-    });
-    updateCartCount();
+function getCsrf() { return '<?= generateToken() ?>'; }
+function updateCartItem(key, action) {
+    fetch('<?= kiosk_url('/kiosk/cart.php') ?>', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'X-Requested-With': 'XMLHttpRequest' },
+        body: new URLSearchParams({ csrf_token: getCsrf(), key: key, action: action })
+    })
+    .then(r => r.json())
+    .then(data => { if (data.success) location.reload(); });
+}
+
+document.querySelectorAll('.increment').forEach(btn => {
+    btn.addEventListener('click', () => updateCartItem(btn.dataset.key, 'increment'));
+});
+document.querySelectorAll('.decrement').forEach(btn => {
+    btn.addEventListener('click', () => updateCartItem(btn.dataset.key, 'decrement'));
+});
+document.querySelectorAll('.remove-btn').forEach(btn => {
+    btn.addEventListener('click', () => updateCartItem(btn.dataset.key, 'remove'));
+});
 </script>
 </body>
 </html>

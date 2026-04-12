@@ -8,12 +8,11 @@ require __DIR__ . '/../includes/csrf.php';
 $kiosk_mode = true;
 $cart = $_SESSION['cart'] ?? [];
 if (empty($cart)) {
-    // FIXED: redirect to menu.php instead of categories.php
     header('Location: ' . kiosk_url('/kiosk/menu.php'));
     exit;
 }
 
-// Calculate total and cart items
+// Calculate total and cart items (same as your original)
 $total = 0;
 $cart_items = [];
 $item_ids = array_unique(array_column($cart, 'item_id'));
@@ -53,7 +52,7 @@ $customer_name = '';
 $customer_balance = 0;
 $customer_id = 0;
 
-// Handle wallet payment
+// Handle wallet payment (email based)
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!validateToken($_POST['csrf_token'])) die('Invalid CSRF token');
     $email = trim($_POST['customer_email']);
@@ -123,160 +122,95 @@ $page_title = "Wallet Payment | TAMCC Deli Kiosk";
         * { margin:0; padding:0; box-sizing:border-box; }
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, #1e3c72 0%, #2b4c7c 100%);
             min-height: 100vh;
             display: flex;
             align-items: center;
             justify-content: center;
             padding: 2rem;
         }
-        .kiosk {
-            max-width: 600px;
+        .payment-card {
+            background: white;
+            max-width: 500px;
             width: 100%;
-            background: rgba(255,255,255,0.97);
-            border-radius: 3rem;
-            box-shadow: 0 30px 60px rgba(0,0,0,0.3);
-            overflow: hidden;
-            animation: fadeInUp 0.5s ease;
+            border-radius: 2rem;
+            padding: 2rem;
+            text-align: center;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.2);
+            animation: fadeInUp 0.5s;
         }
         @keyframes fadeInUp {
             from { opacity:0; transform:translateY(30px); }
             to { opacity:1; transform:translateY(0); }
         }
-        .screen { padding: 2rem; }
-        h1 {
-            font-size: 2.5rem;
-            background: linear-gradient(135deg, #FF6B35, #FF4757);
-            -webkit-background-clip: text;
-            background-clip: text;
-            color: transparent;
-            margin-bottom: 1rem;
-        }
-        .total-box {
-            background: linear-gradient(135deg, #FF6B35, #FF4757);
-            color: white;
-            padding: 1rem;
-            border-radius: 2rem;
-            text-align: center;
-            font-size: 1.5rem;
+        h1 { color: #1e3c72; margin-bottom: 1rem; display: flex; align-items: center; justify-content: center; gap: 0.5rem; }
+        .total-amount {
+            font-size: 2rem;
             font-weight: bold;
-            margin-bottom: 2rem;
+            color: #1e3c72;
+            background: #e0e7ff;
+            padding: 1rem;
+            border-radius: 1.5rem;
+            margin: 1rem 0;
         }
-        .form-group { margin-bottom: 1.5rem; }
-        label { font-weight: 600; display: block; margin-bottom: 0.5rem; }
         input {
             width: 100%;
-            padding: 1rem;
-            font-size: 1.1rem;
-            border: 2px solid #e2e8f0;
+            padding: 0.8rem;
+            margin: 0.5rem 0;
             border-radius: 2rem;
-            transition: all 0.2s;
+            border: 1px solid #cbd5e1;
+            font-size: 1rem;
         }
-        input:focus { border-color: #FF6B35; outline: none; box-shadow: 0 0 0 3px rgba(255,107,53,0.2); }
-        .btn {
-            background: linear-gradient(135deg, #00D25B, #00CEC9);
+        button {
+            background: #1e3c72;
             color: white;
             border: none;
-            padding: 1rem;
             width: 100%;
-            font-size: 1.3rem;
-            font-weight: bold;
-            border-radius: 3rem;
-            cursor: pointer;
-            transition: transform 0.2s;
-        }
-        .btn:active { transform: scale(0.98); }
-        .error-message {
-            background: #fee2e2;
-            color: #dc2626;
-            padding: 0.75rem;
+            padding: 0.8rem;
             border-radius: 2rem;
-            margin-bottom: 1rem;
-            text-align: center;
+            font-size: 1.2rem;
+            font-weight: bold;
+            margin-top: 1rem;
+            cursor: pointer;
+            transition: background 0.2s;
         }
+        button:hover { background: #2b4c7c; }
+        .error { color: #dc2626; margin: 0.5rem 0; background: #fee2e2; padding: 0.5rem; border-radius: 2rem; }
         .back-link {
             display: inline-block;
             margin-top: 1rem;
-            text-align: center;
-            width: 100%;
-            color: #FF6B35;
+            color: #1e3c72;
             text-decoration: none;
-            font-weight: 600;
         }
-        .wallet-info {
-            background: #f1f5f9;
-            border-radius: 1.5rem;
-            padding: 1rem;
+        .wallet-disclaimer {
+            background: #f0f7ff;
+            padding: 0.8rem;
+            border-radius: 1rem;
             margin-bottom: 1.5rem;
-            text-align: center;
+            font-size: 0.9rem;
+            color: #1e3c72;
         }
     </style>
 </head>
 <body>
-<div class="kiosk">
-    <div class="screen">
-        <h1>💳 Pay with Wallet</h1>
-        <div class="total-box">Total: $<?= number_format($total, 2) ?></div>
-        <?php if ($error): ?>
-            <div class="error-message"><?= htmlspecialchars($error) ?></div>
-        <?php endif; ?>
-        <form method="post">
-            <input type="hidden" name="csrf_token" value="<?= generateToken() ?>">
-            <div class="form-group">
-                <label>Your Email (registered account)</label>
-                <input type="email" id="customer_email" name="customer_email" required>
-            </div>
-            <div id="walletInfo" class="wallet-info" style="display: none;">
-                <p>👤 <strong id="userName"></strong></p>
-                <p>💰 Balance: <strong id="userBalance"></strong></p>
-            </div>
-            <button type="submit" class="btn" id="payBtn" disabled>Pay with Wallet</button>
-        </form>
-        <a href="<?= kiosk_url('/cart.php') ?>" class="back-link">← Back to Cart</a>
+<div class="payment-card">
+    <h1>💳 Wallet Payment</h1>
+    <div class="wallet-disclaimer">
+        ⚡ Payment will be deducted from your TAMCC Deli Wallet.<br>
+        Enter your registered email address to confirm.
     </div>
+    <div class="total-amount">💰 Total: $<?= number_format($total, 2) ?></div>
+
+    <?php if ($error): ?>
+        <div class="error">❌ <?= htmlspecialchars($error) ?></div>
+    <?php endif; ?>
+
+    <form method="POST">
+        <input type="hidden" name="csrf_token" value="<?= generateToken() ?>">
+        <input type="email" name="customer_email" placeholder="Your Email" required autocomplete="off">
+        <button type="submit">✅ Confirm & Pay</button>
+    </form>
+    <a href="<?= kiosk_url('/kiosk/cart.php') ?>" class="back-link">← Back to Cart</a>
 </div>
-<script>
-    const emailInput = document.getElementById('customer_email');
-    const walletInfo = document.getElementById('walletInfo');
-    const userNameSpan = document.getElementById('userName');
-    const userBalanceSpan = document.getElementById('userBalance');
-    const payBtn = document.getElementById('payBtn');
-    let timeout;
-    emailInput.addEventListener('input', function() {
-        clearTimeout(timeout);
-        timeout = setTimeout(() => {
-            const email = this.value.trim();
-            if (email && email.includes('@')) {
-                fetch('<?= kiosk_url('/kiosk/get-user.php') ?>?email=' + encodeURIComponent(email))
-                    .then(r => r.json())
-                    .then(data => {
-                        if (data.success) {
-                            walletInfo.style.display = 'block';
-                            userNameSpan.textContent = data.name;
-                            userBalanceSpan.textContent = '$' + data.balance.toFixed(2);
-                            if (data.balance >= <?= $total ?>) {
-                                payBtn.disabled = false;
-                                payBtn.style.opacity = '1';
-                            } else {
-                                payBtn.disabled = true;
-                                payBtn.style.opacity = '0.5';
-                            }
-                        } else {
-                            walletInfo.style.display = 'none';
-                            payBtn.disabled = true;
-                            payBtn.style.opacity = '0.5';
-                        }
-                    })
-                    .catch(() => {
-                        walletInfo.style.display = 'none';
-                        payBtn.disabled = true;
-                    });
-            } else {
-                walletInfo.style.display = 'none';
-                payBtn.disabled = true;
-            }
-        }, 500);
-    });
-</script>
 </body>
 </html>
