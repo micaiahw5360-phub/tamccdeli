@@ -12,7 +12,7 @@ if (!$category) {
     exit;
 }
 
-$stmt = $conn->prepare("SELECT * FROM menu_items WHERE category = ? ORDER BY sort_order, name");
+$stmt = $conn->prepare("SELECT * FROM menu_items WHERE category = ? AND is_available = 1 ORDER BY sort_order, name");
 $stmt->bind_param("s", $category);
 $stmt->execute();
 $items = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
@@ -21,10 +21,10 @@ foreach ($items as &$item) {
 }
 
 $category_emoji = [
-    'Combo' => '🍔',
-    'Drinks' => '🥤',
     'Breakfast' => '🍳',
-    'À la carte' => '🍽️',
+    'A La Carte' => '🍽️',
+    'Combo' => '🍔',
+    'Beverage' => '🥤',
     'Dessert' => '🍰'
 ];
 $emoji = $category_emoji[$category] ?? '🍽️';
@@ -45,10 +45,7 @@ $page_title = "$category | TAMCC Deli Kiosk";
             min-height: 100vh;
             padding: 2rem;
         }
-        .kiosk-items-page {
-            max-width: 1400px;
-            margin: 0 auto;
-        }
+        .kiosk-items-page { max-width: 1400px; margin: 0 auto; }
         .items-header {
             background: rgba(255,255,255,0.95);
             border-radius: 2rem;
@@ -243,8 +240,7 @@ $page_title = "$category | TAMCC Deli Kiosk";
         <?php endforeach; ?>
     </div>
 </div>
-<!-- FIXED: cart link now points to root cart.php (works for both normal & kiosk) -->
-<div class="cart-floating" onclick="window.location.href='<?= kiosk_url('/cart.php') ?>'">
+<div class="cart-floating" onclick="window.location.href='<?= kiosk_url('/kiosk/cart.php') ?>'">
     🛒 CART (<span id="cart-count">0</span>)
 </div>
 <canvas id="confetti-canvas"></canvas>
@@ -270,7 +266,6 @@ $page_title = "$category | TAMCC Deli Kiosk";
         const addBtn = card.querySelector('.add-btn');
 
         let quantity = 1;
-        let selectedOptions = {};
 
         function updatePrice() {
             let modifier = 0;
@@ -304,7 +299,6 @@ $page_title = "$category | TAMCC Deli Kiosk";
         });
 
         addBtn.addEventListener('click', () => {
-            // Build options array
             const options = {};
             optionGroups.forEach(group => {
                 const selected = group.querySelector('.radio-option.selected');
@@ -314,7 +308,7 @@ $page_title = "$category | TAMCC Deli Kiosk";
                     options[optId] = valId;
                 }
             });
-            // Check required
+            // Check required options
             let missing = false;
             optionGroups.forEach(group => {
                 const label = group.querySelector('.option-label');
@@ -325,8 +319,7 @@ $page_title = "$category | TAMCC Deli Kiosk";
             });
             if (missing) return;
 
-            // FIXED: Use root cart.php?action=add endpoint instead of missing add-to-cart.php
-            fetch('<?= kiosk_url('/cart.php?action=add') ?>', {
+            fetch('<?= kiosk_url('/kiosk/add-to-cart.php') ?>', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
                 body: new URLSearchParams({
