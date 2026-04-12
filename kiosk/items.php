@@ -12,13 +12,10 @@ if (!$category) {
     exit;
 }
 
-$stmt = $conn->prepare("SELECT * FROM menu_items WHERE category = ? AND is_available = 1 ORDER BY sort_order, name");
-$stmt->bind_param("s", $category);
-$stmt->execute();
-$items = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
-foreach ($items as &$item) {
-    $item['options'] = getItemOptions($conn, $item['id']);
-}
+// ----- FIX: Use cached function instead of raw query + manual options loading -----
+$items = getMenuItemsWithOptions($conn, $category);
+if (!$items) $items = [];
+// --------------------------------------------------------------------------------
 
 $category_emoji = [
     'Breakfast' => '🍳',
@@ -211,7 +208,7 @@ $page_title = "$category | TAMCC Deli Kiosk";
                     <?php if (!empty($item['options'])): ?>
                         <div class="options-section">
                             <?php foreach ($item['options'] as $opt): ?>
-                                <div class="option-group" data-option-id="<?= $opt['id'] ?>">
+                                <div class="option-group" data-option-id="<?= $opt['id'] ?>" data-required="<?= $opt['required'] ?>">
                                     <div class="option-label"><?= htmlspecialchars($opt['option_name']) ?> <?= $opt['required'] ? '⚠️' : '' ?></div>
                                     <div class="radio-group">
                                         <?php foreach ($opt['values'] as $val): ?>
@@ -308,13 +305,13 @@ $page_title = "$category | TAMCC Deli Kiosk";
                     options[optId] = valId;
                 }
             });
-            // Check required options
+            // Check required options using data-required attribute
             let missing = false;
             optionGroups.forEach(group => {
-                const label = group.querySelector('.option-label');
-                if (label.innerText.includes('⚠️') && !group.querySelector('.radio-option.selected')) {
+                if (group.dataset.required === '1' && !group.querySelector('.radio-option.selected')) {
+                    const label = group.querySelector('.option-label').innerText.replace('⚠️','');
+                    alert('Please select ' + label);
                     missing = true;
-                    alert('Please select ' + label.innerText.replace('⚠️',''));
                 }
             });
             if (missing) return;

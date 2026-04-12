@@ -8,7 +8,8 @@ require __DIR__ . '/../includes/csrf.php';
 $kiosk_mode = true;
 $cart = $_SESSION['cart'] ?? [];
 if (empty($cart)) {
-    header('Location: ' . kiosk_url('/kiosk/categories.php'));
+    // FIXED: redirect to menu.php instead of categories.php
+    header('Location: ' . kiosk_url('/kiosk/menu.php'));
     exit;
 }
 

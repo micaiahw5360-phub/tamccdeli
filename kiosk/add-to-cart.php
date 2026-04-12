@@ -31,10 +31,33 @@ if (!$item) {
     exit;
 }
 
+// ----- FIX: Get all valid option value IDs for this item -----
+$valid_value_ids = [];
+$stmt = $conn->prepare("
+    SELECT v.id 
+    FROM menu_item_option_values v
+    JOIN menu_item_options o ON v.option_id = o.id
+    WHERE o.menu_item_id = ?
+");
+$stmt->bind_param("i", $item_id);
+$stmt->execute();
+$res = $stmt->get_result();
+while ($row = $res->fetch_assoc()) {
+    $valid_value_ids[] = $row['id'];
+}
+// ------------------------------------------------------------
+
 // Calculate total price including option modifiers
 $total_price = (float)$item['price'];
 $option_ids = [];
 foreach ($options as $opt_id => $value_id) {
+    // ----- FIX: Validate that value_id belongs to this item -----
+    if (!in_array($value_id, $valid_value_ids)) {
+        echo json_encode(['success' => false, 'error' => 'Invalid option value']);
+        exit;
+    }
+    // ------------------------------------------------------------
+    
     $stmt = $conn->prepare("SELECT price_modifier FROM menu_item_option_values WHERE id = ?");
     $stmt->bind_param("i", $value_id);
     $stmt->execute();

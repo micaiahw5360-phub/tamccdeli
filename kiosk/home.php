@@ -27,148 +27,85 @@ $page_title = "Welcome | TAMCC Deli Kiosk";
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title><?= $page_title ?></title>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+        * { margin:0; padding:0; box-sizing:border-box; }
         body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            overflow-x: hidden;
-        }
-        .kiosk-home {
-            background: linear-gradient(135deg, rgba(0,0,0,0.65), rgba(0,0,0,0.75)), 
-                        url('/assets/images/main.menu.png') center/cover fixed;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background: linear-gradient(135deg, #1e3c72 0%, #2b4c7c 100%);
             min-height: 100vh;
             display: flex;
             align-items: center;
             justify-content: center;
             padding: 2rem;
-            position: relative;
-            overflow: hidden;
         }
-        .kiosk-home::before {
-            content: '🍔 🍕 🥤 🍳 🍰 🍦 🥗 🌮 🍪 🧃';
-            position: absolute;
-            font-size: 6rem;
-            white-space: nowrap;
-            opacity: 0.08;
-            animation: slideEmojis 30s linear infinite;
-            pointer-events: none;
-            bottom: 0;
-        }
-        @keyframes slideEmojis {
-            0% { transform: translateX(-20%); }
-            100% { transform: translateX(20%); }
-        }
-        @keyframes bounce {
-            0%, 100% { transform: translateY(0); }
-            50% { transform: translateY(-15px); }
-        }
-        @keyframes cardPopIn {
-            0% { opacity: 0; transform: scale(0.8) translateY(50px); }
-            100% { opacity: 1; transform: scale(1) translateY(0); }
-        }
-        @keyframes pulse {
-            0%, 100% { transform: scale(1); opacity: 1; }
-            50% { transform: scale(1.02); opacity: 0.95; }
+        .kiosk-home { width: 100%; max-width: 1100px; animation: fadeInUp 0.6s ease-out; }
+        @keyframes fadeInUp {
+            from { opacity:0; transform:translateY(30px); }
+            to { opacity:1; transform:translateY(0); }
         }
         .home-card {
-            background: rgba(255, 255, 255, 0.97);
-            backdrop-filter: blur(20px);
-            border-radius: 4rem;
-            padding: 4rem 3rem;
-            text-align: center;
-            max-width: 750px;
-            width: 100%;
-            animation: cardPopIn 0.6s cubic-bezier(0.34, 1.2, 0.64, 1);
-            box-shadow: 0 30px 60px rgba(0,0,0,0.3);
-            border: 3px solid rgba(255,255,255,0.5);
-            position: relative;
-            z-index: 1;
-        }
-        .home-card .logo {
-            max-width: 160px;
-            margin-bottom: 1.5rem;
-            animation: bounce 2s infinite;
-        }
-        .home-card h1 {
-            font-size: 3.8rem;
-            margin-bottom: 1rem;
-            background: linear-gradient(135deg, #FF6B35, #FF4757, #6C5CE7, #FF69B4);
-            -webkit-background-clip: text;
-            background-clip: text;
-            color: transparent;
-        }
-        .greeting-text {
-            font-size: 2rem;
-            font-weight: 700;
-            background: linear-gradient(135deg, #FF6B35, #FF4757);
-            -webkit-background-clip: text;
-            background-clip: text;
-            color: transparent;
-            margin-bottom: 2rem;
-        }
-        .fun-fact-card {
-            background: linear-gradient(135deg, #FF6B35, #FF4757);
-            padding: 1.2rem;
+            background: rgba(255,255,255,0.98);
+            backdrop-filter: blur(10px);
             border-radius: 3rem;
+            padding: 3rem 2.5rem;
+            text-align: center;
+            box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25);
+            border: 1px solid rgba(255,255,255,0.3);
+        }
+        .logo { max-width: 180px; margin-bottom: 1.5rem; animation: float 3s ease-in-out infinite; }
+        @keyframes float { 0%,100% { transform:translateY(0); } 50% { transform:translateY(-8px); } }
+        h1 {
+            font-size: 3rem;
+            background: linear-gradient(135deg, #1e3c72, #2b4c7c);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            margin-bottom: 1rem;
+        }
+        .greeting-text { font-size: 1.8rem; font-weight: 600; color: #1e3c72; margin-bottom: 2rem; }
+        .fun-fact-card {
+            background: linear-gradient(135deg, #1e3c72, #2b4c7c);
+            padding: 1.2rem;
+            border-radius: 2rem;
             margin: 2rem 0;
             color: white;
             font-weight: bold;
-            animation: pulse 2s infinite;
-        }
-        .fun-fact-card span {
-            font-size: 1.8rem;
-            margin-right: 0.5rem;
-        }
-        .fun-fact-card p {
-            font-size: 1.2rem;
-            margin: 0;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.1);
         }
         .start-btn {
-            background: linear-gradient(135deg, #FF6B35, #FF4757);
+            background: linear-gradient(135deg, #1e3c72, #2b4c7c);
             color: white;
             border: none;
-            padding: 1.2rem 3.5rem;
-            font-size: 2rem;
+            padding: 1rem 2.5rem;
+            font-size: 1.6rem;
             font-weight: 800;
-            border-radius: 4rem;
+            border-radius: 3rem;
             cursor: pointer;
-            transition: all 0.3s cubic-bezier(0.34, 1.2, 0.64, 1);
-            box-shadow: 0 10px 30px rgba(255, 107, 53, 0.4);
+            transition: all 0.3s ease;
             text-decoration: none;
             display: inline-block;
-            letter-spacing: 2px;
+            box-shadow: 0 10px 20px rgba(30,60,114,0.3);
         }
-        .start-btn:hover {
-            transform: scale(1.08) translateY(-5px);
-            box-shadow: 0 20px 40px rgba(255, 107, 53, 0.6);
-        }
+        .start-btn:hover { transform: scale(1.05); background: linear-gradient(135deg, #2b4c7c, #1e3c72); }
         @media (max-width: 768px) {
-            .home-card { padding: 2rem; }
-            .home-card h1 { font-size: 2rem; }
-            .greeting-text { font-size: 1.3rem; }
-            .start-btn { font-size: 1.3rem; padding: 0.8rem 2rem; }
-            .fun-fact-card p { font-size: 0.9rem; }
+            .home-card { padding: 2rem 1.5rem; }
+            h1 { font-size: 2rem; }
+            .greeting-text { font-size: 1.2rem; }
+            .start-btn { font-size: 1.2rem; padding: 0.8rem 1.8rem; }
         }
     </style>
 </head>
 <body>
-    <div class="kiosk-home">
-        <div class="home-card">
-            <img src="/assets/images/ta-logo-1536x512.png" alt="TAMCC Deli" class="logo">
-            <h1>🍔 TAMCC DELI 🍕<br><span style="font-size: 1.5rem;">Marryshow Mealhouse</span></h1>
-            <div class="greeting-text"><?= $greeting ?></div>
-            <div class="fun-fact-card">
-                <span>🎉 FUN FACT! 🎉</span>
-                <p><?= $random_fact ?></p>
-            </div>
-            <!-- FIXED: Link to menu.php instead of missing categories.php -->
-            <a href="<?= kiosk_url('/kiosk/menu.php') ?>" class="start-btn">
-                🍽️ START YOUR ORDER 🍽️
-            </a>
+<div class="kiosk-home">
+    <div class="home-card">
+        <img src="/assets/images/ta-logo-1536x512.png" alt="TAMCC Deli" class="logo">
+        <h1>🍔 TAMCC DELI 🍕<br><span style="font-size: 1.2rem;">Marryshow Mealhouse</span></h1>
+        <div class="greeting-text"><?= $greeting ?></div>
+        <div class="fun-fact-card">
+            <span>🎉 FUN FACT! 🎉</span>
+            <p><?= $random_fact ?></p>
         </div>
+        <a href="<?= kiosk_url('/kiosk/menu.php') ?>" class="start-btn">🍽️ START YOUR ORDER 🍽️</a>
     </div>
+</div>
 </body>
 </html>
