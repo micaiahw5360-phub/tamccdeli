@@ -2,11 +2,36 @@
 require __DIR__ . '/../includes/session.php';
 require __DIR__ . '/../includes/kiosk.php';
 
+// Use session data from payment (fast, no extra DB query)
 $order = $_SESSION['last_order'] ?? null;
+
+// If no session data, try to fetch from database using order_id from URL (optional fallback)
+if (!$order && isset($_GET['order_id'])) {
+    require __DIR__ . '/../config/database.php';
+    $order_id = (int)$_GET['order_id'];
+    $stmt = $conn->prepare("SELECT * FROM orders WHERE id = ?");
+    $stmt->bind_param("i", $order_id);
+    $stmt->execute();
+    $db_order = $stmt->get_result()->fetch_assoc();
+    if ($db_order) {
+        // Build minimal order array for display
+        $order = [
+            'id' => $db_order['id'],
+            'customer' => 'Customer', // we don't have name here, but it's okay
+            'total' => $db_order['total'],
+            'payment_method' => $db_order['payment_method'],
+            'items' => [] // items not fetched; but session should be used primarily
+        ];
+    }
+}
+
+// If still no order, redirect to menu
 if (!$order) {
     header('Location: ' . kiosk_url('/kiosk/menu.php'));
     exit;
 }
+
+// Clear session so refresh doesn't show same order again
 unset($_SESSION['last_order']);
 
 $page_title = "Order Confirmation | TAMCC Deli Kiosk";
@@ -98,30 +123,34 @@ $page_title = "Order Confirmation | TAMCC Deli Kiosk";
 <body>
 <div class="confirmation-card">
     <div class="checkmark">✅🎉</div>
-    <h1>Thank You, <?= htmlspecialchars($order['customer']) ?>!</h1>
+    <h1>Thank You, <?= htmlspecialchars($order['customer'] ?? 'Valued Customer') ?>!</h1>
     <p>Your order has been placed and sent to the kitchen.</p>
 
     <div class="order-number">🧾 Order #: <?= htmlspecialchars($order['id']) ?></div>
 
     <div class="receipt">
         <h3 style="margin-bottom: 1rem; color: #1e3c72;">Order Summary</h3>
-        <?php foreach ($order['items'] as $item): ?>
-            <div class="receipt-item">
-                <span><?= $item['quantity'] ?>x <?= htmlspecialchars($item['item']['name']) ?></span>
-                <span>$<?= number_format($item['subtotal'], 2) ?></span>
-            </div>
-            <?php if (!empty($item['options'])): ?>
-                <div style="font-size: 0.8rem; color: #4a5568; margin-left: 1rem; margin-bottom: 0.5rem;">
-                    <?php foreach ($item['options'] as $opt): ?>
-                        • <?= htmlspecialchars($opt['option_name'] ?? $opt['value_name'] ?? 'Option') ?><br>
-                    <?php endforeach; ?>
+        <?php if (!empty($order['items'])): ?>
+            <?php foreach ($order['items'] as $item): ?>
+                <div class="receipt-item">
+                    <span><?= $item['quantity'] ?>x <?= htmlspecialchars($item['item']['name'] ?? $item['name'] ?? 'Item') ?></span>
+                    <span>$<?= number_format($item['subtotal'] ?? ($item['price'] * $item['quantity']), 2) ?></span>
                 </div>
-            <?php endif; ?>
-        <?php endforeach; ?>
+                <?php if (!empty($item['options'])): ?>
+                    <div style="font-size: 0.8rem; color: #4a5568; margin-left: 1rem; margin-bottom: 0.5rem;">
+                        <?php foreach ($item['options'] as $opt): ?>
+                            • <?= htmlspecialchars($opt['option_name'] ?? $opt['value_name'] ?? 'Option') ?><br>
+                        <?php endforeach; ?>
+                    </div>
+                <?php endif; ?>
+            <?php endforeach; ?>
+        <?php else: ?>
+            <p style="color: #4a5568;">(Order details loaded from database)</p>
+        <?php endif; ?>
         <div class="receipt-total">Total: $<?= number_format($order['total'], 2) ?></div>
     </div>
 
-    <p>💳 Paid via <?= htmlspecialchars($order['payment_method']) ?></p>
+    <p>💳 Paid via <?= htmlspecialchars(ucfirst($order['payment_method'] ?? 'wallet')) ?></p>
 
     <div class="auto-redirect">
         ⏳ Redirecting to home page in <span id="countdown">5</span> seconds...

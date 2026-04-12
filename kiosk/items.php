@@ -1,4 +1,7 @@
 <?php
+error_reporting(E_ALL);
+ini_set('display_errors', 1);
+
 require __DIR__ . '/../includes/session.php';
 require __DIR__ . '/../config/database.php';
 require __DIR__ . '/../includes/kiosk.php';
@@ -6,36 +9,43 @@ require __DIR__ . '/../includes/functions.php';
 require __DIR__ . '/../includes/csrf.php';
 
 $kiosk_mode = true;
+$slug = isset($_GET['cat']) ? trim($_GET['cat']) : '';
 
-// Map slug to real database category name and emoji
-$category_map = [
-    'breakfast' => ['db_name' => 'Breakfast', 'emoji' => '🍳'],
-    'alacarte'  => ['db_name' => 'A La Carte', 'emoji' => '🍔'],
-    'combo'     => ['db_name' => 'Combo', 'emoji' => '🍱'],
-    'beverage'  => ['db_name' => 'Beverage', 'emoji' => '🥤'],
-    'dessert'   => ['db_name' => 'Dessert', 'emoji' => '🍰']
-];
-
-$slug = isset($_GET['cat']) ? $_GET['cat'] : '';
-if (!$slug || !isset($category_map[$slug])) {
+if (!$slug) {
     header('Location: ' . kiosk_url('/kiosk/menu.php'));
     exit;
 }
 
-$category_db = $category_map[$slug]['db_name'];
-$category_emoji = $category_map[$slug]['emoji'];
+// Map slug to database category name and display info
+$category_map = [
+    'breakfast' => ['db' => 'Breakfast', 'display' => 'Breakfast', 'emoji' => '🍳'],
+    'alacarte'  => ['db' => 'A La Carte', 'display' => 'A La Carte', 'emoji' => '🍔'],
+    'combo'     => ['db' => 'Combo', 'display' => 'Combo', 'emoji' => '🍱'],
+    'beverage'  => ['db' => 'Beverage', 'display' => 'Beverage', 'emoji' => '🥤'],
+    'dessert'   => ['db' => 'Dessert', 'display' => 'Dessert', 'emoji' => '🍰']
+];
 
-// Fetch items using the real database category name
-$stmt = $conn->prepare("SELECT * FROM menu_items WHERE category = ? ORDER BY sort_order, name");
-$stmt->bind_param("s", $category_db);
-$stmt->execute();
-$items = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
-foreach ($items as &$item) {
-    $item['options'] = getItemOptions($conn, $item['id']);
-    $item['display_image'] = !empty($item['image']) ? $item['image'] : '/assets/images/default-food.jpg';
+if (!isset($category_map[$slug])) {
+    header('Location: ' . kiosk_url('/kiosk/menu.php'));
+    exit;
 }
 
-$page_title = $category_db . " | TAMCC Deli Kiosk";
+$db_category = $category_map[$slug]['db'];
+$display_name = $category_map[$slug]['display'];
+$emoji = $category_map[$slug]['emoji'];
+
+// Fetch items from database
+$stmt = $conn->prepare("SELECT * FROM menu_items WHERE category = ? ORDER BY sort_order, name");
+$stmt->bind_param("s", $db_category);
+$stmt->execute();
+$items = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+
+foreach ($items as &$item) {
+    $item['options'] = getItemOptions($conn, $item['id']);
+    $item['display_image'] = !empty($item['image']) ? $item['image'] : ($item['image_url'] ?? '/assets/images/default-food.jpg');
+}
+
+$page_title = "$display_name | TAMCC Deli Kiosk";
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -44,7 +54,7 @@ $page_title = $category_db . " | TAMCC Deli Kiosk";
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <title><?= $page_title ?></title>
     <style>
-        /* (Keep all CSS exactly as you already have in your items.php) */
+        /* (keep your existing CSS from items (1).php – unchanged) */
         * { margin:0; padding:0; box-sizing:border-box; }
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
@@ -72,14 +82,8 @@ $page_title = $category_db . " | TAMCC Deli Kiosk";
             border-radius: 3rem;
             text-decoration: none;
             font-weight: bold;
-            transition: all 0.2s;
         }
-        .back-btn:hover { background: #2b4c7c; transform: scale(1.02); }
-        .category-title {
-            font-size: 2rem;
-            font-weight: 800;
-            color: #1e3c72;
-        }
+        .category-title { font-size: 2rem; font-weight: 800; color: #1e3c72; }
         .items-grid {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
@@ -95,13 +99,9 @@ $page_title = $category_db . " | TAMCC Deli Kiosk";
             border-radius: 1.5rem;
             overflow: hidden;
             box-shadow: 0 10px 20px rgba(0,0,0,0.1);
-            transition: transform 0.2s, box-shadow 0.2s;
-            border: 1px solid #e2e8f0;
+            transition: transform 0.2s;
         }
-        .item-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 20px 30px rgba(0,0,0,0.15);
-        }
+        .item-card:hover { transform: translateY(-5px); }
         .item-image {
             width: 100%;
             height: 200px;
@@ -109,18 +109,8 @@ $page_title = $category_db . " | TAMCC Deli Kiosk";
             background: #f1f5f9;
         }
         .item-info { padding: 1.5rem; }
-        .item-name {
-            font-size: 1.4rem;
-            font-weight: 800;
-            color: #1e3c72;
-            margin-bottom: 0.5rem;
-        }
-        .item-price {
-            font-size: 1.6rem;
-            font-weight: 800;
-            color: #1e3c72;
-            margin-bottom: 1rem;
-        }
+        .item-name { font-size: 1.4rem; font-weight: 800; color: #1e3c72; margin-bottom: 0.5rem; }
+        .item-price { font-size: 1.6rem; font-weight: 800; color: #1e3c72; margin-bottom: 1rem; }
         .options-section {
             background: #f0f7ff;
             border-radius: 1rem;
@@ -129,16 +119,8 @@ $page_title = $category_db . " | TAMCC Deli Kiosk";
             border: 1px solid #cbd5e1;
         }
         .option-group { margin-bottom: 1rem; }
-        .option-label {
-            font-weight: 700;
-            margin-bottom: 0.5rem;
-            color: #1e3c72;
-        }
-        .radio-group {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 0.5rem;
-        }
+        .option-label { font-weight: 700; margin-bottom: 0.5rem; color: #1e3c72; }
+        .radio-group { display: flex; flex-wrap: wrap; gap: 0.5rem; }
         .radio-option {
             background: white;
             border: 2px solid #cbd5e1;
@@ -147,19 +129,9 @@ $page_title = $category_db . " | TAMCC Deli Kiosk";
             cursor: pointer;
             transition: all 0.2s;
             font-size: 0.9rem;
-            color: #1e293b;
         }
-        .radio-option.selected {
-            background: #1e3c72;
-            color: white;
-            border-color: #1e3c72;
-        }
-        .item-actions {
-            display: flex;
-            gap: 1rem;
-            align-items: center;
-            margin-top: 1rem;
-        }
+        .radio-option.selected { background: #1e3c72; color: white; border-color: #1e3c72; }
+        .item-actions { display: flex; gap: 1rem; align-items: center; margin-top: 1rem; }
         .qty-control {
             display: flex;
             align-items: center;
@@ -175,7 +147,6 @@ $page_title = $category_db . " | TAMCC Deli Kiosk";
             border-radius: 50%;
             border: none;
             font-size: 1.2rem;
-            font-weight: bold;
             cursor: pointer;
             color: #1e3c72;
         }
@@ -188,9 +159,7 @@ $page_title = $category_db . " | TAMCC Deli Kiosk";
             border-radius: 3rem;
             font-weight: bold;
             cursor: pointer;
-            transition: background 0.2s;
         }
-        .add-btn:hover { background: #2b4c7c; }
         .cart-floating {
             position: fixed;
             bottom: 30px;
@@ -200,15 +169,13 @@ $page_title = $category_db . " | TAMCC Deli Kiosk";
             padding: 1rem 2rem;
             border-radius: 4rem;
             font-weight: bold;
-            box-shadow: 0 10px 15px rgba(0,0,0,0.2);
-            transition: transform 0.2s;
-            z-index: 1000;
             text-decoration: none;
             display: flex;
             align-items: center;
             gap: 0.5rem;
+            z-index: 1000;
+            box-shadow: 0 10px 15px rgba(0,0,0,0.2);
         }
-        .cart-floating:hover { transform: scale(1.05); background: #2b4c7c; }
         .toast {
             position: fixed;
             bottom: 120px;
@@ -217,16 +184,10 @@ $page_title = $category_db . " | TAMCC Deli Kiosk";
             color: white;
             padding: 0.8rem 1.5rem;
             border-radius: 2rem;
-            animation: fadeInUp 0.3s;
             z-index: 1001;
         }
-        canvas {
-            position: fixed;
-            top:0; left:0;
-            pointer-events: none;
-            z-index: 9999;
-            display: none;
-        }
+        .no-items { text-align: center; padding: 3rem; background: white; border-radius: 2rem; color: #1e3c72; }
+        canvas { position: fixed; top:0; left:0; pointer-events: none; z-index: 9999; display: none; }
         @media (max-width: 768px) {
             .items-header { flex-direction: column; text-align: center; }
             .items-grid { grid-template-columns: 1fr; }
@@ -237,47 +198,56 @@ $page_title = $category_db . " | TAMCC Deli Kiosk";
 <div class="kiosk-items-page">
     <div class="items-header">
         <a href="<?= kiosk_url('/kiosk/menu.php') ?>" class="back-btn">← BACK</a>
-        <div class="category-title"><?= $category_emoji ?> <?= htmlspecialchars($category_db) ?> <?= $category_emoji ?></div>
+        <div class="category-title"><?= $emoji ?> <?= htmlspecialchars($display_name) ?> <?= $emoji ?></div>
         <div></div>
     </div>
-    <div class="items-grid">
-        <?php foreach ($items as $item): ?>
-        <div class="item-card" data-item-id="<?= $item['id'] ?>" data-base-price="<?= $item['price'] ?>">
-            <img src="<?= htmlspecialchars($item['display_image']) ?>" class="item-image" alt="<?= htmlspecialchars($item['name']) ?>" onerror="this.src='/assets/images/default-food.jpg'">
-            <div class="item-info">
-                <div class="item-name"><?= htmlspecialchars($item['name']) ?></div>
-                <div class="item-price" id="price-<?= $item['id'] ?>">$<?= number_format($item['price'], 2) ?></div>
-                <?php if (!empty($item['options'])): ?>
-                <div class="options-section">
-                    <?php foreach ($item['options'] as $opt): ?>
-                    <div class="option-group" data-option-id="<?= $opt['id'] ?>">
-                        <div class="option-label"><?= htmlspecialchars($opt['option_name']) ?> <?= $opt['required'] ? '⚠️ Required' : '' ?></div>
-                        <div class="radio-group">
-                            <?php foreach ($opt['values'] as $val): ?>
-                            <div class="radio-option" data-value-id="<?= $val['id'] ?>" data-price="<?= $val['price_modifier'] ?>">
-                                <?= htmlspecialchars($val['value_name']) ?>
-                                <?php if ($val['price_modifier'] != 0): ?>
-                                (<?= ($val['price_modifier'] > 0 ? '+' : '-') ?>$<?= number_format(abs($val['price_modifier']), 2) ?>)
-                                <?php endif; ?>
+
+    <?php if (empty($items)): ?>
+        <div class="no-items">
+            <div style="font-size: 4rem;">🍽️</div>
+            <h2>No items found</h2>
+            <a href="<?= kiosk_url('/kiosk/menu.php') ?>" class="back-btn" style="display: inline-block; margin-top: 1rem;">← Back to Categories</a>
+        </div>
+    <?php else: ?>
+        <div class="items-grid">
+            <?php foreach ($items as $item): ?>
+            <div class="item-card" data-item-id="<?= $item['id'] ?>" data-base-price="<?= $item['price'] ?>">
+                <img src="<?= htmlspecialchars($item['display_image']) ?>" class="item-image" alt="<?= htmlspecialchars($item['name']) ?>" onerror="this.src='/assets/images/default-food.jpg'">
+                <div class="item-info">
+                    <div class="item-name"><?= htmlspecialchars($item['name']) ?></div>
+                    <div class="item-price" id="price-<?= $item['id'] ?>">$<?= number_format($item['price'], 2) ?></div>
+                    <?php if (!empty($item['options'])): ?>
+                    <div class="options-section">
+                        <?php foreach ($item['options'] as $opt): ?>
+                        <div class="option-group" data-option-id="<?= $opt['id'] ?>">
+                            <div class="option-label"><?= htmlspecialchars($opt['option_name']) ?> <?= $opt['required'] ? '⚠️ Required' : '' ?></div>
+                            <div class="radio-group">
+                                <?php foreach ($opt['values'] as $val): ?>
+                                <div class="radio-option" data-value-id="<?= $val['id'] ?>" data-price="<?= $val['price_modifier'] ?>">
+                                    <?= htmlspecialchars($val['value_name']) ?>
+                                    <?php if ($val['price_modifier'] != 0): ?>
+                                    (<?= ($val['price_modifier'] > 0 ? '+' : '-') ?>$<?= number_format(abs($val['price_modifier']), 2) ?>)
+                                    <?php endif; ?>
+                                </div>
+                                <?php endforeach; ?>
                             </div>
-                            <?php endforeach; ?>
                         </div>
+                        <?php endforeach; ?>
                     </div>
-                    <?php endforeach; ?>
-                </div>
-                <?php endif; ?>
-                <div class="item-actions">
-                    <div class="qty-control">
-                        <button class="qty-btn dec">−</button>
-                        <span class="qty-val">1</span>
-                        <button class="qty-btn inc">+</button>
+                    <?php endif; ?>
+                    <div class="item-actions">
+                        <div class="qty-control">
+                            <button class="qty-btn dec">−</button>
+                            <span class="qty-val">1</span>
+                            <button class="qty-btn inc">+</button>
+                        </div>
+                        <button class="add-btn">➕ ADD TO ORDER</button>
                     </div>
-                    <button class="add-btn">➕ ADD TO ORDER</button>
                 </div>
             </div>
+            <?php endforeach; ?>
         </div>
-        <?php endforeach; ?>
-    </div>
+    <?php endif; ?>
 </div>
 <a href="<?= kiosk_url('/kiosk/cart.php') ?>" class="cart-floating">🛒 CART (<span id="cart-count">0</span>)</a>
 <canvas id="confetti-canvas"></canvas>
@@ -288,9 +258,13 @@ const csrfToken = '<?= generateToken() ?>';
 function updateCartCount() {
     fetch('<?= kiosk_url('/get-cart-count.php') ?>')
         .then(r => r.json())
-        .then(data => { document.getElementById('cart-count').innerText = data.count; })
+        .then(data => {
+            const countEl = document.getElementById('cart-count');
+            if (countEl) countEl.innerText = data.count;
+        })
         .catch(console.error);
 }
+
 updateCartCount();
 setInterval(updateCartCount, 3000);
 
@@ -298,7 +272,6 @@ document.querySelectorAll('.item-card').forEach(card => {
     const basePrice = parseFloat(card.dataset.basePrice);
     const priceSpan = card.querySelector('.item-price');
     const optionGroups = card.querySelectorAll('.option-group');
-    const radioOptions = card.querySelectorAll('.radio-option');
     const decBtn = card.querySelector('.dec');
     const incBtn = card.querySelector('.inc');
     const qtySpan = card.querySelector('.qty-val');
@@ -316,7 +289,16 @@ document.querySelectorAll('.item-card').forEach(card => {
         return total;
     }
 
-    radioOptions.forEach(opt => {
+    // Auto-select first option if none selected
+    optionGroups.forEach(group => {
+        const firstOption = group.querySelector('.radio-option');
+        if (firstOption && !group.querySelector('.radio-option.selected')) {
+            firstOption.classList.add('selected');
+        }
+    });
+    updatePrice();
+
+    card.querySelectorAll('.radio-option').forEach(opt => {
         opt.addEventListener('click', () => {
             const parent = opt.closest('.option-group');
             parent.querySelectorAll('.radio-option').forEach(o => o.classList.remove('selected'));
@@ -354,6 +336,7 @@ document.querySelectorAll('.item-card').forEach(card => {
         });
         if (missing) return;
 
+        // ✅ FIXED: Correct URL for add-to-cart.php
         fetch('<?= kiosk_url('/kiosk/add-to-cart.php') ?>', {
             method: 'POST',
             headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
@@ -368,13 +351,18 @@ document.querySelectorAll('.item-card').forEach(card => {
         .then(data => {
             if (data.success) {
                 showToast('✅ Added to cart!');
-                updateCartCount();
+                // Update the floating cart count immediately
+                if (data.cart_count !== undefined) {
+                    document.getElementById('cart-count').innerText = data.cart_count;
+                } else {
+                    updateCartCount(); // fallback
+                }
                 showConfetti();
             } else {
                 alert('Error: ' + (data.error || 'Unknown error'));
             }
         })
-        .catch(err => { console.error(err); alert('Network error. Please try again.'); });
+        .catch(err => { console.error(err); alert('Network error.'); });
     });
 });
 

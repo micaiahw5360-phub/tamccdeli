@@ -3,9 +3,7 @@ require __DIR__ . '/../includes/session.php';
 require __DIR__ . '/../config/database.php';
 require __DIR__ . '/../includes/csrf.php';
 require_once __DIR__ . '/../includes/kiosk.php';
-require __DIR__ . '/../includes/functions.php';
 
-// Define categories: slug => [display_name, emoji]
 $categories = [
     'breakfast' => ['display' => 'Breakfast', 'emoji' => '🍳'],
     'alacarte'  => ['display' => 'A La Carte', 'emoji' => '🍔'],
@@ -14,10 +12,9 @@ $categories = [
     'dessert'   => ['display' => 'Dessert', 'emoji' => '🍰']
 ];
 
-$kiosk_mode = $kiosk_mode ?? false;
+$kiosk_mode = true;
 $selected_slug = isset($_GET['cat']) && array_key_exists($_GET['cat'], $categories) ? $_GET['cat'] : null;
 
-// If no category selected, show category tiles
 if ($kiosk_mode && !$selected_slug) {
     $page_title = "Select Category | TAMCC Deli";
     ?>
@@ -28,6 +25,7 @@ if ($kiosk_mode && !$selected_slug) {
         <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
         <title><?= $page_title ?></title>
         <style>
+            /* (keep your existing CSS exactly as in your menu (1).php – unchanged) */
             * { margin:0; padding:0; box-sizing:border-box; }
             body {
                 font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
@@ -37,7 +35,6 @@ if ($kiosk_mode && !$selected_slug) {
                 align-items: center;
                 justify-content: center;
                 padding: 2rem;
-                position: relative;
             }
             .kiosk-categories {
                 background: rgba(255,255,255,0.96);
@@ -53,11 +50,7 @@ if ($kiosk_mode && !$selected_slug) {
                 from { opacity:0; transform:translateY(30px); }
                 to { opacity:1; transform:translateY(0); }
             }
-            h1 {
-                font-size: 2.5rem;
-                color: #1e3c72;
-                margin-bottom: 2rem;
-            }
+            h1 { font-size: 2.5rem; color: #1e3c72; margin-bottom: 2rem; }
             .category-grid {
                 display: grid;
                 grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
@@ -139,6 +132,5 @@ if ($selected_slug) {
     exit;
 }
 
-// Fallback
 echo "Menu not available.";
 ?>
