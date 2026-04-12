@@ -231,7 +231,7 @@ $page_title = "Wallet Payment | TAMCC Deli Kiosk";
             </div>
             <button type="submit" class="btn" id="payBtn" disabled>Pay with Wallet</button>
         </form>
-        <a href="<?= kiosk_url('/kiosk/cart.php') ?>" class="back-link">← Back to Cart</a>
+        <a href="<?= kiosk_url('/cart.php') ?>" class="back-link">← Back to Cart</a>
     </div>
 </div>
 <script>

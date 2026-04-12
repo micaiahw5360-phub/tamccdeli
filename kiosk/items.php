@@ -8,7 +8,7 @@ require __DIR__ . '/../includes/csrf.php';
 $kiosk_mode = true;
 $category = isset($_GET['cat']) ? $_GET['cat'] : '';
 if (!$category) {
-    header('Location: ' . kiosk_url('/kiosk/categories.php'));
+    header('Location: ' . kiosk_url('/kiosk/menu.php'));
     exit;
 }
 
@@ -243,7 +243,8 @@ $page_title = "$category | TAMCC Deli Kiosk";
         <?php endforeach; ?>
     </div>
 </div>
-<div class="cart-floating" onclick="window.location.href='<?= kiosk_url('/kiosk/cart.php') ?>'">
+<!-- FIXED: cart link now points to root cart.php (works for both normal & kiosk) -->
+<div class="cart-floating" onclick="window.location.href='<?= kiosk_url('/cart.php') ?>'">
     🛒 CART (<span id="cart-count">0</span>)
 </div>
 <canvas id="confetti-canvas"></canvas>
@@ -324,7 +325,8 @@ $page_title = "$category | TAMCC Deli Kiosk";
             });
             if (missing) return;
 
-            fetch('<?= kiosk_url('/add-to-cart.php') ?>', {
+            // FIXED: Use root cart.php?action=add endpoint instead of missing add-to-cart.php
+            fetch('<?= kiosk_url('/cart.php?action=add') ?>', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
                 body: new URLSearchParams({

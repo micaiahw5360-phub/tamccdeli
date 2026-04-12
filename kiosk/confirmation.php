@@ -4,7 +4,7 @@ require __DIR__ . '/../includes/kiosk.php';
 
 $kiosk_mode = true;
 if (!isset($_SESSION['last_order'])) {
-    header('Location: ' . kiosk_url('/kiosk/categories.php'));
+    header('Location: ' . kiosk_url('/kiosk/menu.php'));
     exit;
 }
 $order = $_SESSION['last_order'];
@@ -86,7 +86,8 @@ $page_title = "Order Confirmation | TAMCC Deli Kiosk";
         <p><strong>Total: $<?= number_format($order['total'], 2) ?></strong></p>
     </div>
     <div class="btn-group">
-        <a href="<?= kiosk_url('/kiosk/categories.php') ?>" class="btn">New Order</a>
+        <!-- FIXED: Changed categories.php to menu.php -->
+        <a href="<?= kiosk_url('/kiosk/menu.php') ?>" class="btn">New Order</a>
         <a href="<?= kiosk_url('/kiosk/home.php') ?>" class="btn btn-outline">Home</a>
     </div>
 </div>

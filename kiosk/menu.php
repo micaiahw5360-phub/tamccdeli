@@ -97,7 +97,7 @@ if ($kiosk_mode && !$selected_category) {
                 <?php endforeach; ?>
             </div>
         </div>
-        <a href="<?= kiosk_url('/kiosk/cart.php') ?>" style="position:fixed; bottom:20px; right:20px; background:#FF6B35; color:white; padding:0.8rem 1.5rem; border-radius:3rem; text-decoration:none; font-weight:bold;">🛒 Cart (<span id="cart-count">0</span>)</a>
+        <a href="<?= kiosk_url('/cart.php') ?>" style="position:fixed; bottom:20px; right:20px; background:#FF6B35; color:white; padding:0.8rem 1.5rem; border-radius:3rem; text-decoration:none; font-weight:bold;">🛒 Cart (<span id="cart-count">0</span>)</a>
         <script>
             fetch('<?= kiosk_url('/get-cart-count.php') ?>')
                 .then(r=>r.json())
